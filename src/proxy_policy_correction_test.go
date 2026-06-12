@@ -54,9 +54,8 @@ func setupPolicyCorrectionDB(t *testing.T) *sql.DB {
 	return db
 }
 
-// TestPolicyCorrectionNewUser 验证新用户首次请求时策略路由纠偏
-// 场景：新用户首次请求 → 缓存为空 → 负载均衡分配到 upstream-a
-//       → 异步获取用户信息 → 策略匹配到 upstream-b → 纠偏迁移
+// TestPolicyCorrectionNewUser 验证新用户首次请求时按策略生成首次绑定
+// 场景：新用户首次请求 → 无 RouteTable 绑定 → 查询用户信息和策略 → 绑定 upstream-b
 func TestPolicyCorrectionNewUser(t *testing.T) {
 	db := setupPolicyCorrectionDB(t)
 	defer db.Close()
@@ -97,22 +96,17 @@ func TestPolicyCorrectionNewUser(t *testing.T) {
 	senderID := "new-user-001"
 	appID := "app-001"
 
-	// Step 1: 模拟新用户 — 缓存为空，策略匹配被跳过
+	// Step 1: 模拟新用户 — DB 中没有用户信息
 	cachedInfo := cache.GetCached(senderID)
 	if cachedInfo != nil {
-		t.Fatal("新用户缓存应该为空")
+		t.Fatal("新用户信息应该为空")
 	}
 
-	// Step 2: 模拟负载均衡分配到 upstream-a（不是策略期望的 upstream-b）
-	routes.Bind(senderID, appID, "upstream-a")
-	pool.IncrUserCount("upstream-a", 1)
-
-	currentUID, found := routes.Lookup(senderID, appID)
-	if !found || currentUID != "upstream-a" {
-		t.Fatalf("期望绑定到 upstream-a，实际 found=%v uid=%s", found, currentUID)
+	if _, found := routes.Lookup(senderID, appID); found {
+		t.Fatal("新用户不应已有路由绑定")
 	}
 
-	// Step 3: 模拟异步获取用户信息（纠偏核心）
+	// Step 2: 首次策略匹配获取用户信息
 	info, err := cache.GetOrFetch(senderID)
 	if err != nil {
 		t.Fatalf("GetOrFetch 失败: %v", err)
@@ -125,30 +119,21 @@ func TestPolicyCorrectionNewUser(t *testing.T) {
 	}
 	routes.UpdateUserInfo(senderID, info.Name, info.Email, info.Department)
 
-	// Step 4: 策略纠偏 — 修复后的核心逻辑
-	corrected := false
+	// Step 3: 无既有路由时，用策略结果生成首次绑定
+	bound := false
 	if pUID, ok := policyEng.Match(info, appID); ok && pUID != "" && pool.IsHealthy(pUID) {
-		if currentUID, found := routes.Lookup(senderID, appID); !found || currentUID != pUID {
-			oldUID := currentUID
-			routes.Bind(senderID, appID, pUID)
-			if found {
-				pool.IncrUserCount(pUID, 1)
-				pool.IncrUserCount(oldUID, -1)
-			} else {
-				pool.IncrUserCount(pUID, 1)
-			}
-			corrected = true
-			t.Logf("策略纠偏成功: %s -> %s (dept=%s)", oldUID, pUID, info.Department)
-		}
+		routes.Bind(senderID, appID, pUID)
+		pool.IncrUserCount(pUID, 1)
+		bound = true
 	}
-	if !corrected {
-		t.Fatal("应该触发策略纠偏: 天眼事业部用户应该从 upstream-a 迁移到 upstream-b")
+	if !bound {
+		t.Fatal("应该按策略生成首次绑定: 天眼事业部用户应该绑定 upstream-b")
 	}
 
-	// Step 5: 验证最终绑定
+	// Step 4: 验证最终绑定
 	finalUID, found := routes.Lookup(senderID, appID)
 	if !found || finalUID != "upstream-b" {
-		t.Fatalf("纠偏后期望 upstream-b，实际 found=%v uid=%s", found, finalUID)
+		t.Fatalf("首次绑定期望 upstream-b，实际 found=%v uid=%s", found, finalUID)
 	}
 }
 
@@ -246,9 +231,8 @@ func TestPolicyCorrectionDefaultPolicy(t *testing.T) {
 	}
 }
 
-// TestPolicyCorrectionBugReproduction 完整复现修复前的 bug
-// 修复前：新用户 → GetCached=nil → 跳过策略 → 负载均衡 → Bind → 异步获取 → Lookup找到 → 策略永远不执行
-// 修复后：新用户 → GetCached=nil → 负载均衡 → Bind → 异步获取 → 策略匹配 → 结果不同 → 纠偏迁移
+// TestPolicyCorrectionBugReproduction 验证首次无绑定时策略参与匹配
+// 新语义：已有 RouteTable 绑定不自动迁移；只有首次无绑定才读取用户信息和策略。
 func TestPolicyCorrectionBugReproduction(t *testing.T) {
 	db := setupPolicyCorrectionDB(t)
 	defer db.Close()
@@ -289,40 +273,18 @@ func TestPolicyCorrectionBugReproduction(t *testing.T) {
 		t.Fatal("新用户不应有亲和绑定")
 	}
 
-	// 2. 尝试策略匹配 → 缓存为空 → 跳过
-	policyMatched := false
-	if policyEng != nil && cache != nil {
-		if info := cache.GetCached(sid); info != nil {
-			// 这里不会执行 — 这就是 bug 的本质
-			policyMatched = true
-		}
-	}
-	if policyMatched {
-		t.Fatal("缓存为空时策略不应匹配成功")
-	}
-
-	// 3. 负载均衡分配 → general-pool（错误的！应该去 security-ops）
-	routes.Bind(sid, aid, "general-pool")
-	pool.IncrUserCount("general-pool", 1)
-
-	// 4. 异步获取用户信息 + 纠偏（修复后的逻辑）
+	// 2. 首次无绑定时查询用户信息并匹配策略
 	info, _ := cache.GetOrFetch(sid)
 	routes.UpdateUserInfo(sid, info.Name, info.Email, info.Department)
 
 	if pUID, ok := policyEng.Match(info, aid); ok && pUID != "" && pool.IsHealthy(pUID) {
-		if currentUID, found := routes.Lookup(sid, aid); !found || currentUID != pUID {
-			routes.Bind(sid, aid, pUID)
-			if found {
-				pool.IncrUserCount(pUID, 1)
-				pool.IncrUserCount(currentUID, -1)
-			}
-			t.Logf("纠偏: %s → %s (dept=%s)", currentUID, pUID, info.Department)
-		}
+		routes.Bind(sid, aid, pUID)
+		pool.IncrUserCount(pUID, 1)
 	}
 
-	// 5. 验证最终结果
+	// 3. 验证最终结果
 	finalUID, _ := routes.Lookup(sid, aid)
 	if finalUID != "security-ops" {
-		t.Fatalf("安全运营BU 用户应该被纠偏到 security-ops，实际 %s", finalUID)
+		t.Fatalf("安全运营BU 用户首次绑定应该到 security-ops，实际 %s", finalUID)
 	}
 }

@@ -37,9 +37,10 @@ func (api *ManagementAPI) handleListRoutes(w http.ResponseWriter, r *http.Reques
 	// 默认策略本来就是"没有其他匹配时才生效"，不应与已有亲和绑定冲突。
 	enriched := make([]RouteEntryWithConflict, 0, len(entries))
 	conflictCount := 0
+	policies, _ := api.loadRoutePolicies()
 	for _, e := range entries {
 		ec := RouteEntryWithConflict{RouteEntry: e}
-		if api.policyEng != nil {
+		if len(policies) > 0 {
 			// 构造 UserInfo 用于策略匹配
 			info := &UserInfo{
 				SenderID:   e.SenderID,
@@ -47,13 +48,10 @@ func (api *ManagementAPI) handleListRoutes(w http.ResponseWriter, r *http.Reques
 				Email:      e.Email,
 				Department: e.Department,
 			}
-			// 如果路由条目没有用户信息，尝试从缓存获取
-			if info.Department == "" && info.Email == "" && api.userCache != nil {
-				if cached := api.userCache.GetCached(e.SenderID); cached != nil {
-					info = cached
-				}
+			if info.Department == "" && info.Email == "" {
+				info = api.userInfoForRoute(e)
 			}
-			if _, policy, ok := api.policyEng.TestMatch(info, e.AppID); ok && policy != nil {
+			if _, policy, ok := MatchRoutePolicy(policies, info, e.AppID); ok && policy != nil {
 				ec.PolicyUpstream = policy.UpstreamID
 				if policy.UpstreamID != e.UpstreamID {
 					// 默认(兜底)策略不构成冲突 — 亲和路由优先级更高
@@ -73,19 +71,18 @@ func (api *ManagementAPI) handleListRoutes(w http.ResponseWriter, r *http.Reques
 	}
 	if conflictCount > 0 {
 		resp["conflict_count"] = conflictCount
-		resp["conflict_warning"] = fmt.Sprintf("%d 条路由与策略规则冲突，下次请求时将自动迁移到策略指定的上游", conflictCount)
+		resp["conflict_warning"] = fmt.Sprintf("%d 条路由与策略规则不一致，可通过手动纠偏预览/应用调整", conflictCount)
 	}
 	jsonResponse(w, 200, resp)
 }
 
 // describePolicyMatch 描述匹配到的策略规则（人类可读）
 func (api *ManagementAPI) describePolicyMatch(info *UserInfo, appID string) string {
-	if api.policyEng == nil || info == nil {
+	if info == nil {
 		return ""
 	}
-	api.policyEng.mu.RLock()
-	defer api.policyEng.mu.RUnlock()
-	for _, p := range api.policyEng.policies {
+	policies, _ := api.loadRoutePolicies()
+	for _, p := range policies {
 		if p.Match.Default {
 			continue
 		}
@@ -103,7 +100,7 @@ func (api *ManagementAPI) describePolicyMatch(info *UserInfo, appID string) stri
 		}
 	}
 	// 命中了默认策略
-	for _, p := range api.policyEng.policies {
+	for _, p := range policies {
 		if p.Match.Default {
 			return fmt.Sprintf("default → %s", p.UpstreamID)
 		}
@@ -348,11 +345,11 @@ func (api *ManagementAPI) handleRouteStats(w http.ResponseWriter, r *http.Reques
 }
 
 func (api *ManagementAPI) handleListRoutePolicies(w http.ResponseWriter, r *http.Request) {
-	if api.policyEng == nil {
-		jsonResponse(w, 200, map[string]interface{}{"policies": []interface{}{}, "total": 0})
+	policies, err := api.loadRoutePolicies()
+	if err != nil {
+		jsonResponse(w, 500, map[string]string{"error": err.Error()})
 		return
 	}
-	policies := api.policyEng.ListPolicies()
 	jsonResponse(w, 200, map[string]interface{}{"policies": policies, "total": len(policies)})
 }
 
@@ -366,6 +363,11 @@ func (api *ManagementAPI) handleTestRoutePolicy(w http.ResponseWriter, r *http.R
 	}
 	if json.NewDecoder(r.Body).Decode(&req) != nil {
 		jsonResponse(w, 400, map[string]string{"error": "invalid request"})
+		return
+	}
+	policies, err := api.loadRoutePolicies()
+	if err != nil {
+		jsonResponse(w, 500, map[string]string{"error": err.Error()})
 		return
 	}
 
@@ -382,19 +384,17 @@ func (api *ManagementAPI) handleTestRoutePolicy(w http.ResponseWriter, r *http.R
 	}
 	if info == nil {
 		// info 为 nil 时仍然检查 default 策略
-		if api.policyEng != nil {
-			idx, policy, matched := api.policyEng.TestMatch(nil, req.AppID)
-			if matched {
-				jsonResponse(w, 200, map[string]interface{}{
-					"matched":      true,
-					"policy_index": idx,
-					"policy":       policy,
-					"upstream_id":  policy.UpstreamID,
-					"user_info":    nil,
-					"note":         "matched via default policy (no user info needed)",
-				})
-				return
-			}
+		idx, policy, matched := MatchRoutePolicy(policies, nil, req.AppID)
+		if matched {
+			jsonResponse(w, 200, map[string]interface{}{
+				"matched":      true,
+				"policy_index": idx,
+				"policy":       policy,
+				"upstream_id":  policy.UpstreamID,
+				"user_info":    nil,
+				"note":         "matched via default policy (no user info needed)",
+			})
+			return
 		}
 		jsonResponse(w, 200, map[string]interface{}{
 			"matched":  false,
@@ -403,7 +403,7 @@ func (api *ManagementAPI) handleTestRoutePolicy(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	if api.policyEng == nil {
+	if len(policies) == 0 {
 		jsonResponse(w, 200, map[string]interface{}{
 			"matched":  false,
 			"message":  "no route policies configured",
@@ -411,7 +411,7 @@ func (api *ManagementAPI) handleTestRoutePolicy(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	idx, policy, matched := api.policyEng.TestMatch(info, req.AppID)
+	idx, policy, matched := MatchRoutePolicy(policies, info, req.AppID)
 	if !matched {
 		jsonResponse(w, 200, map[string]interface{}{
 			"matched":   false,
@@ -428,48 +428,25 @@ func (api *ManagementAPI) handleTestRoutePolicy(w http.ResponseWriter, r *http.R
 	})
 }
 
-// saveRoutePolicies 将策略列表写回 config.yaml（读取→修改 route_policies 字段→写回）
-func (api *ManagementAPI) saveRoutePolicies(policies []RoutePolicyConfig) error {
-	// 转换为 []interface{} 以保证 yaml marshal 正确
-	policyList := make([]interface{}, len(policies))
-	for i, p := range policies {
-		m := map[string]interface{}{}
-		match := map[string]interface{}{}
-		if p.Match.Department != "" {
-			match["department"] = p.Match.Department
-		}
-		if p.Match.EmailSuffix != "" {
-			match["email_suffix"] = p.Match.EmailSuffix
-		}
-		if p.Match.Email != "" {
-			match["email"] = p.Match.Email
-		}
-		if p.Match.AppID != "" {
-			match["app_id"] = p.Match.AppID
-		}
-		if p.Match.Default {
-			match["default"] = true
-		}
-		m["match"] = match
-		m["upstream_id"] = p.UpstreamID
-		if p.FixedResponse != nil {
-			fr := map[string]interface{}{
-				"enabled":      p.FixedResponse.Enabled,
-				"status_code":  p.FixedResponse.StatusCode,
-				"content_type": p.FixedResponse.ContentType,
-				"body":         p.FixedResponse.Body,
-			}
-			if len(p.FixedResponse.Headers) > 0 {
-				fr["headers"] = p.FixedResponse.Headers
-			}
-			m["fixed_response"] = fr
-		}
-		policyList[i] = m
+func (api *ManagementAPI) loadRoutePolicies() ([]RoutePolicyConfig, error) {
+	if api.routePolicyStore != nil && api.routePolicyStore.db != nil {
+		return api.routePolicyStore.List()
 	}
-	if err := api.configPersistence().ReplaceSectionAndSyncConfD("route_policies", policyList); err != nil {
+	if api.policyEng != nil {
+		return api.policyEng.ListPolicies(), nil
+	}
+	return []RoutePolicyConfig{}, nil
+}
+
+// saveRoutePolicies 将策略列表写入数据库
+func (api *ManagementAPI) saveRoutePolicies(policies []RoutePolicyConfig) error {
+	if api.routePolicyStore == nil || api.routePolicyStore.db == nil {
+		return fmt.Errorf("route policy store not initialized")
+	}
+	if err := api.routePolicyStore.ReplaceAll(policies); err != nil {
 		return fmt.Errorf("写入 route_policies 失败: %w", err)
 	}
-	log.Printf("[策略路由] 已保存 %d 条策略到 %s", len(policies), api.cfgPath)
+	log.Printf("[策略路由] 已保存 %d 条策略到数据库", len(policies))
 	return nil
 }
 
@@ -480,11 +457,6 @@ func (api *ManagementAPI) respondPolicies(w http.ResponseWriter, policies []Rout
 
 // handleReorderRoutePolicies POST /api/v1/route-policies/reorder — 原子重排策略顺序
 func (api *ManagementAPI) handleReorderRoutePolicies(w http.ResponseWriter, r *http.Request) {
-	if api.policyEng == nil {
-		jsonResponse(w, 500, map[string]string{"error": "route policy engine not initialized"})
-		return
-	}
-
 	var req struct {
 		Policies []RoutePolicyConfig `json:"policies"`
 	}
@@ -506,45 +478,122 @@ func (api *ManagementAPI) handleReorderRoutePolicies(w http.ResponseWriter, r *h
 		}
 	}
 
-	api.policyEng.SetPolicies(req.Policies)
 	if err := api.saveRoutePolicies(req.Policies); err != nil {
 		jsonResponse(w, 500, map[string]string{"error": err.Error()})
 		return
 	}
 
 	log.Printf("[策略路由] 已原子重排 %d 条策略", len(req.Policies))
-	migrated := api.reevaluateAllRoutes()
 	resp := map[string]interface{}{"policies": req.Policies, "total": len(req.Policies)}
-	if migrated > 0 {
-		resp["routes_migrated"] = migrated
-	}
 	jsonResponse(w, 200, resp)
 }
 
-// D-004: reevaluateAllRoutes 策略变更后重评估所有路由绑定
+// D-004 retained for old tests/backward compatibility. Route policy CRUD no
+// longer calls this automatically; manual reconcile is the only migration path.
 func (api *ManagementAPI) reevaluateAllRoutes() int {
-	if api.policyEng == nil || api.userCache == nil {
-		return 0
+	return 0
+}
+
+func (api *ManagementAPI) previewRoutePolicyReconcile(r *http.Request) ([]routePolicyReconcileItem, error) {
+	var req routePolicyReconcileRequest
+	if r.Body != nil {
+		_ = json.NewDecoder(r.Body).Decode(&req)
+	}
+	policies, err := api.loadRoutePolicies()
+	if err != nil {
+		return nil, err
 	}
 	routes := api.routes.ListRoutes()
-	migrated := 0
-	for _, r := range routes {
-		info := api.userCache.GetCached(r.SenderID)
-		if info == nil {
+	items := []routePolicyReconcileItem{}
+	for _, route := range routes {
+		if req.AppID != "" && route.AppID != req.AppID {
 			continue
 		}
-		if pUID, ok := api.policyEng.Match(info, r.AppID); ok && pUID != "" && pUID != r.UpstreamID {
-			if _, exists := api.pool.GetUpstream(pUID); exists {
-				if AtomicMigrate(api.routes, api.pool, r.SenderID, r.AppID, r.UpstreamID, pUID) {
-					migrated++
-				}
+		if req.FromUpstream != "" && route.UpstreamID != req.FromUpstream {
+			continue
+		}
+		info := api.userInfoForRoute(route)
+		if req.Department != "" {
+			if info == nil || !containsDepartment(info.Department, req.Department) {
+				continue
 			}
 		}
+		if req.TenantID != "" && api.tenantMgr != nil {
+			if api.tenantMgr.ResolveTenant(route.SenderID, route.AppID) != req.TenantID {
+				continue
+			}
+		}
+		idx, policy, matched := MatchRoutePolicy(policies, info, route.AppID)
+		if !matched || policy == nil || policy.Match.Default || policy.UpstreamID == "" || policy.UpstreamID == route.UpstreamID {
+			continue
+		}
+		items = append(items, routePolicyReconcileItem{
+			SenderID: route.SenderID, AppID: route.AppID,
+			CurrentUpstream: route.UpstreamID, PolicyUpstream: policy.UpstreamID,
+			PolicyIndex: idx, Policy: policy, UserInfo: info,
+		})
 	}
-	if migrated > 0 {
-		log.Printf("[策略路由] 策略变更触发重评估: %d 条路由迁移", migrated)
+	return items, nil
+}
+
+type routePolicyReconcileRequest struct {
+	AppID        string `json:"app_id"`
+	TenantID     string `json:"tenant_id"`
+	Department   string `json:"department"`
+	FromUpstream string `json:"from_upstream"`
+}
+
+type routePolicyReconcileItem struct {
+	SenderID        string             `json:"sender_id"`
+	AppID           string             `json:"app_id"`
+	CurrentUpstream string             `json:"current_upstream"`
+	PolicyUpstream  string             `json:"policy_upstream"`
+	PolicyIndex     int                `json:"policy_index"`
+	Policy          *RoutePolicyConfig `json:"policy"`
+	UserInfo        *UserInfo          `json:"user_info,omitempty"`
+}
+
+func (api *ManagementAPI) handleRoutePolicyReconcilePreview(w http.ResponseWriter, r *http.Request) {
+	items, err := api.previewRoutePolicyReconcile(r)
+	if err != nil {
+		jsonResponse(w, 500, map[string]string{"error": err.Error()})
+		return
 	}
-	return migrated
+	jsonResponse(w, 200, map[string]interface{}{"items": items, "total": len(items)})
+}
+
+func (api *ManagementAPI) handleRoutePolicyReconcileApply(w http.ResponseWriter, r *http.Request) {
+	items, err := api.previewRoutePolicyReconcile(r)
+	if err != nil {
+		jsonResponse(w, 500, map[string]string{"error": err.Error()})
+		return
+	}
+	migrated := 0
+	for _, item := range items {
+		if item.PolicyUpstream == "" {
+			continue
+		}
+		if _, exists := api.pool.GetUpstream(item.PolicyUpstream); !exists {
+			continue
+		}
+		if AtomicMigrate(api.routes, api.pool, item.SenderID, item.AppID, item.CurrentUpstream, item.PolicyUpstream) {
+			migrated++
+		}
+	}
+	jsonResponse(w, 200, map[string]interface{}{"status": "applied", "migrated": migrated, "total": len(items)})
+}
+
+func (api *ManagementAPI) userInfoForRoute(route RouteEntry) *UserInfo {
+	info := &UserInfo{SenderID: route.SenderID, Name: route.DisplayName, Email: route.Email, Department: route.Department}
+	if info.Name != "" || info.Email != "" || info.Department != "" {
+		return info
+	}
+	if api.userCache != nil {
+		if cached := api.userCache.GetCached(route.SenderID); cached != nil {
+			return cached
+		}
+	}
+	return info
 }
 
 // handleCreateRoutePolicy POST /api/v1/route-policies — 新增策略
@@ -554,60 +603,38 @@ func (api *ManagementAPI) handleCreateRoutePolicy(w http.ResponseWriter, r *http
 		jsonResponse(w, 400, map[string]string{"error": "invalid request body"})
 		return
 	}
-	// D-007 fix: upstream_id 不能为空（除非配置了 fixed_response）
-	hasFixedResponse := req.FixedResponse != nil && req.FixedResponse.Enabled
-	if req.UpstreamID == "" && !hasFixedResponse {
-		jsonResponse(w, 400, map[string]string{"error": "upstream_id is required (unless fixed_response is enabled)"})
-		return
-	}
-	// R2-004: 长度限制
-	if len(req.UpstreamID) > 256 {
-		jsonResponse(w, 400, map[string]string{"error": "upstream_id must be <= 256 characters"})
-		return
-	}
-	// R2-002 fix: match 条件不能全空
-	if !req.Match.Default && req.Match.Department == "" && req.Match.EmailSuffix == "" && req.Match.Email == "" && req.Match.AppID == "" {
-		jsonResponse(w, 400, map[string]string{"error": "match conditions cannot be empty, set at least one field or use default:true"})
-		return
-	}
-	if api.policyEng == nil {
-		jsonResponse(w, 500, map[string]string{"error": "route policy engine not initialized"})
+	if err := validateRoutePolicy(req, true); err != nil {
+		jsonResponse(w, 400, map[string]string{"error": err.Error()})
 		return
 	}
 	// BUG-001 fix: check for duplicate match conditions
-	policies := api.policyEng.ListPolicies()
+	policies, err := api.loadRoutePolicies()
+	if err != nil {
+		jsonResponse(w, 500, map[string]string{"error": err.Error()})
+		return
+	}
 	for _, p := range policies {
-		if p.Match.Department == req.Match.Department &&
-			p.Match.EmailSuffix == req.Match.EmailSuffix &&
-			p.Match.Email == req.Match.Email &&
-			p.Match.AppID == req.Match.AppID &&
-			p.Match.Default == req.Match.Default {
+		if samePolicyMatch(p, req) {
 			jsonResponse(w, 409, map[string]string{"error": "policy with same match conditions already exists"})
 			return
 		}
 	}
 	// R2-005: 策略可指向不存在上游 → warn 而非 block
 	upstreamWarning := ""
-	if _, exists := api.pool.GetUpstream(req.UpstreamID); !exists {
-		upstreamWarning = "upstream not currently registered: " + req.UpstreamID
-		log.Printf("[策略路由] ⚠️ 新增策略指向未注册上游: %s", req.UpstreamID)
+	if req.UpstreamID != "" {
+		if _, exists := api.pool.GetUpstream(req.UpstreamID); !exists {
+			upstreamWarning = "upstream not currently registered: " + req.UpstreamID
+			log.Printf("[策略路由] ⚠️ 新增策略指向未注册上游: %s", req.UpstreamID)
+		}
 	}
 	// 追加
 	policies = append(policies, req)
-	// 更新内存
-	api.policyEng.SetPolicies(policies)
-	// 写回文件
 	if err := api.saveRoutePolicies(policies); err != nil {
 		jsonResponse(w, 500, map[string]string{"error": err.Error()})
 		return
 	}
 	log.Printf("[策略路由] 新增策略: upstream_id=%s", req.UpstreamID)
-	// D-004: 策略变更触发全量路由重评估
-	migrated := api.reevaluateAllRoutes()
 	resp := map[string]interface{}{"policies": policies, "total": len(policies)}
-	if migrated > 0 {
-		resp["routes_migrated"] = migrated
-	}
 	if upstreamWarning != "" {
 		resp["warning"] = upstreamWarning
 	}
@@ -629,34 +656,26 @@ func (api *ManagementAPI) handleUpdateRoutePolicy(w http.ResponseWriter, r *http
 		jsonResponse(w, 400, map[string]string{"error": "invalid request body"})
 		return
 	}
-	// D-007 fix: upstream_id 不能为空（除非配置了 fixed_response）
-	hasFixedResponse := req.FixedResponse != nil && req.FixedResponse.Enabled
-	if req.UpstreamID == "" && !hasFixedResponse {
-		jsonResponse(w, 400, map[string]string{"error": "upstream_id is required (unless fixed_response is enabled)"})
+	if err := validateRoutePolicy(req, true); err != nil {
+		jsonResponse(w, 400, map[string]string{"error": err.Error()})
 		return
 	}
-	if api.policyEng == nil {
-		jsonResponse(w, 500, map[string]string{"error": "route policy engine not initialized"})
+	policies, err := api.loadRoutePolicies()
+	if err != nil {
+		jsonResponse(w, 500, map[string]string{"error": err.Error()})
 		return
 	}
-	policies := api.policyEng.ListPolicies()
 	if idx < 0 || idx >= len(policies) {
 		jsonResponse(w, 404, map[string]string{"error": fmt.Sprintf("policy index %d out of range (total %d)", idx, len(policies))})
 		return
 	}
 	policies[idx] = req
-	api.policyEng.SetPolicies(policies)
 	if err := api.saveRoutePolicies(policies); err != nil {
 		jsonResponse(w, 500, map[string]string{"error": err.Error()})
 		return
 	}
 	log.Printf("[策略路由] 修改策略 #%d: upstream_id=%s", idx, req.UpstreamID)
-	// D-004: 策略变更触发全量路由重评估
-	migrated := api.reevaluateAllRoutes()
 	resp := map[string]interface{}{"policies": policies, "total": len(policies)}
-	if migrated > 0 {
-		resp["routes_migrated"] = migrated
-	}
 	jsonResponse(w, 200, resp)
 }
 
@@ -668,28 +687,22 @@ func (api *ManagementAPI) handleDeleteRoutePolicy(w http.ResponseWriter, r *http
 		jsonResponse(w, 400, map[string]string{"error": "invalid index: " + idxStr})
 		return
 	}
-	if api.policyEng == nil {
-		jsonResponse(w, 500, map[string]string{"error": "route policy engine not initialized"})
+	policies, err := api.loadRoutePolicies()
+	if err != nil {
+		jsonResponse(w, 500, map[string]string{"error": err.Error()})
 		return
 	}
-	policies := api.policyEng.ListPolicies()
 	if idx < 0 || idx >= len(policies) {
 		jsonResponse(w, 404, map[string]string{"error": fmt.Sprintf("policy index %d out of range (total %d)", idx, len(policies))})
 		return
 	}
 	policies = append(policies[:idx], policies[idx+1:]...)
-	api.policyEng.SetPolicies(policies)
 	if err := api.saveRoutePolicies(policies); err != nil {
 		jsonResponse(w, 500, map[string]string{"error": err.Error()})
 		return
 	}
 	log.Printf("[策略路由] 删除策略 #%d", idx)
-	// D-004: 策略变更触发全量路由重评估
-	migrated := api.reevaluateAllRoutes()
 	resp := map[string]interface{}{"policies": policies, "total": len(policies)}
-	if migrated > 0 {
-		resp["routes_migrated"] = migrated
-	}
 	jsonResponse(w, 200, resp)
 }
 

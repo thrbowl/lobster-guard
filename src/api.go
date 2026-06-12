@@ -68,6 +68,7 @@ type ManagementAPI struct {
 	ruleHits          *RuleHitStats      // v3.6 规则命中统计
 	userCache         *UserInfoCache     // v3.9 用户信息缓存
 	policyEng         *RoutePolicyEngine // v3.9 路由策略引擎
+	routePolicyStore  *RoutePolicyStore  // DB-backed route policies
 	alertNotifier     *AlertNotifier     // v3.10 告警通知器
 	wsProxy           *WSProxyManager    // v4.1 WebSocket 代理管理器
 	store             Store              // v4.2 存储抽象层
@@ -180,6 +181,7 @@ func NewManagementAPI(cfg *Config, cfgPath string, pool *UpstreamPool, routes *R
 		inbound: inbound, channel: channel, metrics: metrics, ruleHits: ruleHits,
 		userCache: userCache, policyEng: policyEng, alertNotifier: alertNotifier,
 		wsProxy: wsProxy, store: store, shutdownMgr: shutdownMgr, realtime: realtime,
+		routePolicyStore: NewRoutePolicyStore(routePolicyDBFromLogger(logger), cfg.RoutePolicies),
 		gwManager: NewGatewayWSManager(nil, cfg.DefaultGatewayOrigin), // v29.0 Gateway WSS 连接管理器
 	}
 }
@@ -610,6 +612,10 @@ func (api *ManagementAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		api.handleReorderRoutePolicies(w, r)
 	case path == "/api/v1/route-policies/test" && method == "POST":
 		api.handleTestRoutePolicy(w, r)
+	case path == "/api/v1/route-policies/reconcile/preview" && method == "POST":
+		api.handleRoutePolicyReconcilePreview(w, r)
+	case path == "/api/v1/route-policies/reconcile/apply" && method == "POST":
+		api.handleRoutePolicyReconcileApply(w, r)
 	case strings.HasPrefix(path, "/api/v1/route-policies/") && method == "PUT":
 		api.handleUpdateRoutePolicy(w, r)
 	case strings.HasPrefix(path, "/api/v1/route-policies/") && method == "DELETE":

@@ -425,10 +425,10 @@ func TestConcurrentTransferUserCount(t *testing.T) {
 	// 这是预期行为：floor 保护导致不守恒，但避免了负数
 }
 
-// TestPolicyOverridesAffinity 验证策略路由优先于亲和路由
-// 场景：用户已被负载均衡绑定到 upstream-a，但策略规则指定该部门应走 upstream-b
-// 期望：下次请求时策略路由覆盖亲和绑定，迁移到 upstream-b
-func TestPolicyOverridesAffinity(t *testing.T) {
+// TestAffinityOverridesPolicyWhenRouteExists 验证已有亲和路由优先于策略
+// 场景：用户已被绑定到 upstream-a，但策略规则指定该部门应走 upstream-b
+// 期望：RouteTable 作为转发权威，已有健康绑定保持 upstream-a
+func TestAffinityOverridesPolicyWhenRouteExists(t *testing.T) {
 	db := setupRaceTestDB(t)
 	defer db.Close()
 
@@ -473,15 +473,15 @@ func TestPolicyOverridesAffinity(t *testing.T) {
 	// 执行路由决策
 	result := ip.resolveUpstream("user-tianyan", "bot1", "[测试]")
 
-	// 期望：策略路由覆盖亲和，结果应该是 upstream-b
-	if result != "upstream-b" {
-		t.Fatalf("策略路由应覆盖亲和路由: 期望 upstream-b, 实际 %s", result)
+	// 期望：已有亲和路由是转发权威，策略不自动覆盖。
+	if result != "upstream-a" {
+		t.Fatalf("已有亲和路由应保持权威: 期望 upstream-a, 实际 %s", result)
 	}
 
-	// 验证绑定已更新
+	// 验证绑定保持不变
 	uid, found := rt.Lookup("user-tianyan", "bot1")
-	if !found || uid != "upstream-b" {
-		t.Fatalf("绑定应已迁移到 upstream-b: found=%v uid=%s", found, uid)
+	if !found || uid != "upstream-a" {
+		t.Fatalf("绑定应保持 upstream-a: found=%v uid=%s", found, uid)
 	}
 }
 
@@ -533,8 +533,8 @@ func TestAffinityWorksWhenNoPolicyMatch(t *testing.T) {
 	}
 }
 
-// TestDefaultPolicyOverridesAffinity 验证默认策略也能覆盖亲和路由
-func TestDefaultPolicyOverridesAffinity(t *testing.T) {
+// TestDefaultPolicyDoesNotOverrideAffinity 验证默认策略不覆盖已有亲和路由
+func TestDefaultPolicyDoesNotOverrideAffinity(t *testing.T) {
 	db := setupRaceTestDB(t)
 	defer db.Close()
 
@@ -580,8 +580,7 @@ func TestDefaultPolicyOverridesAffinity(t *testing.T) {
 
 	result := ip.resolveUpstream("user-random", "bot1", "[测试]")
 
-	// 外部部门 → 不匹配天眼 → 命中默认策略 → default-pool
-	if result != "default-pool" {
-		t.Fatalf("默认策略应覆盖亲和: 期望 default-pool, 实际 %s", result)
+	if result != "upstream-a" {
+		t.Fatalf("默认策略不应覆盖已有亲和: 期望 upstream-a, 实际 %s", result)
 	}
 }

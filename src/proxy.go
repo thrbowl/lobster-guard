@@ -43,6 +43,7 @@ type InboundProxy struct {
 	ruleHits   *RuleHitStats   // v3.6 规则命中统计
 	userCache  *UserInfoCache  // v3.9 用户信息缓存
 	policyEng  *RoutePolicyEngine // v3.9 路由策略引擎
+	routePolicyStore *RoutePolicyStore
 	alertNotifier *AlertNotifier // v3.10 告警通知器
 	wsProxy    *WSProxyManager // v4.1 WebSocket 代理管理器
 	realtime   *RealtimeMetrics // v5.0 实时监控
@@ -99,6 +100,7 @@ func NewInboundProxy(cfg *Config, channel ChannelPlugin, engine *RuleEngine, log
 		enabled: cfg.InboundDetectEnabled, timeout: time.Duration(cfg.DetectTimeoutMs) * time.Millisecond,
 		whitelist: wl, policy: cfg.RouteDefaultPolicy, mode: mode, cfg: cfg, limiter: limiter,
 		metrics: metrics, ruleHits: ruleHits, userCache: userCache, policyEng: policyEng,
+		routePolicyStore: NewRoutePolicyStore(routePolicyDBFromLogger(logger), cfg.RoutePolicies),
 		honeypot: honeypot,
 	}
 }
@@ -435,78 +437,13 @@ func (ip *InboundProxy) startBridge(ctx context.Context) error {
 	return nil
 }
 
-// resolveUpstream 统一路由决策：策略优先 → 亲和兜底 → 负载均衡
-//
-// 优先级模型（策略路由是权威的）：
-//   1. 有策略规则能匹配 → 用策略结果（即使亲和绑定不同，也迁移）
-//   2. 策略匹配不到 → 走亲和路由（已有绑定就用，故障就转移）
-//   3. 都没有 → 负载均衡分配 + 异步纠偏
-//
-// 这保证管理员配的策略规则始终生效，不会被历史亲和绑定架空。
+// resolveUpstream 统一路由决策：亲和路由权威 → 首次策略绑定 → 负载均衡。
+// 已有绑定且上游健康时不查询用户信息、不读取策略、不自动迁移。
 func (ip *InboundProxy) resolveUpstream(senderID, appID, logPrefix string) string {
 	currentUID, hasBind := ip.routes.Lookup(senderID, appID)
 
-	// ── 第一优先级：策略路由（权威） ──
-	if ip.policyEng != nil && ip.userCache != nil {
-		// 尝试获取用户信息（缓存命中立即返回，否则同步等最多 1.5s）
-		info, _ := ip.userCache.GetOrFetchWithTimeout(senderID, 1500*time.Millisecond)
-		if info != nil {
-			ip.routes.UpdateUserInfo(senderID, info.Name, info.Email, info.Department)
-			if pUID, ok := ip.policyEng.Match(info, appID); ok && pUID != "" {
-				if ip.pool.IsHealthy(pUID) {
-					if hasBind && currentUID == pUID {
-						// 策略结果和亲和绑定一致，直接走
-						return pUID
-					}
-					if hasBind && currentUID != pUID {
-						// 策略结果与亲和绑定不一致 → 迁移到策略指定的上游
-						if AtomicMigrate(ip.routes, ip.pool, senderID, appID, currentUID, pUID) {
-							log.Printf("%s 策略路由覆盖亲和 sender=%s app=%s: %s -> %s (dept=%s email=%s)",
-								logPrefix, senderID, appID, currentUID, pUID, info.Department, info.Email)
-						} else {
-							// CAS 失败（被并发修改），强制绑定
-							ip.routes.Bind(senderID, appID, pUID)
-							log.Printf("%s 策略路由强制绑定 sender=%s app=%s -> %s", logPrefix, senderID, appID, pUID)
-						}
-						return pUID
-					}
-					// 新用户，直接按策略绑定
-					ip.routes.Bind(senderID, appID, pUID)
-					ip.pool.IncrUserCount(pUID, 1)
-					log.Printf("%s 策略匹配绑定 sender=%s app=%s -> %s (dept=%s email=%s)",
-						logPrefix, senderID, appID, pUID, info.Department, info.Email)
-					return pUID
-				}
-				// D-001: 策略匹配到但上游不健康 → 明确警告 + 审计日志
-				log.Printf("%s ⚠️ 策略上游 %s 不健康，降级 sender=%s app=%s (dept=%s email=%s)",
-					logPrefix, pUID, senderID, appID, info.Department, info.Email)
-				if ip.logger != nil {
-					ip.logger.Log("inbound", senderID, "policy_degraded",
-						fmt.Sprintf("policy_upstream=%s unhealthy, degraded", pUID),
-						"", "", 0, pUID, appID)
-				}
-				if ip.realtime != nil {
-					ip.realtime.RecordEvent("inbound", senderID, "policy_degraded",
-						fmt.Sprintf("策略上游 %s 不健康", pUID), "")
-				}
-			}
-		} else if !hasBind {
-			// 用户信息获取失败，但 default 策略不需要用户信息
-			if pUID, ok := ip.policyEng.Match(nil, appID); ok && pUID != "" && ip.pool.IsHealthy(pUID) {
-				ip.routes.Bind(senderID, appID, pUID)
-				ip.pool.IncrUserCount(pUID, 1)
-				log.Printf("%s default策略绑定(无用户信息) sender=%s app=%s -> %s", logPrefix, senderID, appID, pUID)
-				return pUID
-			}
-			// 也没有 default 策略 → 降级到负载均衡，后面异步纠偏
-		}
-	}
-
-	// ── 第二优先级：亲和路由（策略未匹配时的兜底） ──
 	if hasBind {
 		if ip.pool.IsHealthy(currentUID) {
-			// 异步刷新用户信息（下次请求时策略可能就能匹配了）
-			ip.asyncRefreshUserInfo(senderID, appID, currentUID, logPrefix)
 			return currentUID
 		}
 		// 故障转移
@@ -521,61 +458,69 @@ func (ip *InboundProxy) resolveUpstream(senderID, appID, logPrefix string) strin
 		return currentUID // failopen
 	}
 
-	// ── 第三优先级：负载均衡（新用户，无策略匹配） ──
+	if pUID := ip.matchInitialRoutePolicy(senderID, appID, logPrefix); pUID != "" {
+		ip.routes.Bind(senderID, appID, pUID)
+		ip.pool.IncrUserCount(pUID, 1)
+		log.Printf("%s 首次策略绑定 sender=%s app=%s -> %s", logPrefix, senderID, appID, pUID)
+		return pUID
+	}
+
 	upstreamID := ip.pool.SelectUpstream(ip.policy)
 	if upstreamID != "" {
 		ip.routes.Bind(senderID, appID, upstreamID)
 		ip.pool.IncrUserCount(upstreamID, 1)
 		log.Printf("%s 新用户绑定 sender=%s app=%s -> %s", logPrefix, senderID, appID, upstreamID)
-		// 异步纠偏：后台获取用户信息，下次请求时策略生效
-		ip.asyncPolicyCorrection(senderID, appID, upstreamID, logPrefix)
 	}
 	return upstreamID
 }
 
-// asyncRefreshUserInfo 异步刷新用户信息（仅更新缓存和 display_name，不改路由）
-func (ip *InboundProxy) asyncRefreshUserInfo(senderID, appID, currentUID, logPrefix string) {
-	if ip.userCache == nil {
-		return
+func (ip *InboundProxy) matchInitialRoutePolicy(senderID, appID, logPrefix string) string {
+	if !ip.hasRoutePolicySource() {
+		return ""
 	}
-	go func(sid, aID, curUID string) {
-		defer func() { recover() }()
-		info, err := ip.userCache.GetOrFetch(sid)
-		if err != nil || info == nil {
-			return
-		}
-		ip.routes.UpdateUserInfo(sid, info.Name, info.Email, info.Department)
-		// 纠偏：如果策略匹配到不同上游，原子迁移
-		if ip.policyEng != nil {
-			if pUID, ok := ip.policyEng.Match(info, aID); ok && pUID != "" && ip.pool.IsHealthy(pUID) && pUID != curUID {
-				if AtomicMigrate(ip.routes, ip.pool, sid, aID, curUID, pUID) {
-					log.Printf("%s 策略纠偏 sender=%s app=%s: %s -> %s (dept=%s email=%s)",
-						logPrefix, sid, aID, curUID, pUID, info.Department, info.Email)
-				}
-			}
-		}
-	}(senderID, appID, currentUID)
+	info := ip.lookupUserInfoForPolicy(senderID)
+	_, policy, matched, err := ip.matchRoutePolicy(info, appID)
+	if err != nil {
+		log.Printf("%s 策略读取失败 sender=%s app=%s err=%v", logPrefix, senderID, appID, err)
+		return ""
+	}
+	if !matched || policy == nil || policy.UpstreamID == "" {
+		return ""
+	}
+	if !ip.pool.IsHealthy(policy.UpstreamID) {
+		log.Printf("%s ⚠️ 策略上游 %s 不健康，降级 sender=%s app=%s", logPrefix, policy.UpstreamID, senderID, appID)
+		return ""
+	}
+	if info != nil {
+		ip.routes.UpdateUserInfo(senderID, info.Name, info.Email, info.Department)
+	}
+	return policy.UpstreamID
 }
 
-// asyncPolicyCorrection 异步策略纠偏：负载均衡分配后，后台获取用户信息并纠偏
-func (ip *InboundProxy) asyncPolicyCorrection(senderID, appID, assignedUID, logPrefix string) {
-	if ip.userCache == nil || ip.policyEng == nil {
-		return
+func (ip *InboundProxy) hasRoutePolicySource() bool {
+	return (ip.routePolicyStore != nil && ip.routePolicyStore.db != nil) || ip.policyEng != nil
+}
+
+func (ip *InboundProxy) matchRoutePolicy(info *UserInfo, appID string) (int, *RoutePolicyConfig, bool, error) {
+	if ip.routePolicyStore != nil && ip.routePolicyStore.db != nil {
+		return ip.routePolicyStore.Match(info, appID)
 	}
-	go func(sid, aID, curUID string) {
-		defer func() { recover() }()
-		info, err := ip.userCache.GetOrFetch(sid)
-		if err != nil || info == nil {
-			return
-		}
-		ip.routes.UpdateUserInfo(sid, info.Name, info.Email, info.Department)
-		if pUID, ok := ip.policyEng.Match(info, aID); ok && pUID != "" && ip.pool.IsHealthy(pUID) && pUID != curUID {
-			if AtomicMigrate(ip.routes, ip.pool, sid, aID, curUID, pUID) {
-				log.Printf("%s 异步策略纠偏 sender=%s app=%s: %s -> %s (dept=%s email=%s)",
-					logPrefix, sid, aID, curUID, pUID, info.Department, info.Email)
-			}
-		}
-	}(senderID, appID, assignedUID)
+	if ip.policyEng != nil {
+		idx, policy, matched := ip.policyEng.TestMatch(info, appID)
+		return idx, policy, matched, nil
+	}
+	return -1, nil, false, nil
+}
+
+func (ip *InboundProxy) lookupUserInfoForPolicy(senderID string) *UserInfo {
+	if ip.userCache == nil || senderID == "" {
+		return nil
+	}
+	info, err := ip.userCache.GetOrFetchWithTimeout(senderID, 1500*time.Millisecond)
+	if err != nil {
+		return nil
+	}
+	return info
 }
 
 func (ip *InboundProxy) handleWecomVerify(w http.ResponseWriter, r *http.Request, wp *WecomPlugin) {
@@ -677,12 +622,12 @@ func (ip *InboundProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if ip.metrics != nil { ip.metrics.RecordRateLimit(true) }
 	}
 
-	// --- 5. 路由解析 ---
+	// --- 5. 固定返回短路 ---
+	if ip.handleFixedResponse(w, senderID, appID, msgText, traceID, start) { return }
+
+	// --- 6. 路由解析 ---
 	var upstreamID string
 	if senderID != "" { upstreamID = ip.resolveUpstream(senderID, appID, "[路由]") }
-
-	// --- 6. 固定返回短路 ---
-	if ip.handleFixedResponse(w, senderID, appID, msgText, traceID, start) { return }
 
 	// --- 7. 获取上游代理 ---
 	var proxy *httputil.ReverseProxy

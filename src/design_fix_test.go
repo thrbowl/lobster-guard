@@ -170,7 +170,7 @@ func TestD003_BridgeModePathPrefix(t *testing.T) {
 }
 
 // ============================================================
-// D-004: Policy CRUD → trigger reevaluateAllRoutes
+// D-004: policy changes do not automatically migrate existing RouteTable bindings
 // ============================================================
 
 func TestD004_ReevaluateAllRoutes(t *testing.T) {
@@ -188,42 +188,47 @@ func TestD004_ReevaluateAllRoutes(t *testing.T) {
 	pool.Register("upstream-a", "127.0.0.1", 9001, nil)
 	pool.Register("upstream-b", "127.0.0.1", 9002, nil)
 
-	// Create user cache with a user in "engineering" department
-	userCache := &UserInfoCache{
-		memory: map[string]*UserInfo{
-			"user1": {SenderID: "user1", Name: "Test User", Email: "test@example.com", Department: "engineering"},
-		},
-		memTime: map[string]time.Time{"user1": time.Now()},
-		ttl:     24 * time.Hour,
-	}
-
-	// Bind user1 to upstream-a
-	routes.Bind("user1", "app1", "upstream-a")
+	// Existing route is authoritative even if current policy would choose another upstream.
+	routes.BindWithMeta("user1", "app1", "upstream-a", "engineering", "Test User")
 	pool.IncrUserCount("upstream-a", 1)
 
-	// Create policy engine routing engineering to upstream-b
-	policyEng := NewRoutePolicyEngine([]RoutePolicyConfig{
+	policies := []RoutePolicyConfig{
 		{Match: RoutePolicyMatch{Department: "engineering"}, UpstreamID: "upstream-b"},
-	})
+	}
 
-	// Create management API
 	api := &ManagementAPI{
-		pool:      pool,
-		routes:    routes,
-		policyEng: policyEng,
-		userCache: userCache,
+		pool:             pool,
+		routes:           routes,
+		routePolicyStore: NewRoutePolicyStore(db, policies),
 	}
 
-	// Reevaluate should migrate user1 to upstream-b
 	migrated := api.reevaluateAllRoutes()
-	if migrated != 1 {
-		t.Errorf("Expected 1 route migrated, got %d", migrated)
+	if migrated != 0 {
+		t.Errorf("Expected no automatic route migration, got %d", migrated)
+	}
+	uid, ok := routes.Lookup("user1", "app1")
+	if !ok || uid != "upstream-a" {
+		t.Errorf("Expected existing route to stay on upstream-a, got %q (ok=%v)", uid, ok)
 	}
 
-	// Verify the route is now to upstream-b
-	uid, ok := routes.Lookup("user1", "app1")
+	req := httptest.NewRequest("POST", "/api/v1/route-policies/reconcile/preview", strings.NewReader(`{"app_id":"app1"}`))
+	items, err := api.previewRoutePolicyReconcile(req)
+	if err != nil {
+		t.Fatalf("previewRoutePolicyReconcile failed: %v", err)
+	}
+	if len(items) != 1 || items[0].PolicyUpstream != "upstream-b" {
+		t.Fatalf("Expected one manual reconcile candidate to upstream-b, got %+v", items)
+	}
+
+	w := httptest.NewRecorder()
+	applyReq := httptest.NewRequest("POST", "/api/v1/route-policies/reconcile/apply", strings.NewReader(`{"app_id":"app1"}`))
+	api.handleRoutePolicyReconcileApply(w, applyReq)
+	if w.Code != 200 {
+		t.Fatalf("reconcile apply status = %d body=%s", w.Code, w.Body.String())
+	}
+	uid, ok = routes.Lookup("user1", "app1")
 	if !ok || uid != "upstream-b" {
-		t.Errorf("Expected user1 routed to upstream-b, got %q (ok=%v)", uid, ok)
+		t.Errorf("Expected manual reconcile to migrate user1 to upstream-b, got %q (ok=%v)", uid, ok)
 	}
 }
 

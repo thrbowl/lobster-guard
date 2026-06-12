@@ -498,7 +498,8 @@ type UserInfoProvider interface {
 	NeedsCredentials() []string
 }
 
-// UserInfoCache 内存+DB 两级缓存
+// UserInfoCache keeps user information in DB. The memory fields remain for
+// compatibility with older tests/callers, but are no longer used as storage.
 type UserInfoCache struct {
 	mu       sync.RWMutex
 	memory   map[string]*UserInfo
@@ -522,32 +523,21 @@ func NewUserInfoCache(db *sql.DB, provider UserInfoProvider, ttl time.Duration) 
 	}
 }
 
-// GetOrFetch 获取用户信息：内存 → DB → API
+// GetOrFetch 获取用户信息：DB → API。已有数据库信息不再提升为长期内存缓存。
 func (c *UserInfoCache) GetOrFetch(senderID string) (*UserInfo, error) {
 	if senderID == "" {
 		return nil, nil
 	}
 
-	// 1. 内存缓存
-	c.mu.RLock()
-	if info, ok := c.memory[senderID]; ok {
-		if ft, ok2 := c.memTime[senderID]; ok2 && time.Since(ft) < c.ttl {
-			c.mu.RUnlock()
-			return info, nil
-		}
-	}
-	c.mu.RUnlock()
-
-	// 2. DB 缓存
+	// 1. DB 缓存
 	if c.db != nil {
 		info, err := c.loadFromDB(senderID)
 		if err == nil && info != nil && time.Since(info.FetchedAt) < c.ttl {
-			c.putMemory(info)
 			return info, nil
 		}
 	}
 
-	// 3. API 获取
+	// 2. API 获取
 	if c.provider == nil {
 		return nil, nil
 	}
@@ -569,34 +559,23 @@ func (c *UserInfoCache) GetOrFetch(senderID string) (*UserInfo, error) {
 	return info, nil
 }
 
-// GetOrFetchWithTimeout 带超时的 GetOrFetch — 用于新用户首次请求时同步等待用户信息
-// 内存/DB 缓存命中时立即返回；需要 API 调用时限制在 timeout 内完成
+// GetOrFetchWithTimeout 带超时的 GetOrFetch — 用于新用户首次策略匹配时同步等待用户信息
+// DB 命中时立即返回；需要 API 调用时限制在 timeout 内完成
 // 超时返回 nil（调用方降级到负载均衡）
 func (c *UserInfoCache) GetOrFetchWithTimeout(senderID string, timeout time.Duration) (*UserInfo, error) {
 	if senderID == "" || timeout <= 0 {
 		return nil, nil
 	}
 
-	// 1. 内存缓存（无需等待）
-	c.mu.RLock()
-	if info, ok := c.memory[senderID]; ok {
-		if ft, ok2 := c.memTime[senderID]; ok2 && time.Since(ft) < c.ttl {
-			c.mu.RUnlock()
-			return info, nil
-		}
-	}
-	c.mu.RUnlock()
-
-	// 2. DB 缓存（无需等待）
+	// 1. DB 缓存（无需等待）
 	if c.db != nil {
 		info, err := c.loadFromDB(senderID)
 		if err == nil && info != nil && time.Since(info.FetchedAt) < c.ttl {
-			c.putMemory(info)
 			return info, nil
 		}
 	}
 
-	// 3. API 获取（有超时限制）
+	// 2. API 获取（有超时限制）
 	if c.provider == nil {
 		return nil, nil
 	}
@@ -646,19 +625,11 @@ func (c *UserInfoCache) GetOrFetchWithTimeout(senderID string, timeout time.Dura
 	}
 }
 
-// GetCached 仅从缓存获取（不调API）
+// GetCached 仅从 DB 获取（不调 API）
 func (c *UserInfoCache) GetCached(senderID string) *UserInfo {
-	c.mu.RLock()
-	if info, ok := c.memory[senderID]; ok {
-		c.mu.RUnlock()
-		return info
-	}
-	c.mu.RUnlock()
-
 	if c.db != nil {
 		info, err := c.loadFromDB(senderID)
 		if err == nil && info != nil {
-			c.putMemory(info)
 			return info
 		}
 	}
@@ -666,10 +637,8 @@ func (c *UserInfoCache) GetCached(senderID string) *UserInfo {
 }
 
 func (c *UserInfoCache) putMemory(info *UserInfo) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.memory[info.SenderID] = info
-	c.memTime[info.SenderID] = info.FetchedAt
+	// User information is persisted in DB only. The method is kept as a no-op
+	// so older call sites do not reintroduce a long-lived process map.
 }
 
 func (c *UserInfoCache) loadFromDB(senderID string) (*UserInfo, error) {
@@ -1242,90 +1211,26 @@ func NewRoutePolicyEngine(policies []RoutePolicyConfig) *RoutePolicyEngine {
 	return &RoutePolicyEngine{policies: policies}
 }
 
-// Match 匹配策略，返回 upstream_id 和是否命中
-func (rpe *RoutePolicyEngine) Match(info *UserInfo, appID string) (string, bool) {
-	rpe.mu.RLock()
-	defer rpe.mu.RUnlock()
-
-	// default 策略作为兜底，必须在所有精确匹配之后才生效
-	var defaultUpstream string
-	hasDefault := false
-
-	// info 为 nil 时无法做精确匹配，但 default 策略仍然生效
-	if info == nil {
-		for _, p := range rpe.policies {
-			if p.Match.Default {
-				return p.UpstreamID, true
-			}
-		}
-		return "", false
-	}
-
-	for _, p := range rpe.policies {
-		if p.Match.Default {
-			defaultUpstream = p.UpstreamID
-			hasDefault = true
-			continue // 记录但不立即返回，继续匹配更精确的规则
-		}
-		matched := true
-		hasCondition := false
-
-		if p.Match.Email != "" {
-			hasCondition = true
-			if !strings.EqualFold(info.Email, p.Match.Email) {
-				matched = false
-			}
-		}
-		if matched && p.Match.EmailSuffix != "" {
-			hasCondition = true
-			if !strings.HasSuffix(strings.ToLower(info.Email), strings.ToLower(p.Match.EmailSuffix)) {
-				matched = false
-			}
-		}
-		if matched && p.Match.Department != "" {
-			hasCondition = true
-			if !containsDepartment(info.Department, p.Match.Department) {
-				matched = false
-			}
-		}
-		if matched && p.Match.AppID != "" {
-			hasCondition = true
-			if appID != p.Match.AppID {
-				matched = false
-			}
-		}
-		if hasCondition && matched {
-			return p.UpstreamID, true
-		}
-	}
-	// 没有精确匹配命中，使用 default 兜底
-	if hasDefault {
-		return defaultUpstream, true
-	}
-	return "", false
-}
-
-// MatchFull 匹配策略，返回完整的 RoutePolicyConfig（含 fixed_response）
-func (rpe *RoutePolicyEngine) MatchFull(info *UserInfo, appID string) (*RoutePolicyConfig, bool) {
-	rpe.mu.RLock()
-	defer rpe.mu.RUnlock()
-
+// MatchRoutePolicy is the stateless matcher used by DB-backed route policies.
+func MatchRoutePolicy(policies []RoutePolicyConfig, info *UserInfo, appID string) (int, *RoutePolicyConfig, bool) {
+	var defaultIdx = -1
 	var defaultPolicy *RoutePolicyConfig
 
 	if info == nil {
-		for i := range rpe.policies {
-			if rpe.policies[i].Match.Default {
-				p := rpe.policies[i]
-				return &p, true
+		for i := range policies {
+			if policies[i].Match.Default {
+				p := policies[i]
+				return i, &p, true
 			}
 		}
-		return nil, false
+		return -1, nil, false
 	}
 
-	for i := range rpe.policies {
-		p := &rpe.policies[i]
+	for i := range policies {
+		p := &policies[i]
 		if p.Match.Default {
-			cp := rpe.policies[i]
+			cp := policies[i]
+			defaultIdx = i
 			defaultPolicy = &cp
 			continue
 		}
@@ -1357,14 +1262,31 @@ func (rpe *RoutePolicyEngine) MatchFull(info *UserInfo, appID string) (*RoutePol
 			}
 		}
 		if hasCondition && matched {
-			cp := rpe.policies[i]
-			return &cp, true
+			cp := policies[i]
+			return i, &cp, true
 		}
 	}
 	if defaultPolicy != nil {
-		return defaultPolicy, true
+		return defaultIdx, defaultPolicy, true
 	}
-	return nil, false
+	return -1, nil, false
+}
+
+// Match 匹配策略，返回 upstream_id 和是否命中
+func (rpe *RoutePolicyEngine) Match(info *UserInfo, appID string) (string, bool) {
+	_, p, ok := rpe.TestMatch(info, appID)
+	if !ok || p == nil {
+		return "", false
+	}
+	return p.UpstreamID, true
+}
+
+// MatchFull 匹配策略，返回完整的 RoutePolicyConfig（含 fixed_response）
+func (rpe *RoutePolicyEngine) MatchFull(info *UserInfo, appID string) (*RoutePolicyConfig, bool) {
+	rpe.mu.RLock()
+	defer rpe.mu.RUnlock()
+	_, p, ok := MatchRoutePolicy(rpe.policies, info, appID)
+	return p, ok
 }
 
 // ListPolicies 返回策略列表
@@ -1388,61 +1310,7 @@ func (rpe *RoutePolicyEngine) SetPolicies(policies []RoutePolicyConfig) {
 func (rpe *RoutePolicyEngine) TestMatch(info *UserInfo, appID string) (int, *RoutePolicyConfig, bool) {
 	rpe.mu.RLock()
 	defer rpe.mu.RUnlock()
-
-	// info 为 nil 时只能匹配 default 策略
-	if info == nil {
-		for i, p := range rpe.policies {
-			if p.Match.Default {
-				return i, &p, true
-			}
-		}
-		return -1, nil, false
-	}
-
-	// default 策略作为兜底，必须在所有精确匹配之后才生效
-	defaultIdx := -1
-
-	for i, p := range rpe.policies {
-		if p.Match.Default {
-			defaultIdx = i
-			continue // 记录但不立即返回
-		}
-		matched := true
-		hasCondition := false
-
-		if p.Match.Email != "" {
-			hasCondition = true
-			if !strings.EqualFold(info.Email, p.Match.Email) {
-				matched = false
-			}
-		}
-		if matched && p.Match.EmailSuffix != "" {
-			hasCondition = true
-			if !strings.HasSuffix(strings.ToLower(info.Email), strings.ToLower(p.Match.EmailSuffix)) {
-				matched = false
-			}
-		}
-		if matched && p.Match.Department != "" {
-			hasCondition = true
-			if !containsDepartment(info.Department, p.Match.Department) {
-				matched = false
-			}
-		}
-		if matched && p.Match.AppID != "" {
-			hasCondition = true
-			if appID != p.Match.AppID {
-				matched = false
-			}
-		}
-		if hasCondition && matched {
-			return i, &rpe.policies[i], true
-		}
-	}
-	// 没有精确匹配命中，使用 default 兜底
-	if defaultIdx >= 0 {
-		return defaultIdx, &rpe.policies[defaultIdx], true
-	}
-	return -1, nil, false
+	return MatchRoutePolicy(rpe.policies, info, appID)
 }
 
 // createUserInfoProvider 根据配置创建对应平台的 UserInfoProvider
@@ -1768,4 +1636,3 @@ func (rt *RouteTable) Stats() RouteStats {
 	}
 	return stats
 }
-

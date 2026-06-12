@@ -222,17 +222,22 @@ func (ip *InboundProxy) parseInboundMessage(w http.ResponseWriter, body []byte, 
 // handleFixedResponse 处理策略路由固定返回（v34.0）
 // 返回 true 表示已处理（短路），false 表示继续正常流程
 func (ip *InboundProxy) handleFixedResponse(w http.ResponseWriter, senderID, appID, msgText, traceID string, start time.Time) bool {
-	if ip.policyEng == nil {
+	if senderID != "" && ip.routes != nil {
+		if _, ok := ip.routes.Lookup(senderID, appID); ok {
+			return false
+		}
+	}
+	if !ip.hasRoutePolicySource() {
 		return false
 	}
 
 	var matchedPolicy *RoutePolicyConfig
-	if ip.userCache != nil {
-		info, _ := ip.userCache.GetOrFetchWithTimeout(senderID, 500*time.Millisecond)
-		matchedPolicy, _ = ip.policyEng.MatchFull(info, appID)
-	} else {
-		matchedPolicy, _ = ip.policyEng.MatchFull(nil, appID)
+	info := ip.lookupUserInfoForPolicy(senderID)
+	_, policy, matched, err := ip.matchRoutePolicy(info, appID)
+	if err != nil || !matched {
+		return false
 	}
+	matchedPolicy = policy
 
 	if matchedPolicy == nil || matchedPolicy.FixedResponse == nil || !matchedPolicy.FixedResponse.Enabled {
 		return false
