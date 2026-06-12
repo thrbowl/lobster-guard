@@ -137,110 +137,33 @@ func TestSaveLLMConfig_SyncsConfD(t *testing.T) {
 	assertConfigPathBool(t, confRaw, "llm_proxy.security.scan_pii_in_response", true)
 }
 
-func TestSaveRoutePolicies_SyncsConfD(t *testing.T) {
-	tmp := t.TempDir()
-	cfgPath := filepath.Join(tmp, "config.yaml")
-	confDir := filepath.Join(tmp, "conf.d")
-	if err := os.MkdirAll(confDir, 0755); err != nil {
-		t.Fatal(err)
+func TestSaveRoutePolicies_WritesRoutePolicyStore(t *testing.T) {
+	db := openTestSQLite(t)
+	defer db.Close()
+
+	api := &ManagementAPI{routePolicyStore: NewRoutePolicyStore(db, nil)}
+	policies := []RoutePolicyConfig{
+		{Match: RoutePolicyMatch{AppID: "bot-a"}, UpstreamID: "up-new"},
+		{Match: RoutePolicyMatch{Default: true}, FixedResponse: &FixedResponseConfig{Enabled: true, Body: `{"code":0}`}},
 	}
-	mainCfg := `route_policies:
-  - match:
-      app_id: "bot-a"
-    upstream_id: "up-a"
-`
-	confdCfg := `route_policies:
-  - match:
-      app_id: "bot-a"
-    upstream_id: "up-old"
-other: true
-`
-	if err := os.WriteFile(cfgPath, []byte(mainCfg), 0644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(confDir, "routing.yaml"), []byte(confdCfg), 0644); err != nil {
-		t.Fatal(err)
-	}
-	api := &ManagementAPI{cfgPath: cfgPath}
-	policies := []RoutePolicyConfig{{
-		Match:      RoutePolicyMatch{AppID: "bot-a"},
-		UpstreamID: "up-new",
-	}}
 
 	if err := api.saveRoutePolicies(policies); err != nil {
 		t.Fatalf("saveRoutePolicies failed: %v", err)
 	}
 
-	mainRaw := mustReadYAML(t, cfgPath)
-	confRaw := mustReadYAML(t, filepath.Join(confDir, "routing.yaml"))
-	assertRoutePolicyUpstreamID(t, mainRaw, "bot-a", "up-new")
-	assertRoutePolicyUpstreamID(t, confRaw, "bot-a", "up-new")
-	assertConfigPathBool(t, confRaw, "other", true)
-}
-
-func TestSaveRoutePolicies_SyncsCustomRelativeConfDir(t *testing.T) {
-	tmp := t.TempDir()
-	cfgPath := filepath.Join(tmp, "config.yaml")
-	confDir := filepath.Join(tmp, "modules")
-	if err := os.MkdirAll(confDir, 0755); err != nil {
-		t.Fatal(err)
+	persisted, err := api.loadRoutePolicies()
+	if err != nil {
+		t.Fatalf("loadRoutePolicies failed: %v", err)
 	}
-	mainCfg := `conf_dir: "modules"
-route_policies:
-  - match:
-      app_id: "bot-a"
-    upstream_id: "up-a"
-`
-	confdCfg := `route_policies:
-  - match:
-      app_id: "bot-a"
-    upstream_id: "up-old"
-`
-	if err := os.WriteFile(cfgPath, []byte(mainCfg), 0644); err != nil {
-		t.Fatal(err)
+	if len(persisted) != 2 {
+		t.Fatalf("expected 2 persisted policies, got %d", len(persisted))
 	}
-	if err := os.WriteFile(filepath.Join(confDir, "routing.yaml"), []byte(confdCfg), 0644); err != nil {
-		t.Fatal(err)
+	if persisted[0].Match.AppID != "bot-a" || persisted[0].UpstreamID != "up-new" {
+		t.Fatalf("unexpected first policy: %+v", persisted[0])
 	}
-	api := &ManagementAPI{cfgPath: cfgPath}
-	policies := []RoutePolicyConfig{{Match: RoutePolicyMatch{AppID: "bot-a"}, UpstreamID: "up-new"}}
-
-	if err := api.saveRoutePolicies(policies); err != nil {
-		t.Fatalf("saveRoutePolicies failed: %v", err)
+	if persisted[1].FixedResponse == nil || persisted[1].FixedResponse.Body != `{"code":0}` {
+		t.Fatalf("expected fixed_response preserved, got %+v", persisted[1].FixedResponse)
 	}
-
-	confRaw := mustReadYAML(t, filepath.Join(confDir, "routing.yaml"))
-	assertRoutePolicyUpstreamID(t, confRaw, "bot-a", "up-new")
-}
-
-func TestSaveRoutePolicies_SyncsAbsoluteConfDir(t *testing.T) {
-	tmp := t.TempDir()
-	cfgPath := filepath.Join(tmp, "config.yaml")
-	confDir := filepath.Join(t.TempDir(), "absolute-modules")
-	if err := os.MkdirAll(confDir, 0755); err != nil {
-		t.Fatal(err)
-	}
-	mainCfg := "conf_dir: \"" + confDir + "\"\nroute_policies:\n  - match:\n      app_id: \"bot-a\"\n    upstream_id: \"up-a\"\n"
-	confdCfg := `route_policies:
-  - match:
-      app_id: "bot-a"
-    upstream_id: "up-old"
-`
-	if err := os.WriteFile(cfgPath, []byte(mainCfg), 0644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(confDir, "routing.yaml"), []byte(confdCfg), 0644); err != nil {
-		t.Fatal(err)
-	}
-	api := &ManagementAPI{cfgPath: cfgPath}
-	policies := []RoutePolicyConfig{{Match: RoutePolicyMatch{AppID: "bot-a"}, UpstreamID: "up-new"}}
-
-	if err := api.saveRoutePolicies(policies); err != nil {
-		t.Fatalf("saveRoutePolicies failed: %v", err)
-	}
-
-	confRaw := mustReadYAML(t, filepath.Join(confDir, "routing.yaml"))
-	assertRoutePolicyUpstreamID(t, confRaw, "bot-a", "up-new")
 }
 
 func TestPersistOutboundRules_SyncsConfD(t *testing.T) {
@@ -351,7 +274,7 @@ func TestReplaceSectionAndSyncConfD_FailsBeforeMainWriteOnBadConfD(t *testing.T)
 	}
 	p := NewConfigPersistence(&sync.Mutex{}, cfgPath)
 	newSection := []interface{}{map[string]interface{}{
-		"match": map[string]interface{}{"app_id": "bot-a"},
+		"match":       map[string]interface{}{"app_id": "bot-a"},
 		"upstream_id": "up-new",
 	}}
 

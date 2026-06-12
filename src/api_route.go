@@ -215,7 +215,9 @@ func (api *ManagementAPI) handleBatchBindRoute(w http.ResponseWriter, r *http.Re
 		oldUpstreamDeltas := make(map[string]int)
 		newCount := 0
 		for _, e := range req.Entries {
-			if e.SenderID == "" { continue }
+			if e.SenderID == "" {
+				continue
+			}
 			appID := req.AppID
 			if oldUID, ok := api.routes.Lookup(e.SenderID, appID); ok {
 				if oldUID != req.UpstreamID {
@@ -250,8 +252,15 @@ func (api *ManagementAPI) handleBatchBindRoute(w http.ResponseWriter, r *http.Re
 		oldUpstreamDeltas := make(map[string]int)
 		newCount := 0
 		for _, e := range existing {
-			if req.AppID != "" && e.AppID != req.AppID { continue }
-			appID := func() string { if req.AppID != "" { return req.AppID }; return e.AppID }()
+			if req.AppID != "" && e.AppID != req.AppID {
+				continue
+			}
+			appID := func() string {
+				if req.AppID != "" {
+					return req.AppID
+				}
+				return e.AppID
+			}()
 			if oldUID, ok := api.routes.Lookup(e.SenderID, appID); ok {
 				if oldUID != req.UpstreamID {
 					oldUpstreamDeltas[oldUID]--
@@ -356,9 +365,9 @@ func (api *ManagementAPI) handleListRoutePolicies(w http.ResponseWriter, r *http
 // handleTestRoutePolicy POST /api/v1/route-policies/test — 测试策略匹配
 func (api *ManagementAPI) handleTestRoutePolicy(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		SenderID string `json:"sender_id"`
-		AppID    string `json:"app_id"`
-		Email    string `json:"email"`
+		SenderID   string `json:"sender_id"`
+		AppID      string `json:"app_id"`
+		Email      string `json:"email"`
 		Department string `json:"department"`
 	}
 	if json.NewDecoder(r.Body).Decode(&req) != nil {
@@ -397,16 +406,16 @@ func (api *ManagementAPI) handleTestRoutePolicy(w http.ResponseWriter, r *http.R
 			return
 		}
 		jsonResponse(w, 200, map[string]interface{}{
-			"matched":  false,
-			"message":  "no user info available and no default policy configured",
+			"matched": false,
+			"message": "no user info available and no default policy configured",
 		})
 		return
 	}
 
 	if len(policies) == 0 {
 		jsonResponse(w, 200, map[string]interface{}{
-			"matched":  false,
-			"message":  "no route policies configured",
+			"matched": false,
+			"message": "no route policies configured",
 		})
 		return
 	}

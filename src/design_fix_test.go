@@ -22,8 +22,8 @@ func TestD001_PolicyUpstreamUnhealthyDegradation(t *testing.T) {
 	defer db.Close()
 
 	cfg := &Config{
-		RouteDefaultPolicy: "least-users",
-		HeartbeatIntervalSec: 10,
+		RouteDefaultPolicy:    "least-users",
+		HeartbeatIntervalSec:  10,
 		HeartbeatTimeoutCount: 30,
 	}
 	pool := NewUpstreamPool(cfg, db)
@@ -92,8 +92,8 @@ func TestD002_WebhookProxyFallbackUpdatesRouteTable(t *testing.T) {
 	defer db.Close()
 
 	cfg := &Config{
-		RouteDefaultPolicy: "least-users",
-		HeartbeatIntervalSec: 10,
+		RouteDefaultPolicy:    "least-users",
+		HeartbeatIntervalSec:  10,
 		HeartbeatTimeoutCount: 30,
 	}
 	pool := NewUpstreamPool(cfg, db)
@@ -140,8 +140,8 @@ func TestD003_BridgeModePathPrefix(t *testing.T) {
 	defer db.Close()
 
 	cfg := &Config{
-		RouteDefaultPolicy: "least-users",
-		HeartbeatIntervalSec: 10,
+		RouteDefaultPolicy:    "least-users",
+		HeartbeatIntervalSec:  10,
 		HeartbeatTimeoutCount: 30,
 		StaticUpstreams: []StaticUpstreamConfig{
 			{ID: "upstream-with-prefix", Address: "127.0.0.1", Port: 9001, PathPrefix: "/api/v1"},
@@ -178,8 +178,8 @@ func TestD004_ReevaluateAllRoutes(t *testing.T) {
 	defer db.Close()
 
 	cfg := &Config{
-		RouteDefaultPolicy: "least-users",
-		HeartbeatIntervalSec: 10,
+		RouteDefaultPolicy:    "least-users",
+		HeartbeatIntervalSec:  10,
 		HeartbeatTimeoutCount: 30,
 	}
 	pool := NewUpstreamPool(cfg, db)
@@ -241,8 +241,8 @@ func TestD006_RestoreUserCounts(t *testing.T) {
 	defer db.Close()
 
 	cfg := &Config{
-		RouteDefaultPolicy: "least-users",
-		HeartbeatIntervalSec: 10,
+		RouteDefaultPolicy:    "least-users",
+		HeartbeatIntervalSec:  10,
 		HeartbeatTimeoutCount: 30,
 	}
 	pool := NewUpstreamPool(cfg, db)
@@ -301,9 +301,9 @@ func TestR2001_RefreshNonExistentUser404(t *testing.T) {
 	defer db.Close()
 
 	cfg := &Config{
-		ManagementToken: "test-token",
-		RouteDefaultPolicy: "least-users",
-		HeartbeatIntervalSec: 10,
+		ManagementToken:       "test-token",
+		RouteDefaultPolicy:    "least-users",
+		HeartbeatIntervalSec:  10,
 		HeartbeatTimeoutCount: 30,
 	}
 
@@ -343,9 +343,9 @@ func TestR2003_DeleteUpstreamCleansOrphanedRoutes(t *testing.T) {
 	defer db.Close()
 
 	cfg := &Config{
-		ManagementToken: "test-token",
-		RouteDefaultPolicy: "least-users",
-		HeartbeatIntervalSec: 10,
+		ManagementToken:       "test-token",
+		RouteDefaultPolicy:    "least-users",
+		HeartbeatIntervalSec:  10,
 		HeartbeatTimeoutCount: 30,
 	}
 
@@ -411,9 +411,9 @@ func TestR2004_LengthLimit(t *testing.T) {
 	defer db.Close()
 
 	cfg := &Config{
-		ManagementToken: "test-token",
-		RouteDefaultPolicy: "least-users",
-		HeartbeatIntervalSec: 10,
+		ManagementToken:       "test-token",
+		RouteDefaultPolicy:    "least-users",
+		HeartbeatIntervalSec:  10,
 		HeartbeatTimeoutCount: 30,
 	}
 
@@ -462,9 +462,9 @@ func TestR2005_PolicyUpstreamValidationWarn(t *testing.T) {
 	}
 
 	cfg := &Config{
-		ManagementToken: "test-token",
-		RouteDefaultPolicy: "least-users",
-		HeartbeatIntervalSec: 10,
+		ManagementToken:       "test-token",
+		RouteDefaultPolicy:    "least-users",
+		HeartbeatIntervalSec:  10,
 		HeartbeatTimeoutCount: 30,
 		StaticUpstreams: []StaticUpstreamConfig{
 			{ID: "upstream-a", Address: "127.0.0.1", Port: 9001},

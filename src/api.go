@@ -182,7 +182,7 @@ func NewManagementAPI(cfg *Config, cfgPath string, pool *UpstreamPool, routes *R
 		userCache: userCache, policyEng: policyEng, alertNotifier: alertNotifier,
 		wsProxy: wsProxy, store: store, shutdownMgr: shutdownMgr, realtime: realtime,
 		routePolicyStore: NewRoutePolicyStore(routePolicyDBFromLogger(logger), cfg.RoutePolicies),
-		gwManager: NewGatewayWSManager(nil, cfg.DefaultGatewayOrigin), // v29.0 Gateway WSS 连接管理器
+		gwManager:        NewGatewayWSManager(nil, cfg.DefaultGatewayOrigin), // v29.0 Gateway WSS 连接管理器
 	}
 }
 

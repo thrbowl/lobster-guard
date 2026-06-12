@@ -314,14 +314,22 @@ func TestTraceCorrelator_LRU_O1(t *testing.T) {
 	tc.Set("c", "trace-c")
 
 	// 应全部存在
-	if tc.Get("a") != "trace-a" { t.Fatal("a 应存在") }
-	if tc.Get("b") != "trace-b" { t.Fatal("b 应存在") }
-	if tc.Get("c") != "trace-c" { t.Fatal("c 应存在") }
+	if tc.Get("a") != "trace-a" {
+		t.Fatal("a 应存在")
+	}
+	if tc.Get("b") != "trace-b" {
+		t.Fatal("b 应存在")
+	}
+	if tc.Get("c") != "trace-c" {
+		t.Fatal("c 应存在")
+	}
 
 	// 加第 4 个 → a 被淘汰（最旧的）
 	tc.Set("d", "trace-d")
 	// 注意：a 在上面 Get 时被 moveToFront 了，所以最旧的变成 b
-	if tc.Get("d") != "trace-d" { t.Fatal("d 应存在") }
+	if tc.Get("d") != "trace-d" {
+		t.Fatal("d 应存在")
+	}
 
 	// 验证 size
 	tc.mu.Lock()
@@ -456,7 +464,6 @@ func TestAffinityOverridesPolicyWhenRouteExists(t *testing.T) {
 		{
 			Match:      RoutePolicyMatch{Department: "天眼事业部"},
 			UpstreamID: "upstream-b",
-			
 		},
 	}
 	engine := NewRoutePolicyEngine(policies)
@@ -512,7 +519,6 @@ func TestAffinityWorksWhenNoPolicyMatch(t *testing.T) {
 		{
 			Match:      RoutePolicyMatch{Department: "天眼事业部"},
 			UpstreamID: "upstream-b",
-			
 		},
 	}
 	engine := NewRoutePolicyEngine(policies)
@@ -560,12 +566,10 @@ func TestDefaultPolicyDoesNotOverrideAffinity(t *testing.T) {
 		{
 			Match:      RoutePolicyMatch{Department: "天眼事业部"},
 			UpstreamID: "upstream-a",
-			
 		},
 		{
 			Match:      RoutePolicyMatch{Default: true},
 			UpstreamID: "default-pool",
-			
 		},
 	}
 	engine := NewRoutePolicyEngine(policies)

@@ -487,7 +487,7 @@ type discardResponseWriter struct {
 func newDiscardResponseWriter() *discardResponseWriter {
 	return &discardResponseWriter{header: make(http.Header), code: 200}
 }
-func (d *discardResponseWriter) Header() http.Header          { return d.header }
+func (d *discardResponseWriter) Header() http.Header         { return d.header }
 func (d *discardResponseWriter) Write(b []byte) (int, error) { return len(b), nil }
 func (d *discardResponseWriter) WriteHeader(code int)        { d.code = code }
 

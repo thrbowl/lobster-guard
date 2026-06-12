@@ -44,3 +44,4 @@ src/dashboard/
 # src/rules/ — 内置模板已提交，用户自定义规则请放在 conf.d/
 lobster-guard-v29a
 lobster-guard-v29b
+AGENTS.md

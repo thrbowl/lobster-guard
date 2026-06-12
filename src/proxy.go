@@ -26,30 +26,30 @@ import (
 // ============================================================
 
 type InboundProxy struct {
-	channel    ChannelPlugin
-	engine     *RuleEngine
-	logger     *AuditLogger
-	pool       *UpstreamPool
-	routes     *RouteTable
-	enabled    bool
-	timeout    time.Duration
-	whitelist  map[string]bool
-	policy     string
-	mode       string          // "webhook" | "bridge"
-	bridge     BridgeConnector // bridge 模式下非 nil
-	cfg        *Config
-	limiter    *RateLimiter    // v3.3 限流器，nil 表示不限流
-	metrics    *MetricsCollector // v3.4 指标采集器
-	ruleHits   *RuleHitStats   // v3.6 规则命中统计
-	userCache  *UserInfoCache  // v3.9 用户信息缓存
-	policyEng  *RoutePolicyEngine // v3.9 路由策略引擎
-	routePolicyStore *RoutePolicyStore
-	alertNotifier *AlertNotifier // v3.10 告警通知器
-	wsProxy    *WSProxyManager // v4.1 WebSocket 代理管理器
-	realtime   *RealtimeMetrics // v5.0 实时监控
-	slog       *Logger          // v5.0 结构化日志
-	traceCorrelator    *TraceCorrelator    // v18 出站 trace 关联
-	sessionCorrelator  *SessionCorrelator  // v17.3 IM↔LLM 会话关联
+	channel           ChannelPlugin
+	engine            *RuleEngine
+	logger            *AuditLogger
+	pool              *UpstreamPool
+	routes            *RouteTable
+	enabled           bool
+	timeout           time.Duration
+	whitelist         map[string]bool
+	policy            string
+	mode              string          // "webhook" | "bridge"
+	bridge            BridgeConnector // bridge 模式下非 nil
+	cfg               *Config
+	limiter           *RateLimiter       // v3.3 限流器，nil 表示不限流
+	metrics           *MetricsCollector  // v3.4 指标采集器
+	ruleHits          *RuleHitStats      // v3.6 规则命中统计
+	userCache         *UserInfoCache     // v3.9 用户信息缓存
+	policyEng         *RoutePolicyEngine // v3.9 路由策略引擎
+	routePolicyStore  *RoutePolicyStore
+	alertNotifier     *AlertNotifier     // v3.10 告警通知器
+	wsProxy           *WSProxyManager    // v4.1 WebSocket 代理管理器
+	realtime          *RealtimeMetrics   // v5.0 实时监控
+	slog              *Logger            // v5.0 结构化日志
+	traceCorrelator   *TraceCorrelator   // v18 出站 trace 关联
+	sessionCorrelator *SessionCorrelator // v17.3 IM↔LLM 会话关联
 	// v5.1 智能检测
 	sessionDetector *SessionDetector
 	llmDetector     *LLMDetector
@@ -88,9 +88,13 @@ type InboundProxy struct {
 
 func NewInboundProxy(cfg *Config, channel ChannelPlugin, engine *RuleEngine, logger *AuditLogger, pool *UpstreamPool, routes *RouteTable, metrics *MetricsCollector, ruleHits *RuleHitStats, userCache *UserInfoCache, policyEng *RoutePolicyEngine, honeypot *HoneypotEngine) *InboundProxy {
 	wl := make(map[string]bool)
-	for _, id := range cfg.Whitelist { wl[id] = true }
+	for _, id := range cfg.Whitelist {
+		wl[id] = true
+	}
 	mode := cfg.Mode
-	if mode == "" { mode = "webhook" }
+	if mode == "" {
+		mode = "webhook"
+	}
 	var limiter *RateLimiter
 	if cfg.RateLimit.GlobalRPS > 0 || cfg.RateLimit.PerSenderRPS > 0 {
 		limiter = NewRateLimiter(cfg.RateLimit)
@@ -101,7 +105,7 @@ func NewInboundProxy(cfg *Config, channel ChannelPlugin, engine *RuleEngine, log
 		whitelist: wl, policy: cfg.RouteDefaultPolicy, mode: mode, cfg: cfg, limiter: limiter,
 		metrics: metrics, ruleHits: ruleHits, userCache: userCache, policyEng: policyEng,
 		routePolicyStore: NewRoutePolicyStore(routePolicyDBFromLogger(logger), cfg.RoutePolicies),
-		honeypot: honeypot,
+		honeypot:         honeypot,
 	}
 }
 
@@ -348,9 +352,9 @@ func (ip *InboundProxy) startBridge(ctx context.Context) error {
 							Type:     "honeypot_trigger",
 							Severity: "high",
 							SenderID: senderID,
-							Summary: fmt.Sprintf("蜜罐触发: template=%s watermark=%s trigger_type=%s", tpl.Name, watermark, tpl.TriggerType),
-							Details: map[string]interface{}{"template": tpl.Name, "watermark": watermark, "trigger_type": tpl.TriggerType},
-							Domain: "inbound",
+							Summary:  fmt.Sprintf("蜜罐触发: template=%s watermark=%s trigger_type=%s", tpl.Name, watermark, tpl.TriggerType),
+							Details:  map[string]interface{}{"template": tpl.Name, "watermark": watermark, "trigger_type": tpl.TriggerType},
+							Domain:   "inbound",
 						})
 					}
 					log.Printf("[桥接入站] 🍯 蜜罐触发 sender=%s template=%s watermark=%s", senderID, tpl.Name, watermark)
@@ -562,21 +566,38 @@ func (ip *InboundProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// --- 1. 协议前置处理（WebSocket / GET 验证 / 非 POST）---
 	if IsWebSocketUpgrade(r) && ip.wsProxy != nil {
 		senderID := r.URL.Query().Get("sender_id")
-		if senderID == "" { senderID = r.Header.Get("X-Sender-Id") }
+		if senderID == "" {
+			senderID = r.Header.Get("X-Sender-Id")
+		}
 		appID := r.URL.Query().Get("app_id")
-		if appID == "" { appID = r.Header.Get("X-App-Id") }
+		if appID == "" {
+			appID = r.Header.Get("X-App-Id")
+		}
 		ip.wsProxy.HandleWebSocket(w, r, senderID, appID)
 		return
 	}
 	if r.Method == "GET" {
-		if wp, ok := ip.channel.(*WecomPlugin); ok { ip.handleWecomVerify(w, r, wp); return }
+		if wp, ok := ip.channel.(*WecomPlugin); ok {
+			ip.handleWecomVerify(w, r, wp)
+			return
+		}
 		proxy, _ := ip.pool.GetAnyHealthyProxy()
-		if proxy != nil { proxy.ServeHTTP(w, r) } else { w.WriteHeader(502); w.Write([]byte(`{"errcode":502,"errmsg":"no upstream"}`)) }
+		if proxy != nil {
+			proxy.ServeHTTP(w, r)
+		} else {
+			w.WriteHeader(502)
+			w.Write([]byte(`{"errcode":502,"errmsg":"no upstream"}`))
+		}
 		return
 	}
 	if r.Method != http.MethodPost {
 		proxy, _ := ip.pool.GetAnyHealthyProxy()
-		if proxy != nil { proxy.ServeHTTP(w, r) } else { w.WriteHeader(502); w.Write([]byte(`{"errcode":502,"errmsg":"no upstream"}`)) }
+		if proxy != nil {
+			proxy.ServeHTTP(w, r)
+		} else {
+			w.WriteHeader(502)
+			w.Write([]byte(`{"errcode":502,"errmsg":"no upstream"}`))
+		}
 		return
 	}
 
@@ -585,21 +606,31 @@ func (ip *InboundProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	r = r.WithContext(ctx)
 
-	body, err := io.ReadAll(r.Body); r.Body.Close()
+	body, err := io.ReadAll(r.Body)
+	r.Body.Close()
 	if err != nil {
 		proxy, _ := ip.pool.GetAnyHealthyProxy()
-		if proxy != nil { r.Body = io.NopCloser(bytes.NewReader(body)); proxy.ServeHTTP(w, r) }
+		if proxy != nil {
+			r.Body = io.NopCloser(bytes.NewReader(body))
+			proxy.ServeHTTP(w, r)
+		}
 		return
 	}
 	rh := fmt.Sprintf("%x", sha256.Sum256(body))
 
 	parsed, isVerify := ip.parseInboundMessage(w, body, r)
-	if isVerify { return }
+	if isVerify {
+		return
+	}
 	msgText, senderID, appID, decryptOK := parsed.Text, parsed.SenderID, parsed.AppID, parsed.DecryptOK
 
 	// --- 3. Trace/Session 关联 ---
-	if ip.traceCorrelator != nil && senderID != "" { ip.traceCorrelator.Set(senderID, traceID) }
-	if ip.sessionCorrelator != nil && msgText != "" { ip.sessionCorrelator.RegisterIMSession(msgText, traceID, senderID, appID) }
+	if ip.traceCorrelator != nil && senderID != "" {
+		ip.traceCorrelator.Set(senderID, traceID)
+	}
+	if ip.sessionCorrelator != nil && msgText != "" {
+		ip.sessionCorrelator.RegisterIMSession(msgText, traceID, senderID, appID)
+	}
 
 	// --- 3.5. 确认等待拦截（v37.0）---
 	if ip.confirmStore != nil && senderID != "" && ip.confirmStore.Has(senderID) {
@@ -612,36 +643,56 @@ func (ip *InboundProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if ip.limiter != nil {
 		allowed, reason := ip.limiter.Allow(senderID)
 		if !allowed {
-			if ip.metrics != nil { ip.metrics.RecordRateLimit(false); ip.metrics.RecordRequest("inbound", "rate_limited", ip.channel.Name(), 0) }
-			w.Header().Set("Retry-After", "1"); w.Header().Set("Content-Type", "application/json"); w.Header().Set("X-Trace-ID", traceID)
+			if ip.metrics != nil {
+				ip.metrics.RecordRateLimit(false)
+				ip.metrics.RecordRequest("inbound", "rate_limited", ip.channel.Name(), 0)
+			}
+			w.Header().Set("Retry-After", "1")
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("X-Trace-ID", traceID)
 			w.WriteHeader(429)
 			json.NewEncoder(w).Encode(map[string]interface{}{"errcode": 429, "errmsg": "rate limited", "detail": reason})
 			ip.logger.Log("inbound", senderID, "rate_limited", reason, truncate(msgText, 200), rh, 0, "", appID)
 			return
 		}
-		if ip.metrics != nil { ip.metrics.RecordRateLimit(true) }
+		if ip.metrics != nil {
+			ip.metrics.RecordRateLimit(true)
+		}
 	}
 
 	// --- 5. 固定返回短路 ---
-	if ip.handleFixedResponse(w, senderID, appID, msgText, traceID, start) { return }
+	if ip.handleFixedResponse(w, senderID, appID, msgText, traceID, start) {
+		return
+	}
 
 	// --- 6. 路由解析 ---
 	var upstreamID string
-	if senderID != "" { upstreamID = ip.resolveUpstream(senderID, appID, "[路由]") }
+	if senderID != "" {
+		upstreamID = ip.resolveUpstream(senderID, appID, "[路由]")
+	}
 
 	// --- 7. 获取上游代理 ---
 	var proxy *httputil.ReverseProxy
-	if upstreamID != "" { proxy = ip.pool.GetProxy(upstreamID) }
+	if upstreamID != "" {
+		proxy = ip.pool.GetProxy(upstreamID)
+	}
 	if proxy == nil {
 		var fallbackUID string
 		proxy, fallbackUID = ip.pool.GetAnyHealthyProxy()
 		if fallbackUID != "" && fallbackUID != upstreamID && senderID != "" {
 			log.Printf("[路由] ⚠️ 上游 %s proxy不可用，降级到 %s sender=%s", upstreamID, fallbackUID, senderID)
-			if upstreamID != "" { ip.routes.Bind(senderID, appID, fallbackUID); ip.pool.TransferUserCount(upstreamID, fallbackUID) }
+			if upstreamID != "" {
+				ip.routes.Bind(senderID, appID, fallbackUID)
+				ip.pool.TransferUserCount(upstreamID, fallbackUID)
+			}
 			upstreamID = fallbackUID
 		}
 	}
-	if proxy == nil { w.WriteHeader(502); w.Write([]byte(`{"errcode":502,"errmsg":"no upstream available"}`)); return }
+	if proxy == nil {
+		w.WriteHeader(502)
+		w.Write([]byte(`{"errcode":502,"errmsg":"no upstream available"}`))
+		return
+	}
 
 	// --- 8. 安全检测 ---
 	skipDetect := !ip.cfg.InboundDetectEnabled || ip.whitelist[senderID] || !decryptOK || msgText == ""
@@ -649,7 +700,11 @@ func (ip *InboundProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !skipDetect {
 		ch := make(chan DetectResult, 1)
 		go func() {
-			defer func() { if rv := recover(); rv != nil { ch <- DetectResult{Action: "pass"} } }()
+			defer func() {
+				if rv := recover(); rv != nil {
+					ch <- DetectResult{Action: "pass"}
+				}
+			}()
 			ch <- ip.runPipelineDetect(msgText, appID, senderID, traceID)
 		}()
 		select {
@@ -662,10 +717,15 @@ func (ip *InboundProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// --- 9. 构建审计信息 ---
 	reason := strings.Join(detectResult.Reasons, ",")
 	if len(detectResult.PIIs) > 0 {
-		if reason != "" { reason += "," }
+		if reason != "" {
+			reason += ","
+		}
 		reason += "pii:" + strings.Join(detectResult.PIIs, "+")
 	}
-	act := detectResult.Action; if act == "" { act = "pass" }
+	act := detectResult.Action
+	if act == "" {
+		act = "pass"
+	}
 
 	// v18.3: 自适应决策
 	if ip.adaptiveEngine != nil && act == "block" {
@@ -869,10 +929,12 @@ type OutboundProxy struct {
 
 func NewOutboundProxy(cfg *Config, channel ChannelPlugin, inboundEngine *RuleEngine, outboundEngine *OutboundRuleEngine, logger *AuditLogger, metrics *MetricsCollector, ruleHits *RuleHitStats, honeypot *HoneypotEngine) (*OutboundProxy, error) {
 	up, err := url.Parse(cfg.LanxinUpstream)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 	p := httputil.NewSingleHostReverseProxy(up)
 	p.Transport = &http.Transport{
-		DialContext:         (&net.Dialer{Timeout: 10 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
+		DialContext:  (&net.Dialer{Timeout: 10 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
 		MaxIdleConns: 50, MaxIdleConnsPerHost: 50, IdleConnTimeout: 90 * time.Second,
 		TLSHandshakeTimeout: 10 * time.Second,
 	}
@@ -912,8 +974,12 @@ func (op *OutboundProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	outTraceID = r.Header.Get("X-Trace-ID")
 
 	// 出站 body 大小限制：最大 10MB，防止 OOM
-	body, err := io.ReadAll(io.LimitReader(r.Body, 10*1024*1024)); r.Body.Close()
-	if err != nil { op.proxy.ServeHTTP(w, r); return }
+	body, err := io.ReadAll(io.LimitReader(r.Body, 10*1024*1024))
+	r.Body.Close()
+	if err != nil {
+		op.proxy.ServeHTTP(w, r)
+		return
+	}
 	rh := fmt.Sprintf("%x", sha256.Sum256(body))
 
 	// 使用通道插件提取出站消息文本
@@ -923,7 +989,9 @@ func (op *OutboundProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	func() {
 		defer func() { recover() }()
 		t, ok := op.channel.ExtractOutbound(r.URL.Path, body)
-		if ok { text = t }
+		if ok {
+			text = t
+		}
 		// 提取接收者（蓝信: userIdList/groupId）
 		type recipientExtractor interface {
 			ExtractOutboundRecipient([]byte) string
@@ -934,7 +1002,9 @@ func (op *OutboundProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// 提取 appId
 		var m map[string]interface{}
 		if json.Unmarshal(body, &m) == nil {
-			if a, ok := m["appId"].(string); ok { outAppID = a }
+			if a, ok := m["appId"].(string); ok {
+				outAppID = a
+			}
 		}
 	}()
 
@@ -953,7 +1023,10 @@ func (op *OutboundProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			latMs := float64(time.Since(start).Microseconds()) / 1000.0
 			upstreamID := r.Header.Get("X-Upstream-Id")
 			detonationReason := "honeypot_detonation:" + strings.Join(detonatedWatermarks, ",")
-			pv := text; if rs := []rune(pv); len(rs) > 2000 { pv = string(rs[:2000]) + "..." }
+			pv := text
+			if rs := []rune(pv); len(rs) > 2000 {
+				pv = string(rs[:2000]) + "..."
+			}
 			op.logger.LogWithTrace("outbound", recipient, "honeypot_detonation", detonationReason, pv, rh, latMs, upstreamID, outAppID, outTraceID)
 			log.Printf("[出站] 💣 蜜罐引爆检测 path=%s watermarks=%v", r.URL.Path, detonatedWatermarks)
 			// v18.1: 事件总线
@@ -984,7 +1057,10 @@ func (op *OutboundProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			latMs := float64(time.Since(start).Microseconds()) / 1000.0
 			upstreamID := r.Header.Get("X-Upstream-Id")
 			taintReason := fmt.Sprintf("taint_%s: labels=%v %s", taintDecision.Action, taintDecision.Labels, taintDecision.Reason)
-			pv := text; if rs := []rune(pv); len(rs) > 2000 { pv = string(rs[:2000]) + "..." }
+			pv := text
+			if rs := []rune(pv); len(rs) > 2000 {
+				pv = string(rs[:2000]) + "..."
+			}
 			op.logger.LogWithTrace("outbound", recipient, "taint_"+taintDecision.Action, taintReason, pv, rh, latMs, upstreamID, outAppID, outTraceID)
 			if taintDecision.Action == "block" {
 				log.Printf("[出站] 🔒 污染阻断 trace=%s labels=%v", outTraceID, taintDecision.Labels)
@@ -1020,7 +1096,10 @@ func (op *OutboundProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	pv := text; if rs := []rune(pv); len(rs) > 2000 { pv = string(rs[:2000]) + "..." }
+	pv := text
+	if rs := []rune(pv); len(rs) > 2000 {
+		pv = string(rs[:2000]) + "..."
+	}
 
 	// v3.6 规则命中统计
 	if op.ruleHits != nil && result.RuleName != "" {
@@ -1121,7 +1200,8 @@ func (op *OutboundProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		piis := op.inboundEngine.DetectPII(text)
 		action, reason := "pass", ""
 		if len(piis) > 0 {
-			action = "pii_detected"; reason = "outbound_pii:" + strings.Join(piis, "+")
+			action = "pii_detected"
+			reason = "outbound_pii:" + strings.Join(piis, "+")
 			log.Printf("[出站] PII path=%s piis=%v", r.URL.Path, piis)
 		}
 		op.logger.LogWithTrace("outbound", recipient, action, reason, pv, rh, latMs, upstreamID, outAppID, outTraceID)
@@ -1138,7 +1218,6 @@ func (op *OutboundProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	op.proxy.ServeHTTP(w, r)
 }
-
 
 // taintActionForLabel 将污染标签映射到风险权重 action 名
 func taintActionForLabel(label string) string {

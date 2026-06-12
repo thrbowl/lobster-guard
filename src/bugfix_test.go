@@ -300,18 +300,18 @@ func TestBug013_ReorderPoliciesAtomicallyPreservesFixedResponse(t *testing.T) {
 		t.Fatalf("expected reordered fixed_response header preserved, got %+v", resp.Policies[0].FixedResponse.Headers)
 	}
 
-	cfg, err := loadConfig(api.cfgPath)
+	persisted, err := api.loadRoutePolicies()
 	if err != nil {
-		t.Fatalf("load config failed: %v", err)
+		t.Fatalf("load persisted policies failed: %v", err)
 	}
-	if len(cfg.RoutePolicies) != 2 {
-		t.Fatalf("expected 2 persisted policies, got %d", len(cfg.RoutePolicies))
+	if len(persisted) != 2 {
+		t.Fatalf("expected 2 persisted policies, got %d", len(persisted))
 	}
-	if !cfg.RoutePolicies[0].Match.Default {
-		t.Fatalf("expected persisted default policy at index 0, got %+v", cfg.RoutePolicies[0].Match)
+	if !persisted[0].Match.Default {
+		t.Fatalf("expected persisted default policy at index 0, got %+v", persisted[0].Match)
 	}
-	if cfg.RoutePolicies[0].FixedResponse == nil || cfg.RoutePolicies[0].FixedResponse.Body != `{"code":0}` {
-		t.Fatalf("expected persisted fixed_response body preserved, got %+v", cfg.RoutePolicies[0].FixedResponse)
+	if persisted[0].FixedResponse == nil || persisted[0].FixedResponse.Body != `{"code":0}` {
+		t.Fatalf("expected persisted fixed_response body preserved, got %+v", persisted[0].FixedResponse)
 	}
 }
 

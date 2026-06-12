@@ -65,8 +65,12 @@ func NewUpstreamPool(cfg *Config, db *sql.DB) *UpstreamPool {
 		heartbeatTimeout:  cfg.HeartbeatTimeoutCount,
 		db:                db,
 	}
-	if pool.heartbeatInterval <= 0 { pool.heartbeatInterval = 10 * time.Second }
-	if pool.heartbeatTimeout <= 0 { pool.heartbeatTimeout = 30 } // BUG-012 fix: default 30 * interval = 5min @10s
+	if pool.heartbeatInterval <= 0 {
+		pool.heartbeatInterval = 10 * time.Second
+	}
+	if pool.heartbeatTimeout <= 0 {
+		pool.heartbeatTimeout = 30
+	} // BUG-012 fix: default 30 * interval = 5min @10s
 	for _, su := range cfg.StaticUpstreams {
 		up := &Upstream{
 			ID: su.ID, Address: su.Address, Port: su.Port, PathPrefix: su.PathPrefix, Healthy: true,
@@ -82,9 +86,13 @@ func NewUpstreamPool(cfg *Config, db *sql.DB) *UpstreamPool {
 		u, err := url.Parse(cfg.OpenClawUpstream)
 		if err == nil {
 			port := 18790
-			if u.Port() != "" { fmt.Sscanf(u.Port(), "%d", &port) }
+			if u.Port() != "" {
+				fmt.Sscanf(u.Port(), "%d", &port)
+			}
 			host := u.Hostname()
-			if host == "" { host = "127.0.0.1" }
+			if host == "" {
+				host = "127.0.0.1"
+			}
 			pathPrefix := strings.TrimRight(u.Path, "/")
 			up := &Upstream{
 				ID: "openclaw-default", Address: host, Port: port, PathPrefix: pathPrefix, Healthy: true,
@@ -104,10 +112,12 @@ func createReverseProxy(address string, port int, pathPrefix string) *httputil.R
 	target := fmt.Sprintf("http://%s:%d", address, port)
 	u, _ := url.Parse(target)
 	prefix := path.Clean("/" + strings.TrimRight(pathPrefix, "/"))
-	if prefix == "/" { prefix = "" } // Clean("/") → "/" but we want empty
+	if prefix == "/" {
+		prefix = ""
+	} // Clean("/") → "/" but we want empty
 	p := httputil.NewSingleHostReverseProxy(u)
 	p.Transport = &http.Transport{
-		DialContext:         (&net.Dialer{Timeout: 5 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
+		DialContext:  (&net.Dialer{Timeout: 5 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
 		MaxIdleConns: 100, MaxIdleConnsPerHost: 50, IdleConnTimeout: 90 * time.Second,
 	}
 	od := p.Director
@@ -130,14 +140,20 @@ func createReverseProxy(address string, port int, pathPrefix string) *httputil.R
 }
 
 func (pool *UpstreamPool) loadUpstreamsFromDB() {
-	if pool.db == nil { return }
+	if pool.db == nil {
+		return
+	}
 	rows, err := pool.db.Query(`SELECT id, address, port, healthy, registered_at, last_heartbeat, tags, load, COALESCE(path_prefix,''), COALESCE(gateway_token,'') FROM upstreams`)
-	if err != nil { return }
+	if err != nil {
+		return
+	}
 	defer rows.Close()
 	for rows.Next() {
 		var id, address, regAt, hbAt, tagsJSON, loadJSON, pathPrefix, gatewayToken string
 		var port, healthy int
-		if rows.Scan(&id, &address, &port, &healthy, &regAt, &hbAt, &tagsJSON, &loadJSON, &pathPrefix, &gatewayToken) != nil { continue }
+		if rows.Scan(&id, &address, &port, &healthy, &regAt, &hbAt, &tagsJSON, &loadJSON, &pathPrefix, &gatewayToken) != nil {
+			continue
+		}
 		if _, exists := pool.upstreams[id]; exists {
 			// 静态上游已存在，但要从 DB 恢复 gateway_token
 			if gatewayToken != "" && pool.upstreams[id].GatewayToken == "" {
@@ -158,33 +174,51 @@ func (pool *UpstreamPool) loadUpstreamsFromDB() {
 }
 
 func (pool *UpstreamPool) saveUpstreamToDB(id string) {
-	if pool.db == nil { return }
+	if pool.db == nil {
+		return
+	}
 	up, ok := pool.upstreams[id]
-	if !ok { return }
+	if !ok {
+		return
+	}
 	tagsJSON, _ := json.Marshal(up.Tags)
 	loadJSON, _ := json.Marshal(up.Load)
-	h := 0; if up.Healthy { h = 1 }
+	h := 0
+	if up.Healthy {
+		h = 1
+	}
 	pool.db.Exec(`INSERT OR REPLACE INTO upstreams (id,address,port,healthy,registered_at,last_heartbeat,tags,load,path_prefix,gateway_token) VALUES(?,?,?,?,?,?,?,?,?,?)`,
 		id, up.Address, up.Port, h, up.RegisteredAt.Format(time.RFC3339), up.LastHeartbeat.Format(time.RFC3339),
 		string(tagsJSON), string(loadJSON), up.PathPrefix, up.GatewayToken)
 }
 
 func (pool *UpstreamPool) Register(id, address string, port int, tags map[string]string, pathPrefix ...string) error {
-	pool.mu.Lock(); defer pool.mu.Unlock()
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
 	now := time.Now()
 	pp := ""
-	if len(pathPrefix) > 0 { pp = pathPrefix[0] }
+	if len(pathPrefix) > 0 {
+		pp = pathPrefix[0]
+	}
 	if existing, ok := pool.upstreams[id]; ok {
-		existing.Address = address; existing.Port = port
-		existing.Healthy = true; existing.LastHeartbeat = now
-		if tags != nil { existing.Tags = tags }
-		if pp != "" { existing.PathPrefix = pp }
+		existing.Address = address
+		existing.Port = port
+		existing.Healthy = true
+		existing.LastHeartbeat = now
+		if tags != nil {
+			existing.Tags = tags
+		}
+		if pp != "" {
+			existing.PathPrefix = pp
+		}
 		existing.proxy = createReverseProxy(address, port, existing.PathPrefix)
 	} else {
 		up := &Upstream{ID: id, Address: address, Port: port, PathPrefix: pp, Healthy: true,
 			RegisteredAt: now, LastHeartbeat: now,
 			Tags: tags, Load: map[string]interface{}{}}
-		if up.Tags == nil { up.Tags = map[string]string{} }
+		if up.Tags == nil {
+			up.Tags = map[string]string{}
+		}
 		up.proxy = createReverseProxy(address, port, pp)
 		pool.upstreams[id] = up
 	}
@@ -194,34 +228,53 @@ func (pool *UpstreamPool) Register(id, address string, port int, tags map[string
 }
 
 func (pool *UpstreamPool) Heartbeat(id string, load map[string]interface{}) (int, error) {
-	pool.mu.Lock(); defer pool.mu.Unlock()
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
 	up, ok := pool.upstreams[id]
-	if !ok { return 0, fmt.Errorf("上游 %s 未注册", id) }
+	if !ok {
+		return 0, fmt.Errorf("上游 %s 未注册", id)
+	}
 	up.LastHeartbeat = time.Now()
 	up.Healthy = true
-	if load != nil { up.Load = load }
+	if load != nil {
+		up.Load = load
+	}
 	pool.saveUpstreamToDB(id)
 	return up.UserCount, nil
 }
 
 func (pool *UpstreamPool) Deregister(id string) {
-	pool.mu.Lock(); defer pool.mu.Unlock()
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
 	if up, ok := pool.upstreams[id]; ok && !up.Static {
 		delete(pool.upstreams, id)
-		if pool.db != nil { pool.db.Exec(`DELETE FROM upstreams WHERE id = ?`, id) }
+		if pool.db != nil {
+			pool.db.Exec(`DELETE FROM upstreams WHERE id = ?`, id)
+		}
 		log.Printf("[上游池] 注销上游: %s", id)
 	}
 }
 
 // Update 更新已有上游的地址、端口、tags、path_prefix（v21.0 上游 CRUD）
 func (pool *UpstreamPool) Update(id, address string, port int, tags map[string]string, pathPrefix ...string) error {
-	pool.mu.Lock(); defer pool.mu.Unlock()
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
 	up, ok := pool.upstreams[id]
-	if !ok { return fmt.Errorf("上游 %s 不存在", id) }
-	if address != "" { up.Address = address }
-	if port > 0 { up.Port = port }
-	if tags != nil { up.Tags = tags }
-	if len(pathPrefix) > 0 { up.PathPrefix = pathPrefix[0] }
+	if !ok {
+		return fmt.Errorf("上游 %s 不存在", id)
+	}
+	if address != "" {
+		up.Address = address
+	}
+	if port > 0 {
+		up.Port = port
+	}
+	if tags != nil {
+		up.Tags = tags
+	}
+	if len(pathPrefix) > 0 {
+		up.PathPrefix = pathPrefix[0]
+	}
 	up.proxy = createReverseProxy(up.Address, up.Port, up.PathPrefix)
 	pool.saveUpstreamToDB(id)
 	log.Printf("[上游池] 更新上游: %s -> %s:%d prefix=%s", id, up.Address, up.Port, up.PathPrefix)
@@ -230,18 +283,24 @@ func (pool *UpstreamPool) Update(id, address string, port int, tags map[string]s
 
 // GetUpstream 获取单个上游详情（v21.0 上游 CRUD）
 func (pool *UpstreamPool) GetUpstream(id string) (*Upstream, bool) {
-	pool.mu.RLock(); defer pool.mu.RUnlock()
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
 	up, ok := pool.upstreams[id]
-	if !ok { return nil, false }
+	if !ok {
+		return nil, false
+	}
 	copy := *up
 	return &copy, true
 }
 
 // SetGatewayToken 设置上游的 Gateway Token（v22.0 Gateway 监控中心）
 func (pool *UpstreamPool) SetGatewayToken(id, token string) error {
-	pool.mu.Lock(); defer pool.mu.Unlock()
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
 	up, ok := pool.upstreams[id]
-	if !ok { return fmt.Errorf("上游 %s 不存在", id) }
+	if !ok {
+		return fmt.Errorf("上游 %s 不存在", id)
+	}
 	up.GatewayToken = token
 	pool.saveUpstreamToDB(id)
 	return nil
@@ -249,26 +308,37 @@ func (pool *UpstreamPool) SetGatewayToken(id, token string) error {
 
 // GetGatewayToken 获取上游的 Gateway Token（v22.0 Gateway 监控中心）
 func (pool *UpstreamPool) GetGatewayToken(id string) (string, bool) {
-	pool.mu.RLock(); defer pool.mu.RUnlock()
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
 	up, ok := pool.upstreams[id]
-	if !ok { return "", false }
+	if !ok {
+		return "", false
+	}
 	return up.GatewayToken, true
 }
 
 // HasGatewayToken 检查上游是否配置了 Gateway Token
 func (pool *UpstreamPool) HasGatewayToken(id string) bool {
-	pool.mu.RLock(); defer pool.mu.RUnlock()
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
 	up, ok := pool.upstreams[id]
-	if !ok { return false }
+	if !ok {
+		return false
+	}
 	return up.GatewayToken != ""
 }
 
 // ForceDeregister 强制注销上游（包括静态上游，K8s 发现的也可以手动删除）
 func (pool *UpstreamPool) ForceDeregister(id string) bool {
-	pool.mu.Lock(); defer pool.mu.Unlock()
-	if _, ok := pool.upstreams[id]; !ok { return false }
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+	if _, ok := pool.upstreams[id]; !ok {
+		return false
+	}
 	delete(pool.upstreams, id)
-	if pool.db != nil { pool.db.Exec(`DELETE FROM upstreams WHERE id = ?`, id) }
+	if pool.db != nil {
+		pool.db.Exec(`DELETE FROM upstreams WHERE id = ?`, id)
+	}
 	log.Printf("[上游池] 强制注销上游: %s", id)
 	return true
 }
@@ -300,34 +370,47 @@ func (pool *UpstreamPool) RestoreUserCounts(db *sql.DB) {
 
 // GetProxy 获取指定上游的反向代理
 func (pool *UpstreamPool) GetProxy(id string) *httputil.ReverseProxy {
-	pool.mu.RLock(); defer pool.mu.RUnlock()
-	if up, ok := pool.upstreams[id]; ok && up.proxy != nil { return up.proxy }
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
+	if up, ok := pool.upstreams[id]; ok && up.proxy != nil {
+		return up.proxy
+	}
 	return nil
 }
 
 // GetAnyHealthyProxy 返回任意一个健康上游的代理（failopen 兜底）
 func (pool *UpstreamPool) GetAnyHealthyProxy() (*httputil.ReverseProxy, string) {
-	pool.mu.RLock(); defer pool.mu.RUnlock()
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
 	for id, up := range pool.upstreams {
-		if up.Healthy && up.proxy != nil { return up.proxy, id }
+		if up.Healthy && up.proxy != nil {
+			return up.proxy, id
+		}
 	}
 	// 所有都不健康，返回第一个（failopen）
 	for id, up := range pool.upstreams {
-		if up.proxy != nil { return up.proxy, id }
+		if up.proxy != nil {
+			return up.proxy, id
+		}
 	}
 	return nil, ""
 }
 
 // SelectUpstream 按策略选择上游容器（用于新用户分配）
 func (pool *UpstreamPool) SelectUpstream(policy string) string {
-	pool.mu.RLock(); defer pool.mu.RUnlock()
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
 	var healthy []*Upstream
 	for _, up := range pool.upstreams {
-		if up.Healthy { healthy = append(healthy, up) }
+		if up.Healthy {
+			healthy = append(healthy, up)
+		}
 	}
 	if len(healthy) == 0 {
 		// failopen: 返回任意一个
-		for _, up := range pool.upstreams { return up.ID }
+		for _, up := range pool.upstreams {
+			return up.ID
+		}
 		return ""
 	}
 	switch policy {
@@ -342,27 +425,36 @@ func (pool *UpstreamPool) SelectUpstream(policy string) string {
 
 // IsHealthy 检查指定上游是否健康
 func (pool *UpstreamPool) IsHealthy(id string) bool {
-	pool.mu.RLock(); defer pool.mu.RUnlock()
-	if up, ok := pool.upstreams[id]; ok { return up.Healthy }
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
+	if up, ok := pool.upstreams[id]; ok {
+		return up.Healthy
+	}
 	return false
 }
 
 // IncrUserCount 增加上游用户计数
 func (pool *UpstreamPool) IncrUserCount(id string, delta int) {
-	pool.mu.Lock(); defer pool.mu.Unlock()
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
 	if up, ok := pool.upstreams[id]; ok {
 		up.UserCount += delta
-		if up.UserCount < 0 { up.UserCount = 0 } // 防止负数
+		if up.UserCount < 0 {
+			up.UserCount = 0
+		} // 防止负数
 	}
 }
 
 // TransferUserCount 原子转移用户计数：from -1, to +1，单次加锁
 func (pool *UpstreamPool) TransferUserCount(fromID, toID string) {
-	pool.mu.Lock(); defer pool.mu.Unlock()
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
 	if fromID != "" {
 		if up, ok := pool.upstreams[fromID]; ok {
 			up.UserCount--
-			if up.UserCount < 0 { up.UserCount = 0 }
+			if up.UserCount < 0 {
+				up.UserCount = 0
+			}
 		}
 	}
 	if toID != "" {
@@ -387,7 +479,8 @@ func (pool *UpstreamPool) Count() (total, healthy int) {
 
 // ListUpstreams 列出所有上游
 func (pool *UpstreamPool) ListUpstreams() []Upstream {
-	pool.mu.RLock(); defer pool.mu.RUnlock()
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
 	var list []Upstream
 	for _, up := range pool.upstreams {
 		list = append(list, *up)
@@ -409,7 +502,9 @@ func (pool *UpstreamPool) HealthCheck(ctx context.Context) {
 			timeout := pool.heartbeatInterval * time.Duration(pool.heartbeatTimeout)
 			// Issue #5 fix: 静态上游也做 TCP 健康检查
 			for _, up := range pool.upstreams {
-				if !up.Static { continue }
+				if !up.Static {
+					continue
+				}
 				go func(u *Upstream) {
 					addr := upstreamTCPAddr(u.Address, u.Port)
 					conn, err := net.DialTimeout("tcp", addr, 3*time.Second)
@@ -434,7 +529,9 @@ func (pool *UpstreamPool) HealthCheck(ctx context.Context) {
 
 			var toRemove []string
 			for id, up := range pool.upstreams {
-				if up.Static { continue }
+				if up.Static {
+					continue
+				}
 				if now.Sub(up.LastHeartbeat) > timeout {
 					if up.Healthy {
 						up.Healthy = false
@@ -448,7 +545,9 @@ func (pool *UpstreamPool) HealthCheck(ctx context.Context) {
 			}
 			for _, id := range toRemove {
 				delete(pool.upstreams, id)
-				if pool.db != nil { pool.db.Exec(`DELETE FROM upstreams WHERE id = ?`, id) }
+				if pool.db != nil {
+					pool.db.Exec(`DELETE FROM upstreams WHERE id = ?`, id)
+				}
 				log.Printf("[健康检查] 上游 %s 持续不健康，已自动移除", id)
 			}
 			pool.mu.Unlock()
@@ -462,14 +561,14 @@ func (pool *UpstreamPool) HealthCheck(ctx context.Context) {
 
 // RouteEntry 路由条目（v3.8 结构化）
 type RouteEntry struct {
-	SenderID       string `json:"sender_id"`
-	AppID          string `json:"app_id"`
-	UpstreamID     string `json:"upstream_id"`
-	Department     string `json:"department,omitempty"`
-	DisplayName    string `json:"display_name,omitempty"`
-	Email          string `json:"email,omitempty"`    // v3.9
-	CreatedAt      string `json:"created_at,omitempty"`
-	UpdatedAt      string `json:"updated_at,omitempty"`
+	SenderID    string `json:"sender_id"`
+	AppID       string `json:"app_id"`
+	UpstreamID  string `json:"upstream_id"`
+	Department  string `json:"department,omitempty"`
+	DisplayName string `json:"display_name,omitempty"`
+	Email       string `json:"email,omitempty"` // v3.9
+	CreatedAt   string `json:"created_at,omitempty"`
+	UpdatedAt   string `json:"updated_at,omitempty"`
 }
 
 // routeKey 生成复合路由键
@@ -483,12 +582,12 @@ func routeKey(senderID, appID string) string {
 
 // UserInfo 用户信息（所有 IM 平台统一）
 type UserInfo struct {
-	SenderID   string `json:"sender_id"`
-	Name       string `json:"name"`
-	Email      string `json:"email"`
-	Mobile     string `json:"mobile,omitempty"`
-	Department string `json:"department"`
-	Avatar     string `json:"avatar,omitempty"`
+	SenderID   string    `json:"sender_id"`
+	Name       string    `json:"name"`
+	Email      string    `json:"email"`
+	Mobile     string    `json:"mobile,omitempty"`
+	Department string    `json:"department"`
+	Avatar     string    `json:"avatar,omitempty"`
 	FetchedAt  time.Time `json:"fetched_at,omitempty"`
 }
 
@@ -786,11 +885,11 @@ func (p *LanxinUserProvider) getToken() (string, error) {
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 	var result struct {
-		ErrCode int `json:"errCode"`
+		ErrCode int    `json:"errCode"`
 		ErrMsg  string `json:"errMsg"`
-		Data struct {
-			AppToken string `json:"app_token"`
-			ExpiresIn int  `json:"expires_in"`
+		Data    struct {
+			AppToken  string `json:"app_token"`
+			ExpiresIn int    `json:"expires_in"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(body, &result); err != nil {
@@ -1356,7 +1455,9 @@ func NewRouteTable(db *sql.DB, persist bool) *RouteTable {
 
 func (rt *RouteTable) loadFromDB() {
 	rows, err := rt.db.Query(`SELECT sender_id, app_id, upstream_id FROM user_routes`)
-	if err != nil { return }
+	if err != nil {
+		return
+	}
 	defer rows.Close()
 	for rows.Next() {
 		var sid, appID, uid string
@@ -1369,7 +1470,8 @@ func (rt *RouteTable) loadFromDB() {
 
 // Lookup 先精确匹配 (senderID, appID)，没找到再 fallback 到 (senderID, "")
 func (rt *RouteTable) Lookup(senderID, appID string) (string, bool) {
-	rt.mu.RLock(); defer rt.mu.RUnlock()
+	rt.mu.RLock()
+	defer rt.mu.RUnlock()
 	// 精确匹配
 	if appID != "" {
 		if uid, ok := rt.exact[routeKey(senderID, appID)]; ok {
@@ -1382,7 +1484,8 @@ func (rt *RouteTable) Lookup(senderID, appID string) (string, bool) {
 }
 
 func (rt *RouteTable) Bind(senderID, appID, upstreamID string) {
-	rt.mu.Lock(); defer rt.mu.Unlock()
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
 	rt.exact[routeKey(senderID, appID)] = upstreamID
 	if rt.db != nil {
 		now := time.Now().Format(time.RFC3339)
@@ -1393,7 +1496,8 @@ func (rt *RouteTable) Bind(senderID, appID, upstreamID string) {
 
 // BindWithMeta 带元数据的绑定（部门、显示名）
 func (rt *RouteTable) BindWithMeta(senderID, appID, upstreamID, department, displayName string) {
-	rt.mu.Lock(); defer rt.mu.Unlock()
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
 	rt.exact[routeKey(senderID, appID)] = upstreamID
 	if rt.db != nil {
 		now := time.Now().Format(time.RFC3339)
@@ -1403,7 +1507,8 @@ func (rt *RouteTable) BindWithMeta(senderID, appID, upstreamID, department, disp
 }
 
 func (rt *RouteTable) Unbind(senderID, appID string) {
-	rt.mu.Lock(); defer rt.mu.Unlock()
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
 	delete(rt.exact, routeKey(senderID, appID))
 	if rt.db != nil {
 		rt.db.Exec(`DELETE FROM user_routes WHERE sender_id = ? AND app_id = ?`, senderID, appID)
@@ -1411,10 +1516,13 @@ func (rt *RouteTable) Unbind(senderID, appID string) {
 }
 
 func (rt *RouteTable) Migrate(senderID, appID, fromID, toID string) bool {
-	rt.mu.Lock(); defer rt.mu.Unlock()
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
 	key := routeKey(senderID, appID)
 	current, ok := rt.exact[key]
-	if !ok || (fromID != "" && current != fromID) { return false }
+	if !ok || (fromID != "" && current != fromID) {
+		return false
+	}
 	rt.exact[key] = toID
 	if rt.db != nil {
 		now := time.Now().Format(time.RFC3339)
@@ -1427,7 +1535,8 @@ func (rt *RouteTable) Migrate(senderID, appID, fromID, toID string) bool {
 // 返回 (是否成功, 当前实际绑定的 upstreamID)
 // expectedUID 为空字符串表示期望无绑定
 func (rt *RouteTable) CompareAndBind(senderID, appID, expectedUID, newUID string) (bool, string) {
-	rt.mu.Lock(); defer rt.mu.Unlock()
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
 	key := routeKey(senderID, appID)
 	current, exists := rt.exact[key]
 	if expectedUID == "" {
@@ -1463,7 +1572,8 @@ func AtomicMigrate(rt *RouteTable, pool *UpstreamPool, senderID, appID, expected
 
 // ListRoutes 返回结构化路由列表（v3.8）
 func (rt *RouteTable) ListRoutes() []RouteEntry {
-	rt.mu.RLock(); defer rt.mu.RUnlock()
+	rt.mu.RLock()
+	defer rt.mu.RUnlock()
 	// 如果有 db，从 db 读取完整信息（包含 department/display_name）
 	if rt.db != nil {
 		rows, err := rt.db.Query(`SELECT sender_id, app_id, upstream_id, department, display_name, created_at, updated_at FROM user_routes ORDER BY updated_at DESC`)
@@ -1485,7 +1595,9 @@ func (rt *RouteTable) ListRoutes() []RouteEntry {
 		parts := strings.SplitN(k, "|", 2)
 		sid := parts[0]
 		appID := ""
-		if len(parts) > 1 { appID = parts[1] }
+		if len(parts) > 1 {
+			appID = parts[1]
+		}
 		entries = append(entries, RouteEntry{SenderID: sid, AppID: appID, UpstreamID: uid})
 	}
 	return entries
@@ -1493,7 +1605,8 @@ func (rt *RouteTable) ListRoutes() []RouteEntry {
 
 // BindBatch 批量绑定路由条目
 func (rt *RouteTable) BindBatch(entries []RouteEntry) {
-	rt.mu.Lock(); defer rt.mu.Unlock()
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
 	now := time.Now().Format(time.RFC3339)
 	for _, e := range entries {
 		rt.exact[routeKey(e.SenderID, e.AppID)] = e.UpstreamID
@@ -1506,7 +1619,8 @@ func (rt *RouteTable) BindBatch(entries []RouteEntry) {
 
 // UpdateUserInfo 更新路由表中用户的显示名、邮箱和部门（v3.9）
 func (rt *RouteTable) UpdateUserInfo(senderID, displayName, email, department string) {
-	rt.mu.Lock(); defer rt.mu.Unlock()
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
 	if rt.db == nil {
 		return
 	}
@@ -1516,33 +1630,41 @@ func (rt *RouteTable) UpdateUserInfo(senderID, displayName, email, department st
 }
 
 func (rt *RouteTable) Count() int {
-	rt.mu.RLock(); defer rt.mu.RUnlock()
+	rt.mu.RLock()
+	defer rt.mu.RUnlock()
 	return len(rt.exact)
 }
 
 func (rt *RouteTable) CountByUpstream(upstreamID string) int {
-	rt.mu.RLock(); defer rt.mu.RUnlock()
+	rt.mu.RLock()
+	defer rt.mu.RUnlock()
 	n := 0
 	for _, uid := range rt.exact {
-		if uid == upstreamID { n++ }
+		if uid == upstreamID {
+			n++
+		}
 	}
 	return n
 }
 
 // CountByApp 统计指定 appID 的路由数
 func (rt *RouteTable) CountByApp(appID string) int {
-	rt.mu.RLock(); defer rt.mu.RUnlock()
+	rt.mu.RLock()
+	defer rt.mu.RUnlock()
 	n := 0
 	suffix := "|" + appID
 	for k := range rt.exact {
-		if strings.HasSuffix(k, suffix) { n++ }
+		if strings.HasSuffix(k, suffix) {
+			n++
+		}
 	}
 	return n
 }
 
 // ListByApp 按 Bot 筛选路由
 func (rt *RouteTable) ListByApp(appID string) []RouteEntry {
-	rt.mu.RLock(); defer rt.mu.RUnlock()
+	rt.mu.RLock()
+	defer rt.mu.RUnlock()
 	if rt.db != nil {
 		rows, err := rt.db.Query(`SELECT sender_id, app_id, upstream_id, department, display_name, created_at, updated_at FROM user_routes WHERE app_id = ? ORDER BY updated_at DESC`, appID)
 		if err == nil {
@@ -1571,10 +1693,15 @@ func (rt *RouteTable) ListByApp(appID string) []RouteEntry {
 
 // ListByDepartment 按部门筛选路由（需要 db）
 func (rt *RouteTable) ListByDepartment(department string) []RouteEntry {
-	rt.mu.RLock(); defer rt.mu.RUnlock()
-	if rt.db == nil { return nil }
+	rt.mu.RLock()
+	defer rt.mu.RUnlock()
+	if rt.db == nil {
+		return nil
+	}
 	rows, err := rt.db.Query(`SELECT sender_id, app_id, upstream_id, department, display_name, created_at, updated_at FROM user_routes WHERE department = ? ORDER BY updated_at DESC`, department)
-	if err != nil { return nil }
+	if err != nil {
+		return nil
+	}
 	defer rows.Close()
 	var entries []RouteEntry
 	for rows.Next() {
@@ -1588,17 +1715,18 @@ func (rt *RouteTable) ListByDepartment(department string) []RouteEntry {
 
 // RouteStats 路由统计信息
 type RouteStats struct {
-	TotalRoutes int                `json:"total_routes"`
-	TotalUsers  int                `json:"total_users"`
-	TotalApps   int                `json:"total_apps"`
-	ByUpstream  map[string]int     `json:"by_upstream"`
-	ByApp       map[string]int     `json:"by_app"`
-	ByDepartment map[string]int    `json:"by_department"`
+	TotalRoutes  int            `json:"total_routes"`
+	TotalUsers   int            `json:"total_users"`
+	TotalApps    int            `json:"total_apps"`
+	ByUpstream   map[string]int `json:"by_upstream"`
+	ByApp        map[string]int `json:"by_app"`
+	ByDepartment map[string]int `json:"by_department"`
 }
 
 // Stats 统计路由信息
 func (rt *RouteTable) Stats() RouteStats {
-	rt.mu.RLock(); defer rt.mu.RUnlock()
+	rt.mu.RLock()
+	defer rt.mu.RUnlock()
 	stats := RouteStats{
 		TotalRoutes:  len(rt.exact),
 		ByUpstream:   make(map[string]int),
@@ -1611,9 +1739,13 @@ func (rt *RouteTable) Stats() RouteStats {
 		parts := strings.SplitN(k, "|", 2)
 		sid := parts[0]
 		appID := ""
-		if len(parts) > 1 { appID = parts[1] }
+		if len(parts) > 1 {
+			appID = parts[1]
+		}
 		users[sid] = true
-		if appID != "" { apps[appID] = true }
+		if appID != "" {
+			apps[appID] = true
+		}
 		stats.ByUpstream[uid]++
 		stats.ByApp[appID]++
 	}
