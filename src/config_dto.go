@@ -48,7 +48,7 @@ type ConfigSettingsAlertsDTO struct {
 }
 
 type ConfigSettingsAdvancedDTO struct {
-	DBPath               string `json:"db_path"`
+	DatabaseURL          string `json:"database_url"`
 	HeartbeatIntervalSec int    `json:"heartbeat_interval_sec"`
 	RouteDefaultPolicy   string `json:"route_default_policy"`
 	AuditRetentionDays   int    `json:"audit_retention_days"`
@@ -91,7 +91,7 @@ func buildConfigSettingsDTO(cfg *Config) ConfigSettingsResponse {
 			AlertMinInterval: cfg.AlertMinInterval,
 		},
 		Advanced: ConfigSettingsAdvancedDTO{
-			DBPath:               cfg.DBPath,
+			DatabaseURL:          maskDatabaseURL(cfg.DatabaseURL),
 			HeartbeatIntervalSec: cfg.HeartbeatIntervalSec,
 			RouteDefaultPolicy:   cfg.RouteDefaultPolicy,
 			AuditRetentionDays:   cfg.AuditRetentionDays,

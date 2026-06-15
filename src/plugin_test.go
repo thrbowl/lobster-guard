@@ -20,8 +20,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // ============================================================
@@ -520,7 +518,6 @@ func TestPluginBridgeSupport(t *testing.T) {
 	}
 }
 
-
 // ============================================================
 // 企微 GET 验证 HTTP 集成测试 (v3.2)
 // ============================================================
@@ -533,15 +530,15 @@ func TestWecomGETVerification_HTTP(t *testing.T) {
 	tmpDB := fmt.Sprintf("/tmp/lobster-guard-test-wecom-verify-%d.db", time.Now().UnixNano())
 	defer os.Remove(tmpDB)
 	cfg := &Config{
-		Channel:              "wecom",
-		WecomToken:           token,
-		WecomEncodingAesKey:  aesKeyBase64,
-		WecomCorpId:          corpId,
-		StaticUpstreams:      []StaticUpstreamConfig{{ID: "up-1", Address: "127.0.0.1", Port: 18790}},
-		HeartbeatIntervalSec: 10,
+		Channel:               "wecom",
+		WecomToken:            token,
+		WecomEncodingAesKey:   aesKeyBase64,
+		WecomCorpId:           corpId,
+		StaticUpstreams:       []StaticUpstreamConfig{{ID: "up-1", Address: "127.0.0.1", Port: 18790}},
+		HeartbeatIntervalSec:  10,
 		HeartbeatTimeoutCount: 3,
-		InboundDetectEnabled: true,
-		DetectTimeoutMs:      50,
+		InboundDetectEnabled:  true,
+		DetectTimeoutMs:       50,
 	}
 	db, _ := initDB(tmpDB)
 	defer db.Close()
@@ -603,12 +600,12 @@ func TestFeishuURLVerification_HTTP(t *testing.T) {
 	tmpDB := fmt.Sprintf("/tmp/lobster-guard-test-feishu-verify-%d.db", time.Now().UnixNano())
 	defer os.Remove(tmpDB)
 	cfg := &Config{
-		Channel:              "feishu",
-		StaticUpstreams:      []StaticUpstreamConfig{{ID: "up-1", Address: "127.0.0.1", Port: 18790}},
-		HeartbeatIntervalSec: 10,
+		Channel:               "feishu",
+		StaticUpstreams:       []StaticUpstreamConfig{{ID: "up-1", Address: "127.0.0.1", Port: 18790}},
+		HeartbeatIntervalSec:  10,
 		HeartbeatTimeoutCount: 3,
-		InboundDetectEnabled: true,
-		DetectTimeoutMs:      50,
+		InboundDetectEnabled:  true,
+		DetectTimeoutMs:       50,
 	}
 	db, _ := initDB(tmpDB)
 	defer db.Close()

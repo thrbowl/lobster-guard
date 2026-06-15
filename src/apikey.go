@@ -16,22 +16,22 @@ import (
 // APIKeyEntry API Key 条目
 type APIKeyEntry struct {
 	ID           string `json:"id"`
-	Key          string `json:"key,omitempty"`    // API Key (hash存储，仅创建时返回明文)
-	KeyPrefix    string `json:"key_prefix"`       // 前10位明文，用于识别
-	UserID       string `json:"user_id"`          // 用户标识（工号/邮箱）
-	UserName     string `json:"user_name"`        // 用户名
-	Department   string `json:"department"`       // 部门
-	TenantID     string `json:"tenant_id"`        // 归属租户
+	Key          string `json:"key,omitempty"` // API Key (hash存储，仅创建时返回明文)
+	KeyPrefix    string `json:"key_prefix"`    // 前10位明文，用于识别
+	UserID       string `json:"user_id"`       // 用户标识（工号/邮箱）
+	UserName     string `json:"user_name"`     // 用户名
+	Department   string `json:"department"`    // 部门
+	TenantID     string `json:"tenant_id"`     // 归属租户
 	Enabled      bool   `json:"enabled"`
-	QuotaDaily   int    `json:"quota_daily"`      // 日配额，0=不限
-	UsedToday    int    `json:"used_today"`       // 今日已用
-	ExpiresAt    string `json:"expires_at"`       // 过期时间，空=永不过期
+	QuotaDaily   int    `json:"quota_daily"` // 日配额，0=不限
+	UsedToday    int    `json:"used_today"`  // 今日已用
+	ExpiresAt    string `json:"expires_at"`  // 过期时间，空=永不过期
 	CreatedAt    string `json:"created_at"`
 	LastUsedAt   string `json:"last_used_at"`
-	Status       string `json:"status"`           // "active"(已绑定) / "pending"(待绑定/自动发现)
-	DiscoveredAt string `json:"discovered_at"`    // 自动发现时间
-	RequestCount int    `json:"request_count"`    // 发现以来的请求次数
-	LastSeenAt   string `json:"last_seen_at"`     // 最后活动时间
+	Status       string `json:"status"`        // "active"(已绑定) / "pending"(待绑定/自动发现)
+	DiscoveredAt string `json:"discovered_at"` // 自动发现时间
+	RequestCount int    `json:"request_count"` // 发现以来的请求次数
+	LastSeenAt   string `json:"last_seen_at"`  // 最后活动时间
 }
 
 // APIKeyManager API Key 管理器

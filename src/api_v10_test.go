@@ -11,8 +11,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // setupV10API 创建包含 v10~v11 新模块的测试 API

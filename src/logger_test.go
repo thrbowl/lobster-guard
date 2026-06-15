@@ -130,9 +130,15 @@ func TestGetAppLogger_DefaultInit(t *testing.T) {
 }
 
 func TestLogLevel_String(t *testing.T) {
-	if LogLevelInfo.String() != "info" { t.Error("info") }
-	if LogLevelWarn.String() != "warn" { t.Error("warn") }
-	if LogLevelError.String() != "error" { t.Error("error") }
+	if LogLevelInfo.String() != "info" {
+		t.Error("info")
+	}
+	if LogLevelWarn.String() != "warn" {
+		t.Error("warn")
+	}
+	if LogLevelError.String() != "error" {
+		t.Error("error")
+	}
 }
 
 // ============================================================
@@ -361,22 +367,28 @@ func (m *mockResponseWriter) WriteHeader(statusCode int) {
 func TestAuditLogger_TraceID(t *testing.T) {
 	tmpDB := t.TempDir() + "/trace-test.db"
 	db, err := initDB(tmpDB)
-	if err != nil { t.Fatalf("initDB: %v", err) }
+	if err != nil {
+		t.Fatalf("initDB: %v", err)
+	}
 	defer db.Close()
 
 	logger, err := NewAuditLogger(db)
-	if err != nil { t.Fatalf("NewAuditLogger: %v", err) }
+	if err != nil {
+		t.Fatalf("NewAuditLogger: %v", err)
+	}
 	defer logger.Close()
 
 	traceID := "abcdef1234567890"
 	logger.LogWithTrace("inbound", "user1", "block", "injection", "test content", "hash", 5.0, "up-1", "app-1", traceID)
 	time.Sleep(500 * time.Millisecond)
-	logger.Flush() // v32.1: 确保批量缓冲区写入 DB
+	logger.Flush()                     // v32.1: 确保批量缓冲区写入 DB
 	time.Sleep(100 * time.Millisecond) // extra wait after flush
 
 	// Query with trace_id filter
 	logs, err := logger.QueryLogsExTrace("", "", "", "", "", traceID, 10)
-	if err != nil { t.Fatalf("QueryLogsExTrace: %v", err) }
+	if err != nil {
+		t.Fatalf("QueryLogsExTrace: %v", err)
+	}
 	if len(logs) != 1 {
 		t.Fatalf("expected 1 log with trace_id, got %d", len(logs))
 	}
@@ -388,11 +400,15 @@ func TestAuditLogger_TraceID(t *testing.T) {
 func TestAuditLogger_TraceID_EmptyFilter(t *testing.T) {
 	tmpDB := t.TempDir() + "/trace-filter-test.db"
 	db, err := initDB(tmpDB)
-	if err != nil { t.Fatalf("initDB: %v", err) }
+	if err != nil {
+		t.Fatalf("initDB: %v", err)
+	}
 	defer db.Close()
 
 	logger, err := NewAuditLogger(db)
-	if err != nil { t.Fatalf("NewAuditLogger: %v", err) }
+	if err != nil {
+		t.Fatalf("NewAuditLogger: %v", err)
+	}
 	defer logger.Close()
 
 	logger.LogWithTrace("inbound", "user1", "pass", "", "content1", "hash1", 1.0, "", "", "trace-aaa")
@@ -402,7 +418,9 @@ func TestAuditLogger_TraceID_EmptyFilter(t *testing.T) {
 
 	// Query without trace_id filter should return both
 	logs, err := logger.QueryLogsExTrace("", "", "", "", "", "", 10)
-	if err != nil { t.Fatalf("QueryLogsExTrace: %v", err) }
+	if err != nil {
+		t.Fatalf("QueryLogsExTrace: %v", err)
+	}
 	if len(logs) < 2 {
 		t.Errorf("expected at least 2 logs, got %d", len(logs))
 	}
@@ -417,11 +435,15 @@ func TestAuditLogger_Archive(t *testing.T) {
 	archiveDir := t.TempDir()
 
 	db, err := initDB(tmpDB)
-	if err != nil { t.Fatalf("initDB: %v", err) }
+	if err != nil {
+		t.Fatalf("initDB: %v", err)
+	}
 	defer db.Close()
 
 	logger, err := NewAuditLogger(db)
-	if err != nil { t.Fatalf("NewAuditLogger: %v", err) }
+	if err != nil {
+		t.Fatalf("NewAuditLogger: %v", err)
+	}
 	defer logger.Close()
 
 	// Insert old logs (40 days ago)
@@ -440,9 +462,15 @@ func TestAuditLogger_Archive(t *testing.T) {
 
 	// Archive (retention = 30 days)
 	path, deleted, err := logger.ArchiveLogs(30, archiveDir)
-	if err != nil { t.Fatalf("ArchiveLogs: %v", err) }
-	if path == "" { t.Fatal("expected archive path") }
-	if deleted != 5 { t.Errorf("expected 5 deleted, got %d", deleted) }
+	if err != nil {
+		t.Fatalf("ArchiveLogs: %v", err)
+	}
+	if path == "" {
+		t.Fatal("expected archive path")
+	}
+	if deleted != 5 {
+		t.Errorf("expected 5 deleted, got %d", deleted)
+	}
 
 	// Verify archive file exists
 	if _, err := os.Stat(path); os.IsNotExist(err) {
@@ -466,7 +494,9 @@ func TestListArchives(t *testing.T) {
 	os.WriteFile(dir+"/not-an-archive.txt", []byte("test"), 0644)
 
 	archives, err := ListArchives(dir)
-	if err != nil { t.Fatalf("ListArchives: %v", err) }
+	if err != nil {
+		t.Fatalf("ListArchives: %v", err)
+	}
 	if len(archives) != 2 {
 		t.Errorf("expected 2 archives, got %d", len(archives))
 	}
@@ -475,7 +505,9 @@ func TestListArchives(t *testing.T) {
 func TestListArchives_EmptyDir(t *testing.T) {
 	dir := t.TempDir()
 	archives, err := ListArchives(dir)
-	if err != nil { t.Fatalf("ListArchives: %v", err) }
+	if err != nil {
+		t.Fatalf("ListArchives: %v", err)
+	}
 	if len(archives) != 0 {
 		t.Errorf("expected 0 archives, got %d", len(archives))
 	}
@@ -483,7 +515,9 @@ func TestListArchives_EmptyDir(t *testing.T) {
 
 func TestListArchives_NonexistentDir(t *testing.T) {
 	archives, err := ListArchives("/nonexistent/path/should/not/exist")
-	if err != nil { t.Fatalf("ListArchives should not error for non-existent dir: %v", err) }
+	if err != nil {
+		t.Fatalf("ListArchives should not error for non-existent dir: %v", err)
+	}
 	if len(archives) != 0 {
 		t.Errorf("expected 0 archives, got %d", len(archives))
 	}

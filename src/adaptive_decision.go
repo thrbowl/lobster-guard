@@ -37,16 +37,16 @@ type AdaptiveDecisionConfig struct {
 // DecisionHistory 用户决策历史
 type DecisionHistory struct {
 	UserID      string    `json:"user_id"`
-	TotalBlocks int       `json:"total_blocks"`  // 历史 block 总数
-	FalseBlocks int       `json:"false_blocks"`  // 其中误伤次数（管理员手动改为 pass 或 warn 的）
-	TotalWarns  int       `json:"total_warns"`   // 历史 warn 总数
+	TotalBlocks int       `json:"total_blocks"` // 历史 block 总数
+	FalseBlocks int       `json:"false_blocks"` // 其中误伤次数（管理员手动改为 pass 或 warn 的）
+	TotalWarns  int       `json:"total_warns"`  // 历史 warn 总数
 	LastUpdated time.Time `json:"last_updated"`
 }
 
 // BayesianProof 贝叶斯证明
 type BayesianProof struct {
-	PriorAlpha     float64 `json:"prior_alpha"`       // Beta 先验 α
-	PriorBeta      float64 `json:"prior_beta"`        // Beta 先验 β
+	PriorAlpha     float64 `json:"prior_alpha"`        // Beta 先验 α
+	PriorBeta      float64 `json:"prior_beta"`         // Beta 先验 β
 	ObservedFP     int     `json:"observed_fp"`        // 观测到的误伤次数
 	ObservedTotal  int     `json:"observed_total"`     // 观测总次数
 	PosteriorMean  float64 `json:"posterior_mean"`     // 后验均值 = (α+FP)/(α+β+Total)
@@ -58,9 +58,9 @@ type BayesianProof struct {
 
 // AdaptiveStats 自适应决策统计
 type AdaptiveStats struct {
-	TotalDowngrades int     `json:"total_downgrades"` // 总降级数
-	TotalUsers      int     `json:"total_users"`      // 有记录的用户数
-	AvgFPRate       float64 `json:"avg_fp_rate"`      // 平均误伤率
+	TotalDowngrades int                    `json:"total_downgrades"` // 总降级数
+	TotalUsers      int                    `json:"total_users"`      // 有记录的用户数
+	AvgFPRate       float64                `json:"avg_fp_rate"`      // 平均误伤率
 	Config          AdaptiveDecisionConfig `json:"config"`
 }
 
@@ -128,7 +128,12 @@ func (ade *AdaptiveDecisionEngine) ShouldDowngrade(userID string, originalAction
 			ObservedTotal: 0,
 			PosteriorMean: 0.5,
 			Decision:      "keep_block",
-			Reason:        fmt.Sprintf("样本不足 (%d < %d)，保持原决策", func() int { if exists { return history.TotalBlocks }; return 0 }(), cfg.MinSamples),
+			Reason: fmt.Sprintf("样本不足 (%d < %d)，保持原决策", func() int {
+				if exists {
+					return history.TotalBlocks
+				}
+				return 0
+			}(), cfg.MinSamples),
 		}
 	}
 

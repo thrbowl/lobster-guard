@@ -18,9 +18,9 @@ import (
 
 // ShutdownManager 管理优雅关闭的全生命周期
 type ShutdownManager struct {
-	shuttingDown   int32 // atomic: 0=正常, 1=正在关闭
+	shuttingDown    int32 // atomic: 0=正常, 1=正在关闭
 	shutdownTimeout time.Duration
-	cfg            *Config
+	cfg             *Config
 
 	// 需要关闭的组件引用
 	inSrv   *http.Server
@@ -151,15 +151,15 @@ func (sm *ShutdownManager) Shutdown() {
 
 // HealthCheckResult 多维度健康检查结果
 type HealthCheckResult struct {
-	Status  string                       `json:"status"` // healthy, degraded, unhealthy, shutting_down
-	Checks  map[string]*HealthCheckItem  `json:"checks"`
-	Uptime  string                       `json:"uptime"`
-	Version string                       `json:"version"`
+	Status  string                      `json:"status"` // healthy, degraded, unhealthy, shutting_down
+	Checks  map[string]*HealthCheckItem `json:"checks"`
+	Uptime  string                      `json:"uptime"`
+	Version string                      `json:"version"`
 }
 
 // HealthCheckItem 单个健康检查项
 type HealthCheckItem struct {
-	Status      string  `json:"status"`                 // ok, warning, error
+	Status      string  `json:"status"` // ok, warning, error
 	LatencyMs   float64 `json:"latency_ms,omitempty"`
 	Healthy     int     `json:"healthy,omitempty"`
 	Total       int     `json:"total,omitempty"`
@@ -169,7 +169,7 @@ type HealthCheckItem struct {
 }
 
 // PerformHealthChecks 执行所有健康检查
-func PerformHealthChecks(store Store, pool *UpstreamPool, dbPath string) *HealthCheckResult {
+func PerformHealthChecks(store Store, pool *UpstreamPool) *HealthCheckResult {
 	result := &HealthCheckResult{
 		Checks:  make(map[string]*HealthCheckItem),
 		Uptime:  time.Since(startTime).Round(time.Second).String(),
@@ -197,7 +197,7 @@ func PerformHealthChecks(store Store, pool *UpstreamPool, dbPath string) *Health
 	}
 
 	// 3. Disk check
-	diskCheck := checkDisk(dbPath)
+	diskCheck := checkDisk()
 	result.Checks["disk"] = diskCheck
 	if diskCheck.Status == "error" {
 		overallStatus = "unhealthy"
@@ -269,9 +269,9 @@ func checkUpstreams(pool *UpstreamPool) *HealthCheckItem {
 	return item
 }
 
-func checkDisk(dbPath string) *HealthCheckItem {
+func checkDisk() *HealthCheckItem {
 	item := &HealthCheckItem{}
-	usedPct := getDiskUsagePercent(dbPath)
+	usedPct := getDiskUsagePercent("/")
 	item.UsedPercent = usedPct
 	if usedPct >= 95 {
 		item.Status = "error"

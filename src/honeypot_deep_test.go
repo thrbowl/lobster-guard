@@ -6,8 +6,6 @@ import (
 	"database/sql"
 	"testing"
 	"time"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // setupHoneypotDeepTest 创建测试用的 HoneypotDeepEngine
@@ -675,4 +673,3 @@ func TestHoneypotDeepNonexistentAttacker(t *testing.T) {
 		t.Errorf("expected probe phase, got %s", curve.Phase)
 	}
 }
-		

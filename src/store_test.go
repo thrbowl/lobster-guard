@@ -1,30 +1,28 @@
-// store_test.go — Store 接口、SQLiteStore、备份/恢复、健康检查、优雅关闭测试（v4.2）
+// store_test.go — Store 接口、SQLStore、备份/恢复、健康检查、优雅关闭测试（v4.2）
 package main
 
 import (
 	"encoding/json"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // ============================================================
 // Store 辅助函数
 // ============================================================
 
-func setupTestStore(t *testing.T) (*SQLiteStore, func()) {
+func setupTestStore(t *testing.T) (*SQLStore, func()) {
 	t.Helper()
-	tmpDB := filepath.Join(t.TempDir(), "test_store.db")
-	db, err := initDB(tmpDB)
-	if err != nil {
-		t.Fatalf("initDB failed: %v", err)
+	db := openTestPostgres(t)
+	if err := migratePostgres(db); err != nil {
+		t.Fatalf("migratePostgres failed: %v", err)
 	}
-	store := NewSQLiteStore(db, tmpDB)
+	store := NewSQLStore(db)
 	return store, func() { store.Close() }
 }
 
@@ -32,7 +30,7 @@ func setupTestStore(t *testing.T) (*SQLiteStore, func()) {
 // 1. Store.Ping 测试
 // ============================================================
 
-func TestSQLiteStore_Ping(t *testing.T) {
+func TestSQLStore_Ping(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()
 
@@ -41,10 +39,9 @@ func TestSQLiteStore_Ping(t *testing.T) {
 	}
 }
 
-func TestSQLiteStore_Ping_ClosedDB(t *testing.T) {
-	tmpDB := filepath.Join(t.TempDir(), "closed.db")
-	db, _ := initDB(tmpDB)
-	store := NewSQLiteStore(db, tmpDB)
+func TestSQLStore_Ping_ClosedDB(t *testing.T) {
+	db := openTestPostgres(t)
+	store := NewSQLStore(db)
 	store.Close()
 
 	err := store.Ping()
@@ -57,19 +54,19 @@ func TestSQLiteStore_Ping_ClosedDB(t *testing.T) {
 // 2. Store.LogAudit + QueryAuditLogs 测试
 // ============================================================
 
-func TestSQLiteStore_LogAndQueryAudit(t *testing.T) {
+func TestSQLStore_LogAndQueryAudit(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()
 
 	entry := &AuditEntry{
-		Direction:       "inbound",
-		SenderID:        "user1",
-		Action:          "block",
-		Reason:          "injection",
-		ContentPreview:  "ignore previous instructions",
-		LatencyMs:       1.5,
-		UpstreamID:      "up-1",
-		AppID:           "app-1",
+		Direction:      "inbound",
+		SenderID:       "user1",
+		Action:         "block",
+		Reason:         "injection",
+		ContentPreview: "ignore previous instructions",
+		LatencyMs:      1.5,
+		UpstreamID:     "up-1",
+		AppID:          "app-1",
 	}
 	if err := store.LogAudit(entry); err != nil {
 		t.Fatalf("LogAudit failed: %v", err)
@@ -90,7 +87,7 @@ func TestSQLiteStore_LogAndQueryAudit(t *testing.T) {
 	}
 }
 
-func TestSQLiteStore_QueryAuditLogs_Filters(t *testing.T) {
+func TestSQLStore_QueryAuditLogs_Filters(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()
 
@@ -127,7 +124,7 @@ func TestSQLiteStore_QueryAuditLogs_Filters(t *testing.T) {
 // 3. Store.CleanupAuditLogs 测试
 // ============================================================
 
-func TestSQLiteStore_CleanupAuditLogs(t *testing.T) {
+func TestSQLStore_CleanupAuditLogs(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()
 
@@ -150,7 +147,7 @@ func TestSQLiteStore_CleanupAuditLogs(t *testing.T) {
 // 4. Store.AuditStats 测试
 // ============================================================
 
-func TestSQLiteStore_AuditStats(t *testing.T) {
+func TestSQLStore_AuditStats(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()
 
@@ -173,7 +170,7 @@ func TestSQLiteStore_AuditStats(t *testing.T) {
 // 5. Store.AuditTimeline 测试
 // ============================================================
 
-func TestSQLiteStore_AuditTimeline(t *testing.T) {
+func TestSQLStore_AuditTimeline(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()
 
@@ -194,7 +191,7 @@ func TestSQLiteStore_AuditTimeline(t *testing.T) {
 // 6. Store 路由操作测试
 // ============================================================
 
-func TestSQLiteStore_RouteOperations(t *testing.T) {
+func TestSQLStore_RouteOperations(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()
 
@@ -222,7 +219,7 @@ func TestSQLiteStore_RouteOperations(t *testing.T) {
 	}
 }
 
-func TestSQLiteStore_SaveRouteWithMeta(t *testing.T) {
+func TestSQLStore_SaveRouteWithMeta(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()
 
@@ -236,7 +233,7 @@ func TestSQLiteStore_SaveRouteWithMeta(t *testing.T) {
 	}
 }
 
-func TestSQLiteStore_ListRoutesByApp(t *testing.T) {
+func TestSQLStore_ListRoutesByApp(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()
 
@@ -250,7 +247,7 @@ func TestSQLiteStore_ListRoutesByApp(t *testing.T) {
 	}
 }
 
-func TestSQLiteStore_MigrateRoute(t *testing.T) {
+func TestSQLStore_MigrateRoute(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()
 
@@ -270,7 +267,7 @@ func TestSQLiteStore_MigrateRoute(t *testing.T) {
 // 7. Store 用户信息缓存测试
 // ============================================================
 
-func TestSQLiteStore_UserInfo(t *testing.T) {
+func TestSQLStore_UserInfo(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()
 
@@ -306,7 +303,7 @@ func TestSQLiteStore_UserInfo(t *testing.T) {
 // 8. Store 上游管理测试
 // ============================================================
 
-func TestSQLiteStore_UpstreamOperations(t *testing.T) {
+func TestSQLStore_UpstreamOperations(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()
 
@@ -346,114 +343,54 @@ func TestSQLiteStore_UpstreamOperations(t *testing.T) {
 // 9. 备份和恢复测试
 // ============================================================
 
-func TestSQLiteStore_Backup(t *testing.T) {
+func TestSQLStore_Backup(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()
 
-	store.LogAudit(&AuditEntry{Direction: "inbound", Action: "pass", ContentPreview: "backup test"})
-	store.SaveRoute("s1", "a1", "up1")
-
-	backupDir := filepath.Join(t.TempDir(), "backups")
-	path, size, err := store.Backup(backupDir)
-	if err != nil {
-		t.Fatalf("Backup failed: %v", err)
+	path, size, err := store.Backup(t.TempDir())
+	if err == nil {
+		t.Fatal("expected PostgreSQL file-level backup to be unsupported")
 	}
-	if path == "" {
-		t.Fatal("expected non-empty backup path")
-	}
-	if size <= 0 {
-		t.Fatal("expected positive backup size")
-	}
-	if !strings.HasPrefix(filepath.Base(path), "lobster-guard-") {
-		t.Errorf("unexpected backup filename: %s", filepath.Base(path))
+	if path != "" || size != 0 {
+		t.Fatalf("expected empty backup result, got path=%q size=%d", path, size)
 	}
 }
 
-func TestSQLiteStore_BackupAndRestore(t *testing.T) {
+func TestSQLStore_BackupAndRestore(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()
 
-	store.LogAudit(&AuditEntry{Direction: "inbound", Action: "block", ContentPreview: "restore test"})
-	store.SaveRoute("s1", "a1", "up1")
-
-	backupDir := filepath.Join(t.TempDir(), "backups")
-	backupPath, _, err := store.Backup(backupDir)
-	if err != nil {
-		t.Fatalf("Backup failed: %v", err)
+	if _, _, err := store.Backup(t.TempDir()); err == nil {
+		t.Fatal("expected PostgreSQL file-level backup to be unsupported")
 	}
-
-	restoredPath := filepath.Join(t.TempDir(), "restored.db")
-	if err := RestoreFromBackup(backupPath, restoredPath); err != nil {
-		t.Fatalf("Restore failed: %v", err)
-	}
-
-	db2, err := initDB(restoredPath)
-	if err != nil {
-		t.Fatalf("initDB on restored failed: %v", err)
-	}
-	defer db2.Close()
-	store2 := NewSQLiteStore(db2, restoredPath)
-	defer store2.Close()
-
-	routes, _ := store2.LoadRoutes()
-	if len(routes) != 1 {
-		t.Fatalf("expected 1 route in restored db, got %d", len(routes))
+	if err := RestoreFromBackup("backup.dump", "restored.db"); err == nil {
+		t.Fatal("expected PostgreSQL file-level restore to be unsupported")
 	}
 }
 
 func TestListBackups(t *testing.T) {
-	backupDir := filepath.Join(t.TempDir(), "backups")
-	os.MkdirAll(backupDir, 0755)
-
-	os.WriteFile(filepath.Join(backupDir, "lobster-guard-20260101-120000.db"), []byte("data1"), 0644)
-	os.WriteFile(filepath.Join(backupDir, "lobster-guard-20260102-120000.db"), []byte("data22"), 0644)
-	os.WriteFile(filepath.Join(backupDir, "unrelated.txt"), []byte("not a backup"), 0644)
-
-	backups, err := ListBackups(backupDir)
+	backups, err := ListBackups(t.TempDir())
 	if err != nil {
 		t.Fatalf("ListBackups failed: %v", err)
 	}
-	if len(backups) != 2 {
-		t.Fatalf("expected 2 backups, got %d", len(backups))
-	}
-	if backups[0].Name != "lobster-guard-20260102-120000.db" {
-		t.Errorf("expected newest first, got %s", backups[0].Name)
+	if len(backups) != 0 {
+		t.Fatalf("expected no app-managed PostgreSQL backups, got %d", len(backups))
 	}
 }
 
 func TestCleanupOldBackups(t *testing.T) {
-	backupDir := filepath.Join(t.TempDir(), "backups")
-	os.MkdirAll(backupDir, 0755)
-
-	for i := 0; i < 5; i++ {
-		os.WriteFile(filepath.Join(backupDir, "lobster-guard-2026010"+string(rune('1'+i))+"-120000.db"), []byte("data"), 0644)
-	}
-
-	deleted, err := CleanupOldBackups(backupDir, 3)
+	deleted, err := CleanupOldBackups(t.TempDir(), 3)
 	if err != nil {
 		t.Fatalf("CleanupOldBackups failed: %v", err)
 	}
-	if deleted != 2 {
-		t.Errorf("expected 2 deleted, got %d", deleted)
-	}
-
-	remaining, _ := ListBackups(backupDir)
-	if len(remaining) != 3 {
-		t.Errorf("expected 3 remaining, got %d", len(remaining))
+	if deleted != 0 {
+		t.Errorf("expected 0 deleted for unsupported app-managed PostgreSQL backups, got %d", deleted)
 	}
 }
 
 func TestDeleteBackup(t *testing.T) {
-	backupDir := filepath.Join(t.TempDir(), "backups")
-	os.MkdirAll(backupDir, 0755)
-	os.WriteFile(filepath.Join(backupDir, "lobster-guard-20260101-120000.db"), []byte("data"), 0644)
-
-	if err := DeleteBackup(backupDir, "lobster-guard-20260101-120000.db"); err != nil {
-		t.Fatalf("DeleteBackup failed: %v", err)
-	}
-
-	if _, err := os.Stat(filepath.Join(backupDir, "lobster-guard-20260101-120000.db")); !os.IsNotExist(err) {
-		t.Error("backup file should be deleted")
+	if err := DeleteBackup(t.TempDir(), "lobster-guard-20260101-120000.db"); err == nil {
+		t.Fatal("expected PostgreSQL app-managed backup delete to be unsupported")
 	}
 }
 
@@ -461,7 +398,7 @@ func TestDeleteBackup_PathTraversal(t *testing.T) {
 	backupDir := filepath.Join(t.TempDir(), "backups")
 	err := DeleteBackup(backupDir, "../../../etc/passwd")
 	if err == nil {
-		t.Fatal("expected error for path traversal")
+		t.Fatal("expected unsupported/path traversal error")
 	}
 }
 
@@ -489,7 +426,7 @@ func TestPerformHealthChecks_AllOK(t *testing.T) {
 	db := store.RawDB()
 	pool := NewUpstreamPool(cfg, db)
 
-	result := PerformHealthChecks(store, pool, store.path)
+	result := PerformHealthChecks(store, pool)
 	if result.Status != "healthy" {
 		t.Errorf("expected healthy, got %s (checks: db=%s up=%s disk=%s mem=%s gr=%s)",
 			result.Status,
@@ -512,11 +449,11 @@ func TestPerformHealthChecks_AllOK(t *testing.T) {
 
 func TestPerformHealthChecks_NilStore(t *testing.T) {
 	cfg := &Config{}
-	db, _ := initDB(filepath.Join(t.TempDir(), "nil.db"))
+	db := openTestPostgres(t)
 	defer db.Close()
 	pool := NewUpstreamPool(cfg, db)
 
-	result := PerformHealthChecks(nil, pool, "/tmp")
+	result := PerformHealthChecks(nil, pool)
 	if result.Checks["database"].Status != "ok" {
 		t.Errorf("nil store should be ok (skip), got %s", result.Checks["database"].Status)
 	}
@@ -524,7 +461,7 @@ func TestPerformHealthChecks_NilStore(t *testing.T) {
 
 func TestCheckUpstreams_Empty(t *testing.T) {
 	cfg := &Config{}
-	db, _ := initDB(filepath.Join(t.TempDir(), "empty.db"))
+	db := openTestPostgres(t)
 	defer db.Close()
 	pool := NewUpstreamPool(cfg, db)
 
@@ -558,7 +495,7 @@ func TestCheckGoroutines(t *testing.T) {
 }
 
 func TestCheckDisk(t *testing.T) {
-	item := checkDisk("/tmp")
+	item := checkDisk()
 	if item.UsedPercent < 0 || item.UsedPercent > 100 {
 		t.Errorf("disk usage out of range: %f", item.UsedPercent)
 	}
@@ -671,16 +608,13 @@ func TestBackupAPI_Create(t *testing.T) {
 	req := httptest.NewRequest("POST", "/api/v1/backup", nil)
 	w := httptest.NewRecorder()
 	api.handleCreateBackup(w, req)
-	if w.Code != 200 {
-		t.Fatalf("expected 200, got %d, body: %s", w.Code, w.Body.String())
+	if w.Code != http.StatusNotImplemented {
+		t.Fatalf("expected 501, got %d, body: %s", w.Code, w.Body.String())
 	}
 	var resp map[string]interface{}
 	json.Unmarshal(w.Body.Bytes(), &resp)
-	if resp["status"] != "created" {
-		t.Errorf("expected status=created, got %v", resp["status"])
-	}
-	if resp["path"] == nil || resp["path"] == "" {
-		t.Error("expected non-empty path")
+	if resp["error"] == nil {
+		t.Errorf("expected unsupported error, got %v", resp)
 	}
 }
 
@@ -701,15 +635,13 @@ func TestBackupAPI_ListAndDelete(t *testing.T) {
 
 	api := NewManagementAPI(cfg, "", pool, routes, logger, engine, outEngine, inbound, nil, nil, nil, nil, nil, nil, nil, store, nil, nil)
 
-	// Create backup
 	req := httptest.NewRequest("POST", "/api/v1/backup", nil)
 	w := httptest.NewRecorder()
 	api.handleCreateBackup(w, req)
-	if w.Code != 200 {
-		t.Fatalf("create failed: %d", w.Code)
+	if w.Code != http.StatusNotImplemented {
+		t.Fatalf("expected create to be unsupported, got: %d", w.Code)
 	}
 
-	// List
 	req2 := httptest.NewRequest("GET", "/api/v1/backups", nil)
 	w2 := httptest.NewRecorder()
 	api.handleListBackups(w2, req2)
@@ -719,29 +651,15 @@ func TestBackupAPI_ListAndDelete(t *testing.T) {
 	var listResp map[string]interface{}
 	json.Unmarshal(w2.Body.Bytes(), &listResp)
 	total := int(listResp["total"].(float64))
-	if total != 1 {
-		t.Fatalf("expected 1 backup, got %d", total)
+	if total != 0 {
+		t.Fatalf("expected 0 app-managed PostgreSQL backups, got %d", total)
 	}
 
-	backups := listResp["backups"].([]interface{})
-	backupName := backups[0].(map[string]interface{})["name"].(string)
-
-	// Delete
-	req3 := httptest.NewRequest("DELETE", "/api/v1/backups/"+backupName, nil)
+	req3 := httptest.NewRequest("DELETE", "/api/v1/backups/example.dump", nil)
 	w3 := httptest.NewRecorder()
 	api.handleDeleteBackup(w3, req3)
-	if w3.Code != 200 {
-		t.Fatalf("delete failed: %d", w3.Code)
-	}
-
-	// Verify deleted
-	req4 := httptest.NewRequest("GET", "/api/v1/backups", nil)
-	w4 := httptest.NewRecorder()
-	api.handleListBackups(w4, req4)
-	var listResp2 map[string]interface{}
-	json.Unmarshal(w4.Body.Bytes(), &listResp2)
-	if int(listResp2["total"].(float64)) != 0 {
-		t.Errorf("expected 0 backups after delete, got %v", listResp2["total"])
+	if w3.Code != http.StatusNotImplemented {
+		t.Fatalf("expected delete to be unsupported, got: %d", w3.Code)
 	}
 }
 
@@ -749,14 +667,14 @@ func TestBackupAPI_ListAndDelete(t *testing.T) {
 // 14. Store 接口兼容性测试
 // ============================================================
 
-func TestSQLiteStore_ImplementsStoreInterface(t *testing.T) {
+func TestSQLStore_ImplementsStoreInterface(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()
 
-	// Verify SQLiteStore implements Store interface
+	// Verify SQLStore implements Store interface
 	var s Store = store
 	if s == nil {
-		t.Fatal("SQLiteStore should implement Store")
+		t.Fatal("SQLStore should implement Store")
 	}
 }
 
@@ -866,7 +784,7 @@ func TestHealthzResponse_Format(t *testing.T) {
 // 17. RawDB 兼容性测试
 // ============================================================
 
-func TestSQLiteStore_RawDB(t *testing.T) {
+func TestSQLStore_RawDB(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()
 

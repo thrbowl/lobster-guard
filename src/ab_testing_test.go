@@ -10,8 +10,6 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // setupABTestDB 创建测试用内存数据库
@@ -330,12 +328,12 @@ func TestAssignVersionWrongTenant(t *testing.T) {
 func TestCalculateSecurityScore(t *testing.T) {
 	// 完美分
 	perfect := &ABTestMetrics{
-		TotalRequests: 100,
-		CanaryLeakRate: 0,
-		FlaggedToolRate: 0,
-		ErrorRate: 0,
+		TotalRequests:     100,
+		CanaryLeakRate:    0,
+		FlaggedToolRate:   0,
+		ErrorRate:         0,
 		InjectionAttempts: 10,
-		InjectionBlocked: 10,
+		InjectionBlocked:  10,
 	}
 	score := CalculateSecurityScore(perfect)
 	if score != 100.0 {
@@ -351,12 +349,12 @@ func TestCalculateSecurityScore(t *testing.T) {
 
 	// 有问题的指标
 	bad := &ABTestMetrics{
-		TotalRequests: 100,
-		CanaryLeakRate: 0.1,    // 10% 泄露
-		FlaggedToolRate: 0.05,  // 5% 危险工具
-		ErrorRate: 0.02,        // 2% 错误
+		TotalRequests:     100,
+		CanaryLeakRate:    0.1,  // 10% 泄露
+		FlaggedToolRate:   0.05, // 5% 危险工具
+		ErrorRate:         0.02, // 2% 错误
 		InjectionAttempts: 20,
-		InjectionBlocked: 15,   // 25% 未拦截
+		InjectionBlocked:  15, // 25% 未拦截
 	}
 	score = CalculateSecurityScore(bad)
 	// 100 - 0.1*30 - 0.05*20 - 0.02*10 - 0.25*40 = 100 - 3 - 1 - 0.2 - 10 = 85.8

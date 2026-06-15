@@ -44,9 +44,9 @@ func (api *ManagementAPI) handleAdaptiveFeedback(w http.ResponseWriter, r *http.
 		return
 	}
 	var req struct {
-		UserID          string `json:"user_id"`
-		Action          string `json:"action"`
-		WasFalsePositive bool  `json:"was_false_positive"`
+		UserID           string `json:"user_id"`
+		Action           string `json:"action"`
+		WasFalsePositive bool   `json:"was_false_positive"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		jsonResponse(w, 400, map[string]string{"error": "invalid request body"})

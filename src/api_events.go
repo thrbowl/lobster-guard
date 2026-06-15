@@ -48,14 +48,14 @@ func (api *ManagementAPI) handleEventsStats(w http.ResponseWriter, r *http.Reque
 	}
 	stats := api.eventBus.GetStats()
 	jsonResponse(w, 200, map[string]interface{}{
-		"enabled":           true,
-		"total_events":      stats.TotalEvents,
-		"total_delivered":   stats.TotalDelivered,
-		"total_failed":      stats.TotalFailed,
+		"enabled":            true,
+		"total_events":       stats.TotalEvents,
+		"total_delivered":    stats.TotalDelivered,
+		"total_failed":       stats.TotalFailed,
 		"total_chains_fired": stats.TotalChainsFired,
-		"total_dropped":     stats.TotalDropped,
-		"targets_count":     len(api.eventBus.ListTargets()),
-		"chains_count":      len(api.eventBus.ListChains()),
+		"total_dropped":      stats.TotalDropped,
+		"targets_count":      len(api.eventBus.ListTargets()),
+		"chains_count":       len(api.eventBus.ListChains()),
 	})
 }
 

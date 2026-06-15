@@ -6,8 +6,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // setupBehaviorTestDB 创建测试用的内存数据库

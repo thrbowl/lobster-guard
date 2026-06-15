@@ -13,7 +13,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/version-v33.0-00d4ff?style=flat-square" alt="Version">
   <img src="https://img.shields.io/badge/language-Go-00ADD8?style=flat-square&logo=go" alt="Go">
-  <img src="https://img.shields.io/badge/database-SQLite-003B57?style=flat-square&logo=sqlite" alt="SQLite">
+  <img src="https://img.shields.io/badge/database-PostgreSQL-4169E1?style=flat-square&logo=postgresql" alt="PostgreSQL">
   <img src="https://img.shields.io/badge/binary-single_file-00ff88?style=flat-square" alt="Single Binary">
   <img src="https://img.shields.io/badge/channels-5_platforms-ff6688?style=flat-square" alt="5 Channels">
   <img src="https://img.shields.io/badge/tests-1252_passed-brightgreen?style=flat-square" alt="Tests">
@@ -75,7 +75,7 @@
 
 - **单二进制部署** — Go 源码 + Vue Dashboard 编译成单二进制（~36MB），扔上去就跑
 - **Fail-Open** — 检测异常不阻塞业务，宁可漏检不可误杀
-- **零外部依赖** — 只依赖 SQLite + YAML 解析 + UUID + WebSocket + x/crypto（5 个依赖），不引入 Redis/MQ/K8s
+- **单进程简化部署** — PostgreSQL 作为唯一长期事实来源，不引入 Redis/MQ/K8s
 - **向后兼容** — 不配多容器就自动退化为单上游模式，平滑升级
 
 ### 📊 项目统计
@@ -88,7 +88,7 @@
 | API 路由 | 487 个 |
 | 测试函数 | 1252 个（全部通过）|
 | Git Commit | 360+ 个 |
-| 外部依赖 | 5 个（sqlite3 + yaml.v3 + uuid + gorilla/websocket + x/crypto）|
+| 外部依赖 | PostgreSQL driver + yaml.v3 + uuid + gorilla/websocket + x/crypto |
 
 ---
 
@@ -116,7 +116,7 @@
 ### 环境要求
 
 - **Go 1.21+**（编译需要）
-- **GCC**（CGO 编译 SQLite 需要）
+- **PostgreSQL**（长期存储）
 - **Linux / macOS**（生产推荐 Linux）
 
 ### 1. 编译
@@ -150,7 +150,7 @@ management_token: "your-secret-token"
 auth:
   enabled: true
   jwt_secret: "your-jwt-secret-at-least-32-chars"
-db_path: "./audit.db"
+database_url: "postgres://lobster:password@127.0.0.1:5432/lobster_guard?sslmode=disable"
 ```
 
 ### 3. 运行
@@ -323,7 +323,7 @@ lobster-guard/
 │   ├── gateway_ws_client.go#   WSS RPC 持久连接
 │   ├── upstream_profile.go #   安全画像(5维 × 16引擎)
 │   ├── session_replay.go   #   会话回放(trace_id串联三表)
-│   ├── store.go            #   SQLite WAL + 批量写入
+│   ├── store.go            #   PostgreSQL 存储抽象 + 批量写入
 │   └── *_test.go           #   1252 测试函数
 ├── dashboard/              # Vue 3 前端 (~32,200 行)
 │   ├── src/views/          #   50 个页面

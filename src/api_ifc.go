@@ -217,8 +217,8 @@ func (api *ManagementAPI) handleIFC(w http.ResponseWriter, r *http.Request, path
 	// POST /api/v1/ifc/propagate
 	if path == "/api/v1/ifc/propagate" && method == "POST" {
 		var req struct {
-			TraceID    string   `json:"trace_id"`
-			OutputName string   `json:"output_name"`
+			TraceID     string   `json:"trace_id"`
+			OutputName  string   `json:"output_name"`
 			InputVarIDs []string `json:"input_var_ids"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

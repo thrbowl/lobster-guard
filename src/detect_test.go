@@ -15,7 +15,6 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
 	"gopkg.in/yaml.v3"
 )
 
@@ -104,9 +103,9 @@ func TestRuleEngineEmptyInput(t *testing.T) {
 func TestRuleEnginePII(t *testing.T) {
 	engine := NewRuleEngine()
 	tests := []struct {
-		name     string
-		input    string
-		hasPII   bool
+		name   string
+		input  string
+		hasPII bool
 	}{
 		{"身份证号", "我的身份证是110101199001011234", true},
 		{"手机号", "联系电话 13800138000", true},
@@ -202,7 +201,6 @@ func TestOutboundRuleEngineEmpty(t *testing.T) {
 		t.Errorf("无规则时应 pass，实际 %s", r.Action)
 	}
 }
-
 
 // ============================================================
 // v3.5 入站规则热更新测试
@@ -630,11 +628,11 @@ func createTestManagementAPIWithEngine(t *testing.T) (*ManagementAPI, *RuleEngin
 		t.Fatalf("initDB: %v", err)
 	}
 	cfg := &Config{
-		InboundListen:  ":0", OutboundListen: ":0", ManagementListen: ":0",
+		InboundListen: ":0", OutboundListen: ":0", ManagementListen: ":0",
 		OpenClawUpstream: "http://localhost:18790", LanxinUpstream: "https://apigw.lx.qianxin.com",
 		DBPath: tmpDB, LogLevel: "info", DetectTimeoutMs: 50,
 		InboundDetectEnabled: true, OutboundAuditEnabled: true,
-		RouteDefaultPolicy:   "least-users",
+		RouteDefaultPolicy: "least-users",
 	}
 	pool := NewUpstreamPool(cfg, db)
 	routes := NewRouteTable(db, false)
@@ -853,11 +851,21 @@ func TestHealthz_InboundRulesVersion(t *testing.T) {
 }
 
 func TestValidateInboundAction(t *testing.T) {
-	if !validateInboundAction("block") { t.Fatal("block should be valid") }
-	if !validateInboundAction("warn")  { t.Fatal("warn should be valid") }
-	if !validateInboundAction("log")   { t.Fatal("log should be valid") }
-	if validateInboundAction("invalid") { t.Fatal("invalid should not be valid") }
-	if validateInboundAction("")        { t.Fatal("empty should not be valid") }
+	if !validateInboundAction("block") {
+		t.Fatal("block should be valid")
+	}
+	if !validateInboundAction("warn") {
+		t.Fatal("warn should be valid")
+	}
+	if !validateInboundAction("log") {
+		t.Fatal("log should be valid")
+	}
+	if validateInboundAction("invalid") {
+		t.Fatal("invalid should not be valid")
+	}
+	if validateInboundAction("") {
+		t.Fatal("empty should not be valid")
+	}
 }
 
 func TestRuleEngine_ConcurrentReloadDetect(t *testing.T) {
@@ -882,7 +890,6 @@ func TestRuleEngine_ConcurrentReloadDetect(t *testing.T) {
 	<-done
 	// 如果没 panic 就是通过了
 }
-
 
 // ============================================================
 // ============================================================
@@ -1980,7 +1987,7 @@ func TestOutboundRuleEngineRedactVsBlock(t *testing.T) {
 	// block 优先级高于 redact
 	configs := []OutboundRuleConfig{
 		{Name: "redact_phone", Patterns: []string{`1[3-9]\d{9}`}, Action: "redact", Replacement: "***"},
-		{Name: "block_key",    Patterns: []string{`sk-[a-zA-Z0-9]{20,}`}, Action: "block"},
+		{Name: "block_key", Patterns: []string{`sk-[a-zA-Z0-9]{20,}`}, Action: "block"},
 	}
 	engine := NewOutboundRuleEngine(configs)
 

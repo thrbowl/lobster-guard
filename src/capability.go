@@ -131,10 +131,18 @@ var defaultCapConfig = CapConfig{
 }
 
 func NewCapabilityEngine(db *sql.DB, config CapConfig) *CapabilityEngine {
-	if config.DefaultPolicy == "" { config.DefaultPolicy = "warn" }
-	if config.MaxContextsPerUser <= 0 { config.MaxContextsPerUser = 100 }
-	if config.RetentionDays <= 0 { config.RetentionDays = 30 }
-	if config.TrustThreshold <= 0 { config.TrustThreshold = 0.5 }
+	if config.DefaultPolicy == "" {
+		config.DefaultPolicy = "warn"
+	}
+	if config.MaxContextsPerUser <= 0 {
+		config.MaxContextsPerUser = 100
+	}
+	if config.RetentionDays <= 0 {
+		config.RetentionDays = 30
+	}
+	if config.TrustThreshold <= 0 {
+		config.TrustThreshold = 0.5
+	}
 	ce := &CapabilityEngine{db: db, config: config, contexts: make(map[string]*CapContext), toolMappings: make(map[string]*CapToolMapping)}
 	ce.initCapDB()
 	ce.loadCapToolMappings()
@@ -153,20 +161,30 @@ func (ce *CapabilityEngine) initCapDB() {
 		"CREATE TABLE IF NOT EXISTS cap_tool_mappings (tool_name TEXT PRIMARY KEY, category TEXT DEFAULT '', default_level TEXT DEFAULT 'none', allowed_caps TEXT DEFAULT '[]', denied_caps TEXT DEFAULT '[]', trust_factor REAL DEFAULT 0.0, updated_at TEXT NOT NULL)",
 	}
 	for _, s := range stmts {
-		if _, err := ce.db.Exec(s); err != nil { log.Printf("[CapabilityEngine] initDB: %v", err) }
+		if _, err := ce.db.Exec(s); err != nil {
+			log.Printf("[CapabilityEngine] initDB: %v", err)
+		}
 	}
 }
 
 func (ce *CapabilityEngine) loadCapToolMappings() {
 	rows, err := ce.db.Query("SELECT tool_name,category,default_level,allowed_caps,denied_caps,trust_factor FROM cap_tool_mappings")
-	if err != nil { return }
+	if err != nil {
+		return
+	}
 	defer rows.Close()
 	for rows.Next() {
-		var m CapToolMapping; var acJ, dcJ string
+		var m CapToolMapping
+		var acJ, dcJ string
 		if rows.Scan(&m.ToolName, &m.Category, &m.DefaultLevel, &acJ, &dcJ, &m.TrustFactor) == nil {
-			json.Unmarshal([]byte(acJ), &m.AllowedCaps); json.Unmarshal([]byte(dcJ), &m.DeniedCaps)
-			if m.AllowedCaps == nil { m.AllowedCaps = []string{} }
-			if m.DeniedCaps == nil { m.DeniedCaps = []string{} }
+			json.Unmarshal([]byte(acJ), &m.AllowedCaps)
+			json.Unmarshal([]byte(dcJ), &m.DeniedCaps)
+			if m.AllowedCaps == nil {
+				m.AllowedCaps = []string{}
+			}
+			if m.DeniedCaps == nil {
+				m.DeniedCaps = []string{}
+			}
 			ce.toolMappings[m.ToolName] = &m
 		}
 	}
@@ -191,11 +209,14 @@ func (ce *CapabilityEngine) seedCapDefaults() {
 		{ToolName: "manage_users", Category: "admin", DefaultLevel: "none", AllowedCaps: []string{}, DeniedCaps: []string{"read", "write", "execute", "admin"}, TrustFactor: 0.0},
 		{ToolName: "deploy", Category: "admin", DefaultLevel: "none", AllowedCaps: []string{}, DeniedCaps: []string{"read", "write", "execute", "admin"}, TrustFactor: 0.0},
 	}
-	ce.mu.Lock(); defer ce.mu.Unlock()
+	ce.mu.Lock()
+	defer ce.mu.Unlock()
 	for _, d := range defs {
 		if _, ok := ce.toolMappings[d.ToolName]; !ok {
-			dd := d; ce.toolMappings[d.ToolName] = &dd
-			acJ, _ := json.Marshal(d.AllowedCaps); dcJ, _ := json.Marshal(d.DeniedCaps)
+			dd := d
+			ce.toolMappings[d.ToolName] = &dd
+			acJ, _ := json.Marshal(d.AllowedCaps)
+			dcJ, _ := json.Marshal(d.DeniedCaps)
 			ce.db.Exec("INSERT OR IGNORE INTO cap_tool_mappings(tool_name,category,default_level,allowed_caps,denied_caps,trust_factor,updated_at) VALUES(?,?,?,?,?,?,?)",
 				d.ToolName, d.Category, d.DefaultLevel, string(acJ), string(dcJ), d.TrustFactor, time.Now().UTC().Format(time.RFC3339))
 		}
@@ -212,13 +233,17 @@ func capDefaultUserCaps() []CapLabel {
 
 func (ce *CapabilityEngine) InitContext(traceID, userID string, userCaps []CapLabel) *CapContext {
 	now := time.Now().UTC().Format(time.RFC3339)
-	if userCaps == nil { userCaps = capDefaultUserCaps() }
+	if userCaps == nil {
+		userCaps = capDefaultUserCaps()
+	}
 	ctx := &CapContext{ID: capGenID(), TraceID: traceID, UserID: userID, Status: "active",
 		UserCaps: userCaps, ToolResults: []CapToolResult{}, Intersections: []CapIntersection{},
 		Evaluations: []CapEvaluation{}, DataItems: make(map[string]*CapDataItem), CreatedAt: now, UpdatedAt: now}
 	uid := "user_input_" + capGenID()
 	ctx.DataItems[uid] = &CapDataItem{DataID: uid, Source: "user_input", Sources: []string{"user_input"}, Labels: userCaps, TrustScore: 1.0, CreatedAt: now}
-	ce.mu.Lock(); ce.contexts[traceID] = ctx; ce.mu.Unlock()
+	ce.mu.Lock()
+	ce.contexts[traceID] = ctx
+	ce.mu.Unlock()
 	ce.capPersistCtx(ctx)
 	return ctx
 }
@@ -234,13 +259,21 @@ func capSourceTrustOverride(sourceDesc *SourceDescriptor, current float64) float
 	}
 	switch sourceDesc.Category {
 	case "metadata_service":
-		if current == 0 || current > 0.05 { return 0.05 }
+		if current == 0 || current > 0.05 {
+			return 0.05
+		}
 	case "internal_api":
-		if current == 0 || current > 0.35 { return 0.35 }
+		if current == 0 || current > 0.35 {
+			return 0.35
+		}
 	case "external_api":
-		if current == 0 || current > 0.45 { return 0.45 }
+		if current == 0 || current > 0.45 {
+			return 0.45
+		}
 	case "public_web":
-		if current == 0 || current > 0.2 { return 0.2 }
+		if current == 0 || current > 0.2 {
+			return 0.2
+		}
 	}
 	return current
 }
@@ -273,15 +306,25 @@ func (ce *CapabilityEngine) RegisterToolResultWithSource(traceID, toolName, data
 
 	ce.mu.Lock()
 	ctx := ce.contexts[traceID]
-	if ctx == nil { ce.mu.Unlock(); return nil }
+	if ctx == nil {
+		ce.mu.Unlock()
+		return nil
+	}
 	mp := ce.toolMappings[toolName]
 	var mappedCaps []CapLabel
 	if mp != nil {
-		for _, ac := range mp.AllowedCaps { mappedCaps = append(mappedCaps, CapLabel{Name: ac, Source: "tool_mapping", Level: ac, Granted: true}) }
+		for _, ac := range mp.AllowedCaps {
+			mappedCaps = append(mappedCaps, CapLabel{Name: ac, Source: "tool_mapping", Level: ac, Granted: true})
+		}
 	}
-	if mappedCaps == nil { mappedCaps = []CapLabel{} }
+	if mappedCaps == nil {
+		mappedCaps = []CapLabel{}
+	}
 	tr := CapToolResult{ToolName: toolName, DataID: dataID, RawCaps: rawCaps, MappedCaps: mappedCaps, Timestamp: now}
-	tf := 0.0; if mp != nil { tf = mp.TrustFactor }
+	tf := 0.0
+	if mp != nil {
+		tf = mp.TrustFactor
+	}
 	tf = capSourceTrustOverride(sourceDesc, tf)
 	sources := []string{"tool:" + toolName}
 	if sourceDesc != nil {
@@ -305,65 +348,119 @@ func (ce *CapabilityEngine) Evaluate(traceID, dataID, action, toolName string) *
 	ce.mu.RLock()
 	ctx := ce.contexts[traceID]
 	if ctx == nil {
-		eval.Decision = ce.config.DefaultPolicy; eval.Reason = "no context"; eval.Labels = []CapLabel{}
-		ce.mu.RUnlock(); ce.capPersistEval(eval); return eval
+		eval.Decision = ce.config.DefaultPolicy
+		eval.Reason = "no context"
+		eval.Labels = []CapLabel{}
+		ce.mu.RUnlock()
+		ce.capPersistEval(eval)
+		return eval
 	}
 	di := ctx.DataItems[dataID]
 	if di == nil {
-		eval.Decision = "allow"; eval.Reason = "data not tracked"; eval.TrustScore = 1.0; eval.Labels = []CapLabel{}
-		ce.mu.RUnlock(); ce.capPersistEval(eval); return eval
+		eval.Decision = "allow"
+		eval.Reason = "data not tracked"
+		eval.TrustScore = 1.0
+		eval.Labels = []CapLabel{}
+		ce.mu.RUnlock()
+		ce.capPersistEval(eval)
+		return eval
 	}
-	eval.Labels = di.Labels; eval.TrustScore = di.TrustScore
+	eval.Labels = di.Labels
+	eval.TrustScore = di.TrustScore
 	userHas := false
 	for _, uc := range ctx.UserCaps {
-		if uc.Granted && (uc.Level == action || uc.Level == "admin") { userHas = true; break }
+		if uc.Granted && (uc.Level == action || uc.Level == "admin") {
+			userHas = true
+			break
+		}
 	}
 	if di.Source == "user_input" {
-		eval.Decision = "allow"; eval.Reason = "user input, full cap"; eval.TrustScore = 1.0
+		eval.Decision = "allow"
+		eval.Reason = "user input, full cap"
+		eval.TrustScore = 1.0
 	} else if strings.HasPrefix(di.Source, "tool_result:") || strings.HasPrefix(di.Source, "tool:") {
 		if !userHas {
-			eval.Decision = "deny"; eval.Reason = fmt.Sprintf("user lacks '%s' cap", action)
+			eval.Decision = "deny"
+			eval.Reason = fmt.Sprintf("user lacks '%s' cap", action)
 		} else {
 			m := ce.toolMappings[toolName]
 			if m != nil {
 				denied := false
 				for _, dc := range m.DeniedCaps {
-					if dc == action { eval.Decision = "deny"; eval.Reason = fmt.Sprintf("tool '%s' denies '%s'", toolName, action); denied = true; break }
+					if dc == action {
+						eval.Decision = "deny"
+						eval.Reason = fmt.Sprintf("tool '%s' denies '%s'", toolName, action)
+						denied = true
+						break
+					}
 				}
 				if !denied {
-					if di.TrustScore < ce.config.TrustThreshold { eval.Decision = "warn"; eval.Reason = fmt.Sprintf("trust %.2f < threshold %.2f", di.TrustScore, ce.config.TrustThreshold)
-					} else { eval.Decision = "allow"; eval.Reason = "tool mapping allows" }
+					if di.TrustScore < ce.config.TrustThreshold {
+						eval.Decision = "warn"
+						eval.Reason = fmt.Sprintf("trust %.2f < threshold %.2f", di.TrustScore, ce.config.TrustThreshold)
+					} else {
+						eval.Decision = "allow"
+						eval.Reason = "tool mapping allows"
+					}
 				}
-			} else { eval.Decision = ce.config.DefaultPolicy; eval.Reason = fmt.Sprintf("no mapping for '%s'", toolName) }
+			} else {
+				eval.Decision = ce.config.DefaultPolicy
+				eval.Reason = fmt.Sprintf("no mapping for '%s'", toolName)
+			}
 		}
 	} else if di.Source == "llm_summary" {
-		if ce.config.EnforceIntersect { eval.Decision = ce.capEvalIntersect(di, action); eval.Reason = "LLM summary intersection"
-		} else { eval.Decision = "allow"; eval.Reason = "intersection disabled" }
-	} else { eval.Decision = ce.config.DefaultPolicy; eval.Reason = "unknown source" }
-	if eval.Decision == "" { eval.Decision = ce.config.DefaultPolicy }
+		if ce.config.EnforceIntersect {
+			eval.Decision = ce.capEvalIntersect(di, action)
+			eval.Reason = "LLM summary intersection"
+		} else {
+			eval.Decision = "allow"
+			eval.Reason = "intersection disabled"
+		}
+	} else {
+		eval.Decision = ce.config.DefaultPolicy
+		eval.Reason = "unknown source"
+	}
+	if eval.Decision == "" {
+		eval.Decision = ce.config.DefaultPolicy
+	}
 	ce.mu.RUnlock()
 	ce.mu.Lock()
 	ctx.Evaluations = append(ctx.Evaluations, *eval)
-	if eval.Decision == "deny" { ctx.Status = "violated" }
-	ctx.UpdatedAt = time.Now().UTC().Format(time.RFC3339); ce.mu.Unlock()
-	ce.capPersistEval(eval); ce.capPersistCtx(ctx)
+	if eval.Decision == "deny" {
+		ctx.Status = "violated"
+	}
+	ctx.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+	ce.mu.Unlock()
+	ce.capPersistEval(eval)
+	ce.capPersistCtx(ctx)
 	return eval
 }
 
 func (ce *CapabilityEngine) capEvalIntersect(item *CapDataItem, action string) string {
-	for _, l := range item.Labels { if l.Granted && (l.Level == action || l.Level == "admin") { return "allow" } }
+	for _, l := range item.Labels {
+		if l.Granted && (l.Level == action || l.Level == "admin") {
+			return "allow"
+		}
+	}
 	return "deny"
 }
 
 func (ce *CapabilityEngine) RegisterLLMSummary(traceID, dataID string, sourceDataIDs []string) {
 	ce.mu.Lock()
 	ctx := ce.contexts[traceID]
-	if ctx == nil { ce.mu.Unlock(); return }
+	if ctx == nil {
+		ce.mu.Unlock()
+		return
+	}
 	now := time.Now().UTC().Format(time.RFC3339)
 	// compute intersection under lock (ctx.DataItems access)
 	intersected := ce.capComputeIntersectLocked(ctx, sourceDataIDs)
 	minTrust := 1.0
-	for _, sid := range sourceDataIDs { if item, ok := ctx.DataItems[sid]; ok && item.TrustScore < minTrust { minTrust = item.TrustScore } }
+	for _, sid := range sourceDataIDs {
+		if item, ok := ctx.DataItems[sid]; ok && item.TrustScore < minTrust {
+			minTrust = item.TrustScore
+		}
+	}
 	// CaMeL: compute source union from all parent data items
 	mergedSources := ce.capCollectSourcesLocked(ctx, sourceDataIDs)
 	inter := CapIntersection{SourceDataIDs: sourceDataIDs, ResultLabels: intersected, Context: "llm_summary", Timestamp: now}
@@ -376,7 +473,9 @@ func (ce *CapabilityEngine) RegisterLLMSummary(traceID, dataID string, sourceDat
 
 // capComputeIntersect acquires RLock internally — call without holding lock
 func (ce *CapabilityEngine) capComputeIntersect(ctx *CapContext, dataIDs []string) []CapLabel {
-	if len(dataIDs) == 0 { return []CapLabel{} }
+	if len(dataIDs) == 0 {
+		return []CapLabel{}
+	}
 	ce.mu.RLock()
 	result := ce.capComputeIntersectLocked(ctx, dataIDs)
 	ce.mu.RUnlock()
@@ -385,15 +484,39 @@ func (ce *CapabilityEngine) capComputeIntersect(ctx *CapContext, dataIDs []strin
 
 // capComputeIntersectLocked — caller must hold at least RLock
 func (ce *CapabilityEngine) capComputeIntersectLocked(ctx *CapContext, dataIDs []string) []CapLabel {
-	if len(dataIDs) == 0 { return []CapLabel{} }
+	if len(dataIDs) == 0 {
+		return []CapLabel{}
+	}
 	var sets [][]CapLabel
-	for _, did := range dataIDs { if item, ok := ctx.DataItems[did]; ok { sets = append(sets, item.Labels) } }
-	if len(sets) == 0 { return []CapLabel{} }
+	for _, did := range dataIDs {
+		if item, ok := ctx.DataItems[did]; ok {
+			sets = append(sets, item.Labels)
+		}
+	}
+	if len(sets) == 0 {
+		return []CapLabel{}
+	}
 	counts := map[string]int{}
-	for _, labels := range sets { seen := map[string]bool{}; for _, l := range labels { if l.Granted && !seen[l.Level] { counts[l.Level]++; seen[l.Level] = true } } }
-	total := len(sets); var result []CapLabel
-	for lv, c := range counts { if c == total { result = append(result, CapLabel{Name: lv, Source: "intersection", Level: lv, Granted: true}) } }
-	if result == nil { result = []CapLabel{} }; return result
+	for _, labels := range sets {
+		seen := map[string]bool{}
+		for _, l := range labels {
+			if l.Granted && !seen[l.Level] {
+				counts[l.Level]++
+				seen[l.Level] = true
+			}
+		}
+	}
+	total := len(sets)
+	var result []CapLabel
+	for lv, c := range counts {
+		if c == total {
+			result = append(result, CapLabel{Name: lv, Source: "intersection", Level: lv, Granted: true})
+		}
+	}
+	if result == nil {
+		result = []CapLabel{}
+	}
+	return result
 }
 
 // ============================================================
@@ -408,17 +531,27 @@ func (ce *CapabilityEngine) capCollectSourcesLocked(ctx *CapContext, dataIDs []s
 	var collect func(ids []string)
 	collect = func(ids []string) {
 		for _, did := range ids {
-			if visited[did] { continue }
+			if visited[did] {
+				continue
+			}
 			visited[did] = true
 			item, ok := ctx.DataItems[did]
-			if !ok { continue }
-			for _, s := range item.Sources { seen[s] = true }
-			if len(item.ParentIDs) > 0 { collect(item.ParentIDs) }
+			if !ok {
+				continue
+			}
+			for _, s := range item.Sources {
+				seen[s] = true
+			}
+			if len(item.ParentIDs) > 0 {
+				collect(item.ParentIDs)
+			}
 		}
 	}
 	collect(dataIDs)
 	result := make([]string, 0, len(seen))
-	for s := range seen { result = append(result, s) }
+	for s := range seen {
+		result = append(result, s)
+	}
 	return result
 }
 
@@ -431,7 +564,9 @@ func (ce *CapabilityEngine) capIsTrusted(sources []string) bool {
 		"assistant":  true,
 	}
 	for _, s := range sources {
-		if !trustedSet[s] { return false }
+		if !trustedSet[s] {
+			return false
+		}
 	}
 	return len(sources) > 0
 }
@@ -446,7 +581,10 @@ func (ce *CapabilityEngine) PropagateData(traceID, outputDataID, outputSource st
 	now := time.Now().UTC().Format(time.RFC3339)
 	ce.mu.Lock()
 	ctx := ce.contexts[traceID]
-	if ctx == nil { ce.mu.Unlock(); return nil }
+	if ctx == nil {
+		ce.mu.Unlock()
+		return nil
+	}
 
 	// Labels: intersection
 	intersected := ce.capComputeIntersectLocked(ctx, inputDataIDs)
@@ -454,15 +592,24 @@ func (ce *CapabilityEngine) PropagateData(traceID, outputDataID, outputSource st
 	// TrustScore: min
 	minTrust := 1.0
 	for _, sid := range inputDataIDs {
-		if item, ok := ctx.DataItems[sid]; ok && item.TrustScore < minTrust { minTrust = item.TrustScore }
+		if item, ok := ctx.DataItems[sid]; ok && item.TrustScore < minTrust {
+			minTrust = item.TrustScore
+		}
 	}
 
 	// Sources: recursive union
 	mergedSources := ce.capCollectSourcesLocked(ctx, inputDataIDs)
 	// Add own source
 	found := false
-	for _, s := range mergedSources { if s == outputSource { found = true; break } }
-	if !found { mergedSources = append(mergedSources, outputSource) }
+	for _, s := range mergedSources {
+		if s == outputSource {
+			found = true
+			break
+		}
+	}
+	if !found {
+		mergedSources = append(mergedSources, outputSource)
+	}
 
 	item := &CapDataItem{
 		DataID: outputDataID, Source: outputSource,
@@ -480,7 +627,9 @@ func (ce *CapabilityEngine) PropagateData(traceID, outputDataID, outputSource st
 // If data has untrusted sources, downgrades to "warn" for write/execute/admin actions.
 func (ce *CapabilityEngine) EvaluateWithProvenance(traceID, dataID, action, toolName string) *CapEvaluation {
 	eval := ce.Evaluate(traceID, dataID, action, toolName)
-	if eval == nil || eval.Decision == "deny" { return eval }
+	if eval == nil || eval.Decision == "deny" {
+		return eval
+	}
 
 	// Additional provenance check
 	ce.mu.RLock()
@@ -510,15 +659,26 @@ func (ce *CapabilityEngine) EvaluateWithProvenance(traceID, dataID, action, tool
 }
 
 func (ce *CapabilityEngine) GetContext(traceID string) *CapContext {
-	ce.mu.RLock(); ctx := ce.contexts[traceID]; ce.mu.RUnlock()
-	if ctx != nil { return ctx }
+	ce.mu.RLock()
+	ctx := ce.contexts[traceID]
+	ce.mu.RUnlock()
+	if ctx != nil {
+		return ctx
+	}
 	return ce.capLoadCtxDB(traceID)
 }
 
 func (ce *CapabilityEngine) CompleteContext(traceID string) {
-	ce.mu.Lock(); ctx := ce.contexts[traceID]
-	if ctx != nil { ctx.Status = "completed"; ctx.UpdatedAt = time.Now().UTC().Format(time.RFC3339) }
-	ce.mu.Unlock(); if ctx != nil { ce.capPersistCtx(ctx) }
+	ce.mu.Lock()
+	ctx := ce.contexts[traceID]
+	if ctx != nil {
+		ctx.Status = "completed"
+		ctx.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+	}
+	ce.mu.Unlock()
+	if ctx != nil {
+		ce.capPersistCtx(ctx)
+	}
 }
 
 // UpdateContextCaps 更新上下文的用户能力标签
@@ -556,31 +716,64 @@ func (ce *CapabilityEngine) DeleteContext(traceID string) error {
 	return nil
 }
 
-func (ce *CapabilityEngine) GetToolMapping(toolName string) *CapToolMapping { ce.mu.RLock(); defer ce.mu.RUnlock(); return ce.toolMappings[toolName] }
+func (ce *CapabilityEngine) GetToolMapping(toolName string) *CapToolMapping {
+	ce.mu.RLock()
+	defer ce.mu.RUnlock()
+	return ce.toolMappings[toolName]
+}
 
 func (ce *CapabilityEngine) ListToolMappings() []CapToolMapping {
-	ce.mu.RLock(); defer ce.mu.RUnlock()
-	out := make([]CapToolMapping, 0, len(ce.toolMappings)); for _, m := range ce.toolMappings { out = append(out, *m) }; return out
+	ce.mu.RLock()
+	defer ce.mu.RUnlock()
+	out := make([]CapToolMapping, 0, len(ce.toolMappings))
+	for _, m := range ce.toolMappings {
+		out = append(out, *m)
+	}
+	return out
 }
 
 func (ce *CapabilityEngine) UpdateToolMapping(m CapToolMapping) error {
-	if m.ToolName == "" { return fmt.Errorf("tool_name required") }
-	if m.Category == "" { return fmt.Errorf("category required") }
-	if m.DefaultLevel == "" { m.DefaultLevel = "medium" }
-	if m.AllowedCaps == nil { m.AllowedCaps = []string{} }; if m.DeniedCaps == nil { m.DeniedCaps = []string{} }
-	if m.TrustFactor < 0 || m.TrustFactor > 1 { m.TrustFactor = 0.5 }
+	if m.ToolName == "" {
+		return fmt.Errorf("tool_name required")
+	}
+	if m.Category == "" {
+		return fmt.Errorf("category required")
+	}
+	if m.DefaultLevel == "" {
+		m.DefaultLevel = "medium"
+	}
+	if m.AllowedCaps == nil {
+		m.AllowedCaps = []string{}
+	}
+	if m.DeniedCaps == nil {
+		m.DeniedCaps = []string{}
+	}
+	if m.TrustFactor < 0 || m.TrustFactor > 1 {
+		m.TrustFactor = 0.5
+	}
 	now := time.Now().UTC().Format(time.RFC3339)
-	acJ, _ := json.Marshal(m.AllowedCaps); dcJ, _ := json.Marshal(m.DeniedCaps)
+	acJ, _ := json.Marshal(m.AllowedCaps)
+	dcJ, _ := json.Marshal(m.DeniedCaps)
 	_, err := ce.db.Exec("INSERT INTO cap_tool_mappings(tool_name,category,default_level,allowed_caps,denied_caps,trust_factor,updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(tool_name) DO UPDATE SET category=?,default_level=?,allowed_caps=?,denied_caps=?,trust_factor=?,updated_at=?",
 		m.ToolName, m.Category, m.DefaultLevel, string(acJ), string(dcJ), m.TrustFactor, now, m.Category, m.DefaultLevel, string(acJ), string(dcJ), m.TrustFactor, now)
-	if err != nil { return err }
-	ce.mu.Lock(); mm := m; ce.toolMappings[m.ToolName] = &mm; ce.mu.Unlock(); return nil
+	if err != nil {
+		return err
+	}
+	ce.mu.Lock()
+	mm := m
+	ce.toolMappings[m.ToolName] = &mm
+	ce.mu.Unlock()
+	return nil
 }
 
 func (ce *CapabilityEngine) DeleteToolMapping(toolName string) error {
-	ce.mu.Lock(); if _, ok := ce.toolMappings[toolName]; !ok { ce.mu.Unlock(); return fmt.Errorf("not found: %s", toolName) }
-	delete(ce.toolMappings, toolName); ce.mu.Unlock()
-	_, err := ce.db.Exec("DELETE FROM cap_tool_mappings WHERE tool_name=?", toolName); return err
+	ce.mu.Lock()
+	if _, ok := ce.toolMappings[toolName]; !ok {
+		ce.mu.Unlock()
+		return fmt.Errorf("not found: %s", toolName)
+	}
+	delete(ce.toolMappings, toolName)
+	ce.mu.Unlock()
+	_, err := ce.db.Exec("DELETE FROM cap_tool_mappings WHERE tool_name=?", toolName)
+	return err
 }
-
-

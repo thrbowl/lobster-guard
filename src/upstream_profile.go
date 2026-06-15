@@ -53,11 +53,11 @@ type EngineAlertSummary struct {
 	SingularityExposes int `json:"singularity_exposes"`
 	HoneypotDeep       int `json:"honeypot_deep"`
 	// 数据
-	IFCViolations    int `json:"ifc_violations"`
-	IFCHidden        int `json:"ifc_hidden"`
-	TaintEvents      int `json:"taint_events"`
-	TaintReversals   int `json:"taint_reversals"`
-	OutboundBlocks   int `json:"outbound_blocks"`
+	IFCViolations  int `json:"ifc_violations"`
+	IFCHidden      int `json:"ifc_hidden"`
+	TaintEvents    int `json:"taint_events"`
+	TaintReversals int `json:"taint_reversals"`
+	OutboundBlocks int `json:"outbound_blocks"`
 	// 行为
 	PlanDeviations    int `json:"plan_deviations"`
 	PlanExecutions    int `json:"plan_executions"`
@@ -422,11 +422,11 @@ func (e *UpstreamProfileEngine) queryTrend(upstreamID, since string) []DailyTren
 
 		// 日评分: 基础 100
 		score := 100.0
-		score -= float64(blocks) * 5.0                      // block 重扣
-		score -= float64(imAlerts-blocks) * 1.0              // warn/review 轻扣
-		score -= float64(ifcV) * 3.0                         // IFC 违规
-		score -= float64(planD) * 2.0                        // 计划偏离
-		score -= math.Min(float64(anomalies)*0.1, 10.0)     // 行为异常（封顶）
+		score -= float64(blocks) * 5.0                  // block 重扣
+		score -= float64(imAlerts-blocks) * 1.0         // warn/review 轻扣
+		score -= float64(ifcV) * 3.0                    // IFC 违规
+		score -= float64(planD) * 2.0                   // 计划偏离
+		score -= math.Min(float64(anomalies)*0.1, 10.0) // 行为异常（封顶）
 		score = math.Max(score, 0)
 
 		trend = append(trend, DailyTrend{

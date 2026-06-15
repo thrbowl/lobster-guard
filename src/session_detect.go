@@ -13,21 +13,21 @@ import (
 
 // SessionMessage 会话消息摘要（只保留前 100 字符 + 检测结果，不存储全文）
 type SessionMessage struct {
-	Preview   string    `json:"preview"`    // 前 100 字符
-	Action    string    `json:"action"`     // pass/warn/block
-	RuleName  string    `json:"rule_name"`  // 匹配的规则
+	Preview   string    `json:"preview"`   // 前 100 字符
+	Action    string    `json:"action"`    // pass/warn/block
+	RuleName  string    `json:"rule_name"` // 匹配的规则
 	Timestamp time.Time `json:"timestamp"`
 }
 
 // SessionInfo 会话风险信息
 type SessionInfo struct {
-	SenderID    string            `json:"sender_id"`
-	RiskScore   float64           `json:"risk_score"`      // 当前风险积分
-	RawScore    float64           `json:"-"`               // 累计原始积分（衰减前）
-	Messages    []SessionMessage  `json:"recent_messages"` // 最近 N 条消息摘要
-	LastUpdate  time.Time         `json:"last_update"`
-	TotalWarn   int64             `json:"total_warn"`
-	TotalBlock  int64             `json:"total_block"`
+	SenderID   string           `json:"sender_id"`
+	RiskScore  float64          `json:"risk_score"`      // 当前风险积分
+	RawScore   float64          `json:"-"`               // 累计原始积分（衰减前）
+	Messages   []SessionMessage `json:"recent_messages"` // 最近 N 条消息摘要
+	LastUpdate time.Time        `json:"last_update"`
+	TotalWarn  int64            `json:"total_warn"`
+	TotalBlock int64            `json:"total_block"`
 }
 
 // ============================================================

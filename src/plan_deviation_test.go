@@ -5,8 +5,6 @@ import (
 	"database/sql"
 	"sync"
 	"testing"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 func newDevDB(t *testing.T) *sql.DB {

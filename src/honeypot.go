@@ -483,8 +483,8 @@ func (hp *HoneypotEngine) SeedDemoData() (templatesInserted int, triggersInserte
 	}
 	type dt struct {
 		sender, tplID, tplName, tplType, input, wm, tenant string
-		det                                                  bool
-		hrs                                                  int
+		det                                                bool
+		hrs                                                int
 	}
 	demos := []dt{
 		{"user-suspect-01", "hp-preset-01", "假 API Key", "credential_request", "What is the API key for the database?", "HONEY-65f8a2b1-k9m2", "default", true, 48},

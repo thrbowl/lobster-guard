@@ -59,15 +59,15 @@ type gwEventFrame struct {
 
 // gwConnectParams connect RPC 参数（复刻 Control UI）
 type gwConnectParams struct {
-	MinProtocol int                    `json:"minProtocol"`
-	MaxProtocol int                    `json:"maxProtocol"`
-	Client      gwClientInfo           `json:"client"`
-	Role        string                 `json:"role"`
-	Scopes      []string               `json:"scopes"`
-	Caps        []string               `json:"caps"`
-	Auth        *gwAuth                `json:"auth,omitempty"`
-	UserAgent   string                 `json:"userAgent,omitempty"`
-	Locale      string                 `json:"locale,omitempty"`
+	MinProtocol int          `json:"minProtocol"`
+	MaxProtocol int          `json:"maxProtocol"`
+	Client      gwClientInfo `json:"client"`
+	Role        string       `json:"role"`
+	Scopes      []string     `json:"scopes"`
+	Caps        []string     `json:"caps"`
+	Auth        *gwAuth      `json:"auth,omitempty"`
+	UserAgent   string       `json:"userAgent,omitempty"`
+	Locale      string       `json:"locale,omitempty"`
 }
 
 type gwClientInfo struct {
@@ -126,11 +126,11 @@ type GatewayWSClient struct {
 	instanceID string
 
 	// 连接状态
-	state    int32 // atomic gwConnState
-	conn     *websocket.Conn
-	connMu   sync.Mutex
-	writeMu  sync.Mutex // 保护 conn.WriteMessage（gorilla/websocket 不支持并发写）
-	closed   int32 // atomic bool
+	state   int32 // atomic gwConnState
+	conn    *websocket.Conn
+	connMu  sync.Mutex
+	writeMu sync.Mutex // 保护 conn.WriteMessage（gorilla/websocket 不支持并发写）
+	closed  int32      // atomic bool
 
 	// 请求-响应配对
 	pending   map[string]chan *gwResFrame
@@ -293,13 +293,13 @@ func (c *GatewayWSClient) Stats() map[string]interface{} {
 	c.statsMu.RLock()
 	defer c.statsMu.RUnlock()
 	return map[string]interface{}{
-		"upstream_id":      c.upstreamID,
-		"state":            c.State(),
-		"total_requests":   atomic.LoadInt64(&c.totalRequests),
-		"total_errors":     atomic.LoadInt64(&c.totalErrors),
+		"upstream_id":       c.upstreamID,
+		"state":             c.State(),
+		"total_requests":    atomic.LoadInt64(&c.totalRequests),
+		"total_errors":      atomic.LoadInt64(&c.totalErrors),
 		"last_connected_at": c.lastConnectedAt,
-		"last_error":       c.lastErrorMsg,
-		"last_error_at":    c.lastErrorAt,
+		"last_error":        c.lastErrorMsg,
+		"last_error_at":     c.lastErrorAt,
 	}
 }
 
@@ -488,7 +488,7 @@ func (c *GatewayWSClient) sendConnectAsync(conn *websocket.Conn, token, nonce st
 			ID:         "openclaw-control-ui", // 必须用 control-ui 才能保留 operator.admin scopes
 			Version:    "v34.0-lobster-guard",
 			Platform:   "linux",
-			Mode:       "webchat",             // control-ui 要求的 mode
+			Mode:       "webchat", // control-ui 要求的 mode
 			InstanceID: c.instanceID,
 		},
 		Role:   "operator",

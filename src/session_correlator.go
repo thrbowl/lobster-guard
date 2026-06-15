@@ -2,32 +2,32 @@
 //
 // 双层关联机制：
 //
-//   Layer 1 — 活跃会话（appID + senderID + 滚动时间窗口）
-//     同一个 appID+senderID 在 idleTimeout 内的连续 IM 消息归入同一个 session。
-//     超过 idleTimeout 没有新消息 → 自动切新 session。
-//     每条 IM 消息都记录自己的 trace_id，同一 session 内的所有 IM trace 共享 session_id。
+//	Layer 1 — 活跃会话（appID + senderID + 滚动时间窗口）
+//	  同一个 appID+senderID 在 idleTimeout 内的连续 IM 消息归入同一个 session。
+//	  超过 idleTimeout 没有新消息 → 自动切新 session。
+//	  每条 IM 消息都记录自己的 trace_id，同一 session 内的所有 IM trace 共享 session_id。
 //
-//   Layer 2 — 内容指纹（LLM 请求 messages ↔ IM 消息指纹）
-//     LLM 请求体的 messages 中最后一条 user content 指纹匹配到已知 IM 消息 → 精确关联。
-//     如果指纹未命中，退化到 Layer 1：取该 appID+senderID 最近活跃 session。
+//	Layer 2 — 内容指纹（LLM 请求 messages ↔ IM 消息指纹）
+//	  LLM 请求体的 messages 中最后一条 user content 指纹匹配到已知 IM 消息 → 精确关联。
+//	  如果指纹未命中，退化到 Layer 1：取该 appID+senderID 最近活跃 session。
 //
 // 数据流：
-//   IM入站 "帮我查张三邮件" (sender=张卓, app=app1, trace=im-001)
-//     → RegisterIMSession → session_id=sess-001, 记录指纹
-//   IM入站 "转发给李四" (sender=张卓, app=app1, trace=im-002, 30秒后)
-//     → RegisterIMSession → 同一个 sess-001（30秒 < idleTimeout）
-//   LLM第1轮 messages含 "帮我查张三邮件" (trace=llm-001)
-//     → MatchLLMRequest → Layer2 指纹命中 → sess-001, im_trace=im-001
-//   LLM第2轮 messages含 "转发给李四" (trace=llm-002)
-//     → MatchLLMRequest → Layer2 指纹命中 → sess-001, im_trace=im-002
-//   LLM第3轮 messages 指纹不命中
-//     → Layer1 退化匹配 → sess-001（最近活跃 session of 张卓@app1）
 //
-//   --- 1小时空档 ---
+//	IM入站 "帮我查张三邮件" (sender=张卓, app=app1, trace=im-001)
+//	  → RegisterIMSession → session_id=sess-001, 记录指纹
+//	IM入站 "转发给李四" (sender=张卓, app=app1, trace=im-002, 30秒后)
+//	  → RegisterIMSession → 同一个 sess-001（30秒 < idleTimeout）
+//	LLM第1轮 messages含 "帮我查张三邮件" (trace=llm-001)
+//	  → MatchLLMRequest → Layer2 指纹命中 → sess-001, im_trace=im-001
+//	LLM第2轮 messages含 "转发给李四" (trace=llm-002)
+//	  → MatchLLMRequest → Layer2 指纹命中 → sess-001, im_trace=im-002
+//	LLM第3轮 messages 指纹不命中
+//	  → Layer1 退化匹配 → sess-001（最近活跃 session of 张卓@app1）
 //
-//   IM入站 "今天天气" (sender=张卓, app=app1, trace=im-010)
-//     → RegisterIMSession → 新 session_id=sess-002（超过 idleTimeout）
+//	--- 1小时空档 ---
 //
+//	IM入站 "今天天气" (sender=张卓, app=app1, trace=im-010)
+//	  → RegisterIMSession → 新 session_id=sess-002（超过 idleTimeout）
 package main
 
 import (
@@ -44,36 +44,36 @@ import (
 
 // SessionCorrelator 将 IM 入站消息与 LLM 请求通过双层机制关联
 type SessionCorrelator struct {
-	mu            sync.RWMutex
+	mu sync.RWMutex
 	// Layer 1: appID:senderID → 活跃 session
 	activeSessions map[string]*activeSession
 	// Layer 2: content fingerprint → IM trace info
-	fingerprints   map[string]*fingerprintEntry
+	fingerprints map[string]*fingerprintEntry
 	// 配置
-	idleTimeoutMs  int64 // 活跃会话空闲超时（毫秒），默认 1 小时
-	fpWindowMs     int64 // 指纹匹配窗口（毫秒），默认 5 分钟
-	maxSessions    int
+	idleTimeoutMs   int64 // 活跃会话空闲超时（毫秒），默认 1 小时
+	fpWindowMs      int64 // 指纹匹配窗口（毫秒），默认 5 分钟
+	maxSessions     int
 	maxFingerprints int
 }
 
 // activeSession 一个用户的连续会话
 type activeSession struct {
-	sessionID  string    // 会话唯一 ID
-	appID      string
-	senderID   string
-	lastActive time.Time // 最后活跃时间（每条 IM 消息刷新）
-	imTraces   []string  // 该 session 内所有 IM trace_id
-	llmTraces  []string  // 该 session 关联的所有 LLM trace_id
-	latestIMTrace string // 最近一条 IM trace_id
+	sessionID     string // 会话唯一 ID
+	appID         string
+	senderID      string
+	lastActive    time.Time // 最后活跃时间（每条 IM 消息刷新）
+	imTraces      []string  // 该 session 内所有 IM trace_id
+	llmTraces     []string  // 该 session 关联的所有 LLM trace_id
+	latestIMTrace string    // 最近一条 IM trace_id
 }
 
 // fingerprintEntry Layer 2 指纹条目
 type fingerprintEntry struct {
-	imTraceID  string
-	sessionID  string
-	senderID   string
-	appID      string
-	ts         time.Time
+	imTraceID string
+	sessionID string
+	senderID  string
+	appID     string
+	ts        time.Time
 }
 
 // SessionLink 关联结果
@@ -293,12 +293,12 @@ func (sc *SessionCorrelator) Stats() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"active_sessions":   len(sc.activeSessions),
-		"fingerprints":      len(sc.fingerprints),
-		"total_im_traces":   totalIMTraces,
-		"total_llm_traces":  totalLLMTraces,
-		"idle_timeout_ms":   sc.idleTimeoutMs,
-		"fp_window_ms":      sc.fpWindowMs,
+		"active_sessions":  len(sc.activeSessions),
+		"fingerprints":     len(sc.fingerprints),
+		"total_im_traces":  totalIMTraces,
+		"total_llm_traces": totalLLMTraces,
+		"idle_timeout_ms":  sc.idleTimeoutMs,
+		"fp_window_ms":     sc.fpWindowMs,
 	}
 }
 

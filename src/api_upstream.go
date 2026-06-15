@@ -35,9 +35,9 @@ func (api *ManagementAPI) handleRegister(w http.ResponseWriter, r *http.Request)
 		api.metrics.RecordUpstreamChange()
 	}
 	jsonResponse(w, 200, map[string]interface{}{
-		"status": "registered",
+		"status":             "registered",
 		"heartbeat_interval": fmt.Sprintf("%ds", api.cfg.HeartbeatIntervalSec),
-		"heartbeat_path": "/api/v1/heartbeat",
+		"heartbeat_path":     "/api/v1/heartbeat",
 	})
 }
 
@@ -85,13 +85,15 @@ func (api *ManagementAPI) handleListUpstreams(w http.ResponseWriter, r *http.Req
 	list := []map[string]interface{}{}
 	for _, up := range upstreams {
 		totalUsers += up.UserCount
-		if up.Healthy { healthyCount++ }
+		if up.Healthy {
+			healthyCount++
+		}
 		list = append(list, map[string]interface{}{
 			"id": up.ID, "address": up.Address, "port": up.Port,
 			"healthy": up.Healthy, "user_count": up.UserCount, "static": up.Static,
-			"path_prefix": up.PathPrefix,
+			"path_prefix":    up.PathPrefix,
 			"last_heartbeat": up.LastHeartbeat.Format(time.RFC3339),
-			"tags": up.Tags, "load": up.Load,
+			"tags":           up.Tags, "load": up.Load,
 			"gateway_token_configured": up.GatewayToken != "",
 		})
 	}
@@ -153,7 +155,7 @@ func (api *ManagementAPI) handleGetUpstream(w http.ResponseWriter, r *http.Reque
 		"healthy": up.Healthy, "user_count": up.UserCount, "static": up.Static,
 		"registered_at":  up.RegisteredAt.Format(time.RFC3339),
 		"last_heartbeat": up.LastHeartbeat.Format(time.RFC3339),
-		"tags": up.Tags, "load": up.Load,
+		"tags":           up.Tags, "load": up.Load,
 		"gateway_token_configured": up.GatewayToken != "",
 	})
 }

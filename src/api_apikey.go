@@ -42,8 +42,8 @@ func (api *ManagementAPI) handleAPIKeyCreate(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	jsonResponse(w, 200, map[string]interface{}{
-		"status": "created",
-		"key":    created,
+		"status":  "created",
+		"key":     created,
 		"raw_key": rawKey,
 		"warning": "请妥善保管此 Key，它将不再显示完整内容",
 	})

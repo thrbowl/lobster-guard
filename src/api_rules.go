@@ -74,11 +74,11 @@ func (api *ManagementAPI) handleTestRuleBindings(w http.ResponseWriter, r *http.
 	groups := api.inboundEngine.GetApplicableGroups(req.AppID)
 	rules := api.inboundEngine.GetRulesForAppID(req.AppID)
 	jsonResponse(w, 200, map[string]interface{}{
-		"app_id":           req.AppID,
+		"app_id":            req.AppID,
 		"applicable_groups": groups,
-		"all_rules_apply":  groups == nil,
-		"rules":            rules,
-		"rules_count":      len(rules),
+		"all_rules_apply":   groups == nil,
+		"rules":             rules,
+		"rules_count":       len(rules),
 	})
 }
 
@@ -143,11 +143,11 @@ func (api *ManagementAPI) handleReloadInboundRules(w http.ResponseWriter, r *htt
 
 	rv := api.inboundEngine.Version()
 	jsonResponse(w, 200, map[string]interface{}{
-		"status":        "ok",
-		"rules_count":   rv.RuleCount,
+		"status":         "ok",
+		"rules_count":    rv.RuleCount,
 		"patterns_count": rv.PatternCount,
-		"source":        rv.Source,
-		"version":       rv.Version,
+		"source":         rv.Source,
+		"version":        rv.Version,
 	})
 }
 
@@ -349,9 +349,9 @@ func (api *ManagementAPI) handleDeleteOutboundRule(w http.ResponseWriter, r *htt
 
 	log.Printf("[出站规则CRUD] 删除规则: %s", req.Name)
 	jsonResponse(w, 200, map[string]interface{}{
-		"status":  "deleted",
-		"rule":    req.Name,
-		"total":   len(configs),
+		"status": "deleted",
+		"rule":   req.Name,
+		"total":  len(configs),
 	})
 }
 
@@ -532,10 +532,10 @@ func (api *ManagementAPI) handleDeleteInboundRule(w http.ResponseWriter, r *http
 	log.Printf("[规则CRUD] 删除规则: %s", req.Name)
 	rules := api.inboundEngine.ListRules()
 	jsonResponse(w, 200, map[string]interface{}{
-		"status":  "deleted",
-		"rule":    req.Name,
-		"rules":   rules,
-		"total":   len(rules),
+		"status": "deleted",
+		"rule":   req.Name,
+		"rules":  rules,
+		"total":  len(rules),
 	})
 }
 
@@ -567,7 +567,9 @@ func (api *ManagementAPI) handleInboundToggleShadow(w http.ResponseWriter, r *ht
 	api.inboundEngine.Reload(configs, source)
 	api.persistInboundRules(configs)
 	mode := "active"
-	if newShadow { mode = "shadow" }
+	if newShadow {
+		mode = "shadow"
+	}
 	log.Printf("[规则CRUD] 入站规则 %s 切换为 %s 模式", req.Name, mode)
 	jsonResponse(w, 200, map[string]interface{}{"status": "toggled", "rule": req.Name, "shadow_mode": newShadow})
 }
@@ -598,7 +600,9 @@ func (api *ManagementAPI) handleOutboundToggleShadow(w http.ResponseWriter, r *h
 		return
 	}
 	mode := "active"
-	if newShadow { mode = "shadow" }
+	if newShadow {
+		mode = "shadow"
+	}
 	log.Printf("[规则CRUD] 出站规则 %s 切换为 %s 模式", req.Name, mode)
 	jsonResponse(w, 200, map[string]interface{}{"status": "toggled", "rule": req.Name, "shadow_mode": newShadow})
 }
@@ -688,11 +692,11 @@ func (api *ManagementAPI) handleImportRules(w http.ResponseWriter, r *http.Reque
 	// 如果是 preview 模式（query param ?preview=1），只返回预览
 	if r.URL.Query().Get("preview") == "1" {
 		jsonResponse(w, 200, map[string]interface{}{
-			"preview":       true,
-			"total":         len(importRules),
-			"new_rules":     newRules,
+			"preview":        true,
+			"total":          len(importRules),
+			"new_rules":      newRules,
 			"override_rules": overrideRules,
-			"new_count":     len(newRules),
+			"new_count":      len(newRules),
 			"override_count": len(overrideRules),
 		})
 		return

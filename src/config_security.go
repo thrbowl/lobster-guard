@@ -190,9 +190,9 @@ func ValidateConfigSecurity(cfg *Config) []string {
 		issues = append(issues, "callbackSignToken 使用了示例默认值，请替换为实际密钥")
 	}
 
-	// 8. 数据库路径检查
-	if cfg.DBPath == "" {
-		issues = append(issues, "db_path 未配置")
+	// 8. 数据库连接检查
+	if cfg.DatabaseURL == "" {
+		issues = append(issues, "database_url 未配置")
 	}
 
 	return issues

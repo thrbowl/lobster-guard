@@ -14,19 +14,19 @@ import (
 
 // DetectContext 检测上下文（贯穿整个 Pipeline）
 type DetectContext struct {
-	Text          string            // 原文
-	SenderID      string            // 发送者 ID
-	AppID         string            // 应用 ID
-	TraceID       string            // 追踪 ID
-	PreviousResults []*StageResult  // 前置阶段结果
+	Text            string         // 原文
+	SenderID        string         // 发送者 ID
+	AppID           string         // 应用 ID
+	TraceID         string         // 追踪 ID
+	PreviousResults []*StageResult // 前置阶段结果
 }
 
 // StageResult 单阶段检测结果
 type StageResult struct {
-	StageName string `json:"stage_name"`
-	Action    string `json:"action"`     // pass / warn / block
-	RuleName  string `json:"rule_name"`
-	Detail    string `json:"detail"`
+	StageName string        `json:"stage_name"`
+	Action    string        `json:"action"` // pass / warn / block
+	RuleName  string        `json:"rule_name"`
+	Detail    string        `json:"detail"`
 	Duration  time.Duration `json:"-"`
 }
 
@@ -56,13 +56,13 @@ func NewDetectPipeline(stages []DetectStage) *DetectPipeline {
 
 // PipelineResult 完整检测结果
 type PipelineResult struct {
-	FinalAction  string         `json:"final_action"`   // 最终动作: pass/warn/block
-	FinalRule    string         `json:"final_rule"`      // 最终匹配规则名
-	FinalMessage string         `json:"final_message"`   // 最终拦截消息
-	StageResults []*StageResult `json:"stage_results"`   // 各阶段结果
-	MatchedRules []string       `json:"matched_rules"`   // 所有匹配的规则
-	PIIs         []string       `json:"piis,omitempty"`  // 检测到的 PII
-	TotalDuration time.Duration `json:"-"`
+	FinalAction   string         `json:"final_action"`   // 最终动作: pass/warn/block
+	FinalRule     string         `json:"final_rule"`     // 最终匹配规则名
+	FinalMessage  string         `json:"final_message"`  // 最终拦截消息
+	StageResults  []*StageResult `json:"stage_results"`  // 各阶段结果
+	MatchedRules  []string       `json:"matched_rules"`  // 所有匹配的规则
+	PIIs          []string       `json:"piis,omitempty"` // 检测到的 PII
+	TotalDuration time.Duration  `json:"-"`
 }
 
 // Execute 执行检测链
@@ -149,7 +149,9 @@ func (s *KeywordStage) Detect(ctx *DetectContext) *StageResult {
 			continue
 		}
 		action := rule.Action
-		if action == "" { action = levelToAction(rule.Level) }
+		if action == "" {
+			action = levelToAction(rule.Level)
+		}
 		if bestMatch == nil || rule.Priority > bestMatch.Priority ||
 			(rule.Priority == bestMatch.Priority && actionWeight(action) > actionWeight(bestMatch.Action)) {
 			bestMatch = &matchedRule{Name: rule.Name, Priority: rule.Priority, Action: action, Message: rule.Message}
@@ -197,7 +199,11 @@ func (s *RegexStage) Detect(ctx *DetectContext) *StageResult {
 		}
 		done := make(chan bool, 1)
 		go func() {
-			defer func() { if rv := recover(); rv != nil { done <- false } }()
+			defer func() {
+				if rv := recover(); rv != nil {
+					done <- false
+				}
+			}()
 			done <- rr.Pattern.MatchString(ctx.Text)
 		}()
 		var matched bool
@@ -211,7 +217,9 @@ func (s *RegexStage) Detect(ctx *DetectContext) *StageResult {
 			continue
 		}
 		action := rr.Action
-		if action == "" { action = levelToAction(rr.Level) }
+		if action == "" {
+			action = levelToAction(rr.Level)
+		}
 		if bestMatch == nil || rr.Priority > bestMatch.Priority ||
 			(rr.Priority == bestMatch.Priority && actionWeight(action) > actionWeight(bestMatch.Action)) {
 			bestMatch = &matchedRule{Name: rr.Name, Priority: rr.Priority, Action: action, Message: rr.Message}

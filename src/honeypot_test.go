@@ -6,8 +6,6 @@ import (
 	"database/sql"
 	"strings"
 	"testing"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 func setupTestHoneypotDB(t *testing.T) *sql.DB {
@@ -456,7 +454,7 @@ func TestShouldTriggerRegex(t *testing.T) {
 	hp.CreateTemplate(&HoneypotTemplate{
 		Name: "Regex Test", TriggerType: "system_probe",
 		TriggerPattern: `system\.prompt|config\s+file`,
-		ResponseType: "canary_document", ResponseTemplate: "fake-{{watermark}}", Enabled: true,
+		ResponseType:   "canary_document", ResponseTemplate: "fake-{{watermark}}", Enabled: true,
 	})
 
 	// Should match regex

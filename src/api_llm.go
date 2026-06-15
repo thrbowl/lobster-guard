@@ -19,10 +19,10 @@ func (api *ManagementAPI) handleLLMStatus(w http.ResponseWriter, r *http.Request
 		targets = append(targets, t.Name)
 	}
 	jsonResponse(w, 200, map[string]interface{}{
-		"enabled":  cfg.Enabled,
-		"listen":   cfg.Listen,
-		"targets":  targets,
-		"status":   "healthy",
+		"enabled": cfg.Enabled,
+		"listen":  cfg.Listen,
+		"targets": targets,
+		"status":  "healthy",
 	})
 }
 
@@ -54,17 +54,23 @@ func (api *ManagementAPI) handleLLMCalls(w http.ResponseWriter, r *http.Request)
 	limit := 50
 	offset := 0
 	if l := r.URL.Query().Get("limit"); l != "" {
-		if n, err := strconv.Atoi(l); err == nil { limit = n }
+		if n, err := strconv.Atoi(l); err == nil {
+			limit = n
+		}
 	}
 	if o := r.URL.Query().Get("offset"); o != "" {
-		if n, err := strconv.Atoi(o); err == nil { offset = n }
+		if n, err := strconv.Atoi(o); err == nil {
+			offset = n
+		}
 	}
 	records, total, err := api.llmAuditor.QueryCalls(model, hasToolUse, from, to, limit, offset)
 	if err != nil {
 		jsonResponse(w, 500, map[string]string{"error": err.Error()})
 		return
 	}
-	if records == nil { records = []map[string]interface{}{} }
+	if records == nil {
+		records = []map[string]interface{}{}
+	}
 	jsonResponse(w, 200, map[string]interface{}{"records": records, "total": total})
 }
 
@@ -77,17 +83,23 @@ func (api *ManagementAPI) handleLLMTools(w http.ResponseWriter, r *http.Request)
 	limit := 50
 	offset := 0
 	if l := r.URL.Query().Get("limit"); l != "" {
-		if n, err := strconv.Atoi(l); err == nil { limit = n }
+		if n, err := strconv.Atoi(l); err == nil {
+			limit = n
+		}
 	}
 	if o := r.URL.Query().Get("offset"); o != "" {
-		if n, err := strconv.Atoi(o); err == nil { offset = n }
+		if n, err := strconv.Atoi(o); err == nil {
+			offset = n
+		}
 	}
 	records, total, err := api.llmAuditor.QueryToolCalls(tool, risk, from, to, limit, offset)
 	if err != nil {
 		jsonResponse(w, 500, map[string]string{"error": err.Error()})
 		return
 	}
-	if records == nil { records = []map[string]interface{}{} }
+	if records == nil {
+		records = []map[string]interface{}{}
+	}
 	jsonResponse(w, 200, map[string]interface{}{"records": records, "total": total})
 }
 
@@ -105,14 +117,18 @@ func (api *ManagementAPI) handleLLMToolStats(w http.ResponseWriter, r *http.Requ
 func (api *ManagementAPI) handleLLMToolTimeline(w http.ResponseWriter, r *http.Request) {
 	hours := 24
 	if h := r.URL.Query().Get("hours"); h != "" {
-		if n, err := strconv.Atoi(h); err == nil && n > 0 { hours = n }
+		if n, err := strconv.Atoi(h); err == nil && n > 0 {
+			hours = n
+		}
 	}
 	timeline, err := api.llmAuditor.ToolTimeline(hours)
 	if err != nil {
 		jsonResponse(w, 500, map[string]string{"error": err.Error()})
 		return
 	}
-	if timeline == nil { timeline = []map[string]interface{}{} }
+	if timeline == nil {
+		timeline = []map[string]interface{}{}
+	}
 	jsonResponse(w, 200, map[string]interface{}{"timeline": timeline, "hours": hours})
 }
 
@@ -155,12 +171,12 @@ func (api *ManagementAPI) handleLLMConfigGet(w http.ResponseWriter, r *http.Requ
 				"alert_action": cfg.Security.CanaryToken.AlertAction,
 			},
 			"response_budget": map[string]interface{}{
-				"enabled":               cfg.Security.ResponseBudget.Enabled,
+				"enabled":                 cfg.Security.ResponseBudget.Enabled,
 				"max_tool_calls_per_req":  cfg.Security.ResponseBudget.MaxToolCallsPerReq,
 				"max_single_tool_per_req": cfg.Security.ResponseBudget.MaxSingleToolPerReq,
 				"max_tokens_per_req":      cfg.Security.ResponseBudget.MaxTokensPerReq,
 				"over_budget_action":      cfg.Security.ResponseBudget.OverBudgetAction,
-				"tool_limits":            cfg.Security.ResponseBudget.ToolLimits,
+				"tool_limits":             cfg.Security.ResponseBudget.ToolLimits,
 			},
 		},
 	}
@@ -170,9 +186,9 @@ func (api *ManagementAPI) handleLLMConfigGet(w http.ResponseWriter, r *http.Requ
 // handleLLMConfigPut PUT /api/v1/llm/config — 更新 LLM 代理配置（写回 config.yaml）
 func (api *ManagementAPI) handleLLMConfigPut(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Enabled    *bool `json:"enabled"`
-		Listen     string `json:"listen"`
-		Audit      *struct {
+		Enabled *bool  `json:"enabled"`
+		Listen  string `json:"listen"`
+		Audit   *struct {
 			LogSystemPrompt *bool `json:"log_system_prompt"`
 			LogToolInput    *bool `json:"log_tool_input"`
 			LogToolResult   *bool `json:"log_tool_result"`
@@ -188,7 +204,7 @@ func (api *ManagementAPI) handleLLMConfigPut(w http.ResponseWriter, r *http.Requ
 			BlockHighRiskTools  *bool    `json:"block_high_risk_tools"`
 			HighRiskToolList    []string `json:"high_risk_tool_list"`
 			PromptInjectionScan *bool    `json:"prompt_injection_scan"`
-			CanaryToken *struct {
+			CanaryToken         *struct {
 				Enabled     *bool   `json:"enabled"`
 				AutoRotate  *bool   `json:"auto_rotate"`
 				AlertAction *string `json:"alert_action"`
@@ -220,35 +236,75 @@ func (api *ManagementAPI) handleLLMConfigPut(w http.ResponseWriter, r *http.Requ
 		needRestart = true
 	}
 	if req.Audit != nil {
-		if req.Audit.LogSystemPrompt != nil { cfg.AuditConfig.LogSystemPrompt = *req.Audit.LogSystemPrompt }
-		if req.Audit.LogToolInput != nil { cfg.AuditConfig.LogToolInput = *req.Audit.LogToolInput }
-		if req.Audit.LogToolResult != nil { cfg.AuditConfig.LogToolResult = *req.Audit.LogToolResult }
-		if req.Audit.MaxPreviewLen != nil { cfg.AuditConfig.MaxPreviewLen = *req.Audit.MaxPreviewLen }
+		if req.Audit.LogSystemPrompt != nil {
+			cfg.AuditConfig.LogSystemPrompt = *req.Audit.LogSystemPrompt
+		}
+		if req.Audit.LogToolInput != nil {
+			cfg.AuditConfig.LogToolInput = *req.Audit.LogToolInput
+		}
+		if req.Audit.LogToolResult != nil {
+			cfg.AuditConfig.LogToolResult = *req.Audit.LogToolResult
+		}
+		if req.Audit.MaxPreviewLen != nil {
+			cfg.AuditConfig.MaxPreviewLen = *req.Audit.MaxPreviewLen
+		}
 	}
-	if req.TimeoutSec != nil { cfg.TimeoutSec = *req.TimeoutSec }
+	if req.TimeoutSec != nil {
+		cfg.TimeoutSec = *req.TimeoutSec
+	}
 	if req.CostAlert != nil {
-		if req.CostAlert.DailyLimitUSD != nil { cfg.CostAlert.DailyLimitUSD = *req.CostAlert.DailyLimitUSD }
-		if req.CostAlert.WebhookURL != nil { cfg.CostAlert.WebhookURL = *req.CostAlert.WebhookURL }
+		if req.CostAlert.DailyLimitUSD != nil {
+			cfg.CostAlert.DailyLimitUSD = *req.CostAlert.DailyLimitUSD
+		}
+		if req.CostAlert.WebhookURL != nil {
+			cfg.CostAlert.WebhookURL = *req.CostAlert.WebhookURL
+		}
 	}
 	if req.Security != nil {
-		if req.Security.ScanPIIInResponse != nil { cfg.Security.ScanPIIInResponse = *req.Security.ScanPIIInResponse }
-		if req.Security.BlockHighRiskTools != nil { cfg.Security.BlockHighRiskTools = *req.Security.BlockHighRiskTools }
-		if req.Security.HighRiskToolList != nil { cfg.Security.HighRiskToolList = req.Security.HighRiskToolList }
-		if req.Security.PromptInjectionScan != nil { cfg.Security.PromptInjectionScan = *req.Security.PromptInjectionScan }
+		if req.Security.ScanPIIInResponse != nil {
+			cfg.Security.ScanPIIInResponse = *req.Security.ScanPIIInResponse
+		}
+		if req.Security.BlockHighRiskTools != nil {
+			cfg.Security.BlockHighRiskTools = *req.Security.BlockHighRiskTools
+		}
+		if req.Security.HighRiskToolList != nil {
+			cfg.Security.HighRiskToolList = req.Security.HighRiskToolList
+		}
+		if req.Security.PromptInjectionScan != nil {
+			cfg.Security.PromptInjectionScan = *req.Security.PromptInjectionScan
+		}
 		// v10.1: Canary Token
 		if req.Security.CanaryToken != nil {
-			if req.Security.CanaryToken.Enabled != nil { cfg.Security.CanaryToken.Enabled = *req.Security.CanaryToken.Enabled }
-			if req.Security.CanaryToken.AutoRotate != nil { cfg.Security.CanaryToken.AutoRotate = *req.Security.CanaryToken.AutoRotate }
-			if req.Security.CanaryToken.AlertAction != nil { cfg.Security.CanaryToken.AlertAction = *req.Security.CanaryToken.AlertAction }
+			if req.Security.CanaryToken.Enabled != nil {
+				cfg.Security.CanaryToken.Enabled = *req.Security.CanaryToken.Enabled
+			}
+			if req.Security.CanaryToken.AutoRotate != nil {
+				cfg.Security.CanaryToken.AutoRotate = *req.Security.CanaryToken.AutoRotate
+			}
+			if req.Security.CanaryToken.AlertAction != nil {
+				cfg.Security.CanaryToken.AlertAction = *req.Security.CanaryToken.AlertAction
+			}
 		}
 		// v10.1: Response Budget
 		if req.Security.ResponseBudget != nil {
-			if req.Security.ResponseBudget.Enabled != nil { cfg.Security.ResponseBudget.Enabled = *req.Security.ResponseBudget.Enabled }
-			if req.Security.ResponseBudget.MaxToolCallsPerReq != nil { cfg.Security.ResponseBudget.MaxToolCallsPerReq = *req.Security.ResponseBudget.MaxToolCallsPerReq }
-			if req.Security.ResponseBudget.MaxSingleToolPerReq != nil { cfg.Security.ResponseBudget.MaxSingleToolPerReq = *req.Security.ResponseBudget.MaxSingleToolPerReq }
-			if req.Security.ResponseBudget.MaxTokensPerReq != nil { cfg.Security.ResponseBudget.MaxTokensPerReq = *req.Security.ResponseBudget.MaxTokensPerReq }
-			if req.Security.ResponseBudget.OverBudgetAction != nil { cfg.Security.ResponseBudget.OverBudgetAction = *req.Security.ResponseBudget.OverBudgetAction }
-			if req.Security.ResponseBudget.ToolLimits != nil { cfg.Security.ResponseBudget.ToolLimits = req.Security.ResponseBudget.ToolLimits }
+			if req.Security.ResponseBudget.Enabled != nil {
+				cfg.Security.ResponseBudget.Enabled = *req.Security.ResponseBudget.Enabled
+			}
+			if req.Security.ResponseBudget.MaxToolCallsPerReq != nil {
+				cfg.Security.ResponseBudget.MaxToolCallsPerReq = *req.Security.ResponseBudget.MaxToolCallsPerReq
+			}
+			if req.Security.ResponseBudget.MaxSingleToolPerReq != nil {
+				cfg.Security.ResponseBudget.MaxSingleToolPerReq = *req.Security.ResponseBudget.MaxSingleToolPerReq
+			}
+			if req.Security.ResponseBudget.MaxTokensPerReq != nil {
+				cfg.Security.ResponseBudget.MaxTokensPerReq = *req.Security.ResponseBudget.MaxTokensPerReq
+			}
+			if req.Security.ResponseBudget.OverBudgetAction != nil {
+				cfg.Security.ResponseBudget.OverBudgetAction = *req.Security.ResponseBudget.OverBudgetAction
+			}
+			if req.Security.ResponseBudget.ToolLimits != nil {
+				cfg.Security.ResponseBudget.ToolLimits = req.Security.ResponseBudget.ToolLimits
+			}
 		}
 	}
 
@@ -325,11 +381,11 @@ func (api *ManagementAPI) saveLLMConfig() error {
 	}
 	securityMap["canary_token"] = canaryMap
 	budgetMap := map[string]interface{}{
-		"enabled":                  cfg.Security.ResponseBudget.Enabled,
-		"max_tool_calls_per_req":   cfg.Security.ResponseBudget.MaxToolCallsPerReq,
-		"max_single_tool_per_req":  cfg.Security.ResponseBudget.MaxSingleToolPerReq,
-		"max_tokens_per_req":       cfg.Security.ResponseBudget.MaxTokensPerReq,
-		"over_budget_action":       cfg.Security.ResponseBudget.OverBudgetAction,
+		"enabled":                 cfg.Security.ResponseBudget.Enabled,
+		"max_tool_calls_per_req":  cfg.Security.ResponseBudget.MaxToolCallsPerReq,
+		"max_single_tool_per_req": cfg.Security.ResponseBudget.MaxSingleToolPerReq,
+		"max_tokens_per_req":      cfg.Security.ResponseBudget.MaxTokensPerReq,
+		"over_budget_action":      cfg.Security.ResponseBudget.OverBudgetAction,
 	}
 	if cfg.Security.ResponseBudget.ToolLimits != nil {
 		budgetMap["tool_limits"] = cfg.Security.ResponseBudget.ToolLimits
@@ -630,17 +686,39 @@ func (api *ManagementAPI) handleLLMRulesUpdate(w http.ResponseWriter, r *http.Re
 			// 以现有规则为基础
 			updated = existing
 			// 只覆盖请求中明确传入的字段
-			if v, ok := rawFields["name"]; ok { json.Unmarshal(v, &updated.Name) }
-			if v, ok := rawFields["description"]; ok { json.Unmarshal(v, &updated.Description) }
-			if v, ok := rawFields["category"]; ok { json.Unmarshal(v, &updated.Category) }
-			if v, ok := rawFields["direction"]; ok { json.Unmarshal(v, &updated.Direction) }
-			if v, ok := rawFields["type"]; ok { json.Unmarshal(v, &updated.Type) }
-			if v, ok := rawFields["patterns"]; ok { json.Unmarshal(v, &updated.Patterns) }
-			if v, ok := rawFields["action"]; ok { json.Unmarshal(v, &updated.Action) }
-			if v, ok := rawFields["rewrite_to"]; ok { json.Unmarshal(v, &updated.RewriteTo) }
-			if v, ok := rawFields["enabled"]; ok { json.Unmarshal(v, &updated.Enabled) }
-			if v, ok := rawFields["priority"]; ok { json.Unmarshal(v, &updated.Priority) }
-			if v, ok := rawFields["shadow_mode"]; ok { json.Unmarshal(v, &updated.ShadowMode) }
+			if v, ok := rawFields["name"]; ok {
+				json.Unmarshal(v, &updated.Name)
+			}
+			if v, ok := rawFields["description"]; ok {
+				json.Unmarshal(v, &updated.Description)
+			}
+			if v, ok := rawFields["category"]; ok {
+				json.Unmarshal(v, &updated.Category)
+			}
+			if v, ok := rawFields["direction"]; ok {
+				json.Unmarshal(v, &updated.Direction)
+			}
+			if v, ok := rawFields["type"]; ok {
+				json.Unmarshal(v, &updated.Type)
+			}
+			if v, ok := rawFields["patterns"]; ok {
+				json.Unmarshal(v, &updated.Patterns)
+			}
+			if v, ok := rawFields["action"]; ok {
+				json.Unmarshal(v, &updated.Action)
+			}
+			if v, ok := rawFields["rewrite_to"]; ok {
+				json.Unmarshal(v, &updated.RewriteTo)
+			}
+			if v, ok := rawFields["enabled"]; ok {
+				json.Unmarshal(v, &updated.Enabled)
+			}
+			if v, ok := rawFields["priority"]; ok {
+				json.Unmarshal(v, &updated.Priority)
+			}
+			if v, ok := rawFields["shadow_mode"]; ok {
+				json.Unmarshal(v, &updated.ShadowMode)
+			}
 			rules[i] = updated
 			found = true
 			break
@@ -693,7 +771,7 @@ func (api *ManagementAPI) handleLLMRulesDelete(w http.ResponseWriter, r *http.Re
 
 	log.Printf("[LLM规则] 删除规则: %s", ruleID)
 	jsonResponse(w, 200, map[string]interface{}{
-		"status": "deleted",
+		"status":  "deleted",
 		"rule_id": ruleID,
 		"total":   len(newRules),
 	})

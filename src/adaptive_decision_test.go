@@ -5,8 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"testing"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // newTestAdaptiveEngine 创建测试用自适应决策引擎

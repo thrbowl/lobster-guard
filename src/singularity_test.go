@@ -5,8 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"testing"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // newTestSingularityEngine 创建测试用奇点引擎

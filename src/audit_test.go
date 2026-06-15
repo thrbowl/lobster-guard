@@ -15,8 +15,6 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // ============================================================

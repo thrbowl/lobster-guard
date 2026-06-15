@@ -69,26 +69,26 @@ type EvolutionStats struct {
 
 // EvolutionReport 一轮进化的报告
 type EvolutionReport struct {
-	Generation      int                `json:"generation"`
-	Timestamp       string             `json:"timestamp"`
-	TotalMutations  int                `json:"total_mutations"`
-	TotalTested     int                `json:"total_tested"`
-	TotalBypasses   int                `json:"total_bypasses"`
-	RulesGenerated  int                `json:"rules_generated"`
-	DurationMs      int64              `json:"duration_ms"`
-	BypassDetails   []EvolutionRecord  `json:"bypass_details"`
-	GeneratedRules  []string           `json:"generated_rules"`
-	StrategyStats   map[string]int     `json:"strategy_stats"`
+	Generation     int               `json:"generation"`
+	Timestamp      string            `json:"timestamp"`
+	TotalMutations int               `json:"total_mutations"`
+	TotalTested    int               `json:"total_tested"`
+	TotalBypasses  int               `json:"total_bypasses"`
+	RulesGenerated int               `json:"rules_generated"`
+	DurationMs     int64             `json:"duration_ms"`
+	BypassDetails  []EvolutionRecord `json:"bypass_details"`
+	GeneratedRules []string          `json:"generated_rules"`
+	StrategyStats  map[string]int    `json:"strategy_stats"`
 }
 
 // MutatedVector 变异后的攻击向量
 type MutatedVector struct {
-	OriginalID     string
+	OriginalID      string
 	OriginalPayload string
-	MutatedPayload string
-	Strategy       string
-	Engine         string
-	ExpectedAction string
+	MutatedPayload  string
+	Strategy        string
+	Engine          string
+	ExpectedAction  string
 }
 
 // ============================================================
@@ -124,15 +124,15 @@ var synonymTable = map[string][]string{
 	"output":       {"print", "display", "write", "produce", "emit"},
 	"execute":      {"run", "perform", "carry out", "invoke", "trigger"},
 	"token":        {"access_key", "auth_token", "bearer", "session_key", "api_token"},
-	"忽略":         {"无视", "跳过", "丢弃", "不理会", "放弃"},
-	"指令":         {"命令", "规则", "指示", "要求", "请求"},
-	"系统":         {"核心", "内部", "平台", "底层", "基础"},
-	"提示词":       {"指令集", "规则集", "提示语", "提示信息", "输入指令"},
-	"限制":         {"约束", "管控", "边界", "规定", "束缚"},
-	"密码":         {"口令", "暗号", "凭证", "密钥", "通行码"},
-	"显示":         {"展示", "输出", "打印", "呈现", "列出"},
-	"假设":         {"假装", "想象", "模拟", "扮演", "设想"},
-	"所有":         {"全部", "一切", "任何", "每个", "总共"},
+	"忽略":           {"无视", "跳过", "丢弃", "不理会", "放弃"},
+	"指令":           {"命令", "规则", "指示", "要求", "请求"},
+	"系统":           {"核心", "内部", "平台", "底层", "基础"},
+	"提示词":          {"指令集", "规则集", "提示语", "提示信息", "输入指令"},
+	"限制":           {"约束", "管控", "边界", "规定", "束缚"},
+	"密码":           {"口令", "暗号", "凭证", "密钥", "通行码"},
+	"显示":           {"展示", "输出", "打印", "呈现", "列出"},
+	"假设":           {"假装", "想象", "模拟", "扮演", "设想"},
+	"所有":           {"全部", "一切", "任何", "每个", "总共"},
 	"dangerous":    {"harmful", "malicious", "destructive", "hazardous", "threatening"},
 }
 

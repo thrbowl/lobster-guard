@@ -19,7 +19,7 @@ import (
 // SingularityEngine 奇点管理引擎
 type SingularityEngine struct {
 	db          *sql.DB
-	honeypot    *HoneypotEngine  // 复用已有蜜罐引擎
+	honeypot    *HoneypotEngine // 复用已有蜜罐引擎
 	envelopeMgr *EnvelopeManager
 	mu          sync.RWMutex
 	config      SingularityConfig
@@ -36,9 +36,9 @@ type SingularityConfig struct {
 // ExposureTemplate 暴露模板
 type ExposureTemplate struct {
 	Level       int    `json:"level"`
-	Channel     string `json:"channel"`     // "im" / "llm" / "toolcall"
+	Channel     string `json:"channel"` // "im" / "llm" / "toolcall"
 	Name        string `json:"name"`
-	Content     string `json:"content"`     // 暴露的假内容
+	Content     string `json:"content"` // 暴露的假内容
 	Description string `json:"description"`
 }
 

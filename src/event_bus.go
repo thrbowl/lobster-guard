@@ -26,14 +26,14 @@ import (
 type SecurityEvent struct {
 	ID        string                 `json:"id"`
 	Timestamp time.Time              `json:"timestamp"`
-	Type      string                 `json:"type"`      // "inbound_block" / "outbound_block" / "llm_block" / "canary_leaked" / "honeypot_triggered" / "budget_exceeded" / "anomaly_detected" / "redteam_completed"
-	Severity  string                 `json:"severity"`  // "info" / "low" / "medium" / "high" / "critical"
-	Domain    string                 `json:"domain"`    // "inbound" / "outbound" / "llm" / "system"
+	Type      string                 `json:"type"`     // "inbound_block" / "outbound_block" / "llm_block" / "canary_leaked" / "honeypot_triggered" / "budget_exceeded" / "anomaly_detected" / "redteam_completed"
+	Severity  string                 `json:"severity"` // "info" / "low" / "medium" / "high" / "critical"
+	Domain    string                 `json:"domain"`   // "inbound" / "outbound" / "llm" / "system"
 	TraceID   string                 `json:"trace_id"`
 	TenantID  string                 `json:"tenant_id"`
 	SenderID  string                 `json:"sender_id"`
-	Summary   string                 `json:"summary"`   // 人类可读摘要
-	Details   map[string]interface{} `json:"details"`   // 详细数据
+	Summary   string                 `json:"summary"` // 人类可读摘要
+	Details   map[string]interface{} `json:"details"` // 详细数据
 }
 
 // ============================================================
@@ -67,11 +67,11 @@ type ActionChainStep struct {
 
 // ActionChain 动作链
 type ActionChain struct {
-	ID      string            `json:"id" yaml:"id"`
-	Name    string            `json:"name" yaml:"name"`
+	ID      string             `json:"id" yaml:"id"`
+	Name    string             `json:"name" yaml:"name"`
 	Trigger ActionChainTrigger `json:"trigger" yaml:"trigger"` // 触发条件
-	Steps   []ActionChainStep `json:"steps" yaml:"steps"`
-	Enabled bool              `json:"enabled" yaml:"enabled"`
+	Steps   []ActionChainStep  `json:"steps" yaml:"steps"`
+	Enabled bool               `json:"enabled" yaml:"enabled"`
 }
 
 // ActionChainTrigger 触发条件

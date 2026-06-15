@@ -4,8 +4,6 @@ package main
 import (
 	"database/sql"
 	"testing"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // setupSingularityIntegrationDB 创建集成测试用的完整数据库

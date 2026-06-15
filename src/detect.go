@@ -19,16 +19,30 @@ import (
 // ============================================================
 
 type RuleLevel int
+
 const (
-	LevelHigh   RuleLevel = iota
+	LevelHigh RuleLevel = iota
 	LevelMedium
 	LevelLow
 )
-type Rule struct { Name string; Level RuleLevel; Action string; Category string; Priority int; Message string; Group string; ShadowMode bool; Enabled bool }
+
+type Rule struct {
+	Name       string
+	Level      RuleLevel
+	Action     string
+	Category   string
+	Priority   int
+	Message    string
+	Group      string
+	ShadowMode bool
+	Enabled    bool
+}
 
 // isEnabled 解析 *bool 指针，nil 默认为 true（旧配置兼容）
 func isEnabled(p *bool) bool {
-	if p == nil { return true }
+	if p == nil {
+		return true
+	}
 	return *p
 }
 
@@ -36,7 +50,7 @@ func isEnabled(p *bool) bool {
 type RuleVersion struct {
 	Version      int       `json:"version"`
 	LoadedAt     time.Time `json:"loaded_at"`
-	Source       string    `json:"source"`        // "default" / "config" / "file:/path/to/rules.yaml"
+	Source       string    `json:"source"` // "default" / "config" / "file:/path/to/rules.yaml"
 	RuleCount    int       `json:"rule_count"`
 	PatternCount int       `json:"pattern_count"`
 }
@@ -85,10 +99,10 @@ type RuleEngine struct {
 	tenantRules    map[string][]InboundRuleConfig // tenantID -> extra rules
 	tenantAC       map[string]*AhoCorasick        // tenantID -> compiled AC for tenant rules
 	tenantRuleList map[string][]Rule              // tenantID -> Rule metadata
-	tenantRegex    map[string][]RegexRule          // tenantID -> regex rules
+	tenantRegex    map[string][]RegexRule         // tenantID -> regex rules
 	tenantDB       *sql.DB                        // v27.2: 持久化存储
 	// v31.0 AC 智能分级
-	autoReviewMgr  *AutoReviewManager
+	autoReviewMgr *AutoReviewManager
 	// v30.0 全局启用的行业模板规则
 	globalTemplateAC    *AhoCorasick // 全局模板 AC 自动机
 	globalTemplateRules []Rule       // 全局模板 Rule 列表
@@ -410,7 +424,7 @@ func (re *RuleEngine) ListRules() []InboundRuleSummary {
 		summaries[i] = InboundRuleSummary{
 			Name: cfg.Name, DisplayName: cfg.DisplayName,
 			PatternsCount: len(cfg.Patterns),
-			Action: cfg.Action, Category: cfg.Category,
+			Action:        cfg.Action, Category: cfg.Category,
 			Priority: cfg.Priority, Message: cfg.Message,
 			Type: ruleType, Group: cfg.Group,
 			ShadowMode: cfg.ShadowMode, Enabled: enabled,
@@ -419,7 +433,14 @@ func (re *RuleEngine) ListRules() []InboundRuleSummary {
 	return summaries
 }
 
-type DetectResult struct { Action string; Reasons []string; PIIs []string; Message string; MatchedRules []string; ShadowReasons []string }
+type DetectResult struct {
+	Action        string
+	Reasons       []string
+	PIIs          []string
+	Message       string
+	MatchedRules  []string
+	ShadowReasons []string
+}
 
 // actionWeight returns a numeric weight for action precedence (higher = more severe)
 // Used when multiple rules have the same priority: block > confirm > redact > review > warn > log
@@ -463,7 +484,9 @@ func (re *RuleEngine) Detect(text string) DetectResult {
 // DetectWithAppID 入站检测（v3.11 支持 app_id 规则绑定）
 func (re *RuleEngine) DetectWithAppID(text, appID string) DetectResult {
 	r := DetectResult{Action: "pass"}
-	if text == "" { return r }
+	if text == "" {
+		return r
+	}
 	re.mu.RLock()
 	ac := re.ac
 	rules := re.rules
@@ -486,16 +509,22 @@ func (re *RuleEngine) DetectWithAppID(text, appID string) DetectResult {
 	matchesByName := make(map[string]*matchedRule)
 
 	for _, idx := range ac.Search(text) {
-		if idx < 0 || idx >= len(rules) { continue }
+		if idx < 0 || idx >= len(rules) {
+			continue
+		}
 		rule := rules[idx]
 		// 跳过禁用的规则
-		if !rule.Enabled { continue }
+		if !rule.Enabled {
+			continue
+		}
 		// v3.11: 检查规则组是否适用
 		if !isRuleApplicable(rule.Group, applicableGroups) {
 			continue
 		}
 		action := rule.Action
-		if action == "" { action = levelToAction(rule.Level) }
+		if action == "" {
+			action = levelToAction(rule.Level)
+		}
 		if existing, ok := matchesByName[rule.Name]; ok {
 			// Same rule name (different pattern), keep if higher priority or higher action weight
 			if rule.Priority > existing.Priority ||
@@ -517,7 +546,9 @@ func (re *RuleEngine) DetectWithAppID(text, appID string) DetectResult {
 	// v3.11: 正则规则匹配（在 AC 自动机之后）
 	for _, rr := range regexRules {
 		// 跳过禁用的规则
-		if !rr.Enabled { continue }
+		if !rr.Enabled {
+			continue
+		}
 		// 检查规则组是否适用
 		if !isRuleApplicable(rr.Group, applicableGroups) {
 			continue
@@ -542,7 +573,10 @@ func (re *RuleEngine) DetectWithAppID(text, appID string) DetectResult {
 		if !matched {
 			continue
 		}
-		action := rr.Action; if action == "" { action = levelToAction(rr.Level) }
+		action := rr.Action
+		if action == "" {
+			action = levelToAction(rr.Level)
+		}
 		if existing, ok := matchesByName[rr.Name]; ok {
 			if rr.Priority > existing.Priority ||
 				(rr.Priority == existing.Priority && actionWeight(action) > actionWeight(existing.Action)) {
@@ -697,13 +731,13 @@ var inboundRuleDisplayNames = map[string]string{
 	"cross_border_data":            "跨境数据传输",
 	"confidential_document":        "机密文件",
 	// 旧版规则名映射（142 等旧部署兼容）
-	"custom_block":                    "自定义拦截",
-	"regex_base64_injection":          "Base64 注入（正则）",
-	"prompt_injection_ignore":         "提示注入（忽略指令）",
-	"prompt_injection_dan":            "DAN 越狱攻击",
-	"prompt_injection_role":           "角色注入",
-	"prompt_injection_cn_roleplay":    "角色扮演注入（中文）",
-	"regex_role_injection":            "角色注入（正则）",
+	"custom_block":                 "自定义拦截",
+	"regex_base64_injection":       "Base64 注入（正则）",
+	"prompt_injection_ignore":      "提示注入（忽略指令）",
+	"prompt_injection_dan":         "DAN 越狱攻击",
+	"prompt_injection_role":        "角色注入",
+	"prompt_injection_cn_roleplay": "角色扮演注入（中文）",
+	"regex_role_injection":         "角色注入（正则）",
 }
 
 // ListPIIPatterns 返回当前 PII 模式列表（v3.11 API 展示用）
@@ -724,7 +758,9 @@ func (re *RuleEngine) ListPIIPatterns() []map[string]string {
 func (re *RuleEngine) DetectPII(text string) []string {
 	var piis []string
 	for i, p := range re.piiRe {
-		if p.MatchString(text) { piis = append(piis, re.piiNames[i]) }
+		if p.MatchString(text) {
+			piis = append(piis, re.piiNames[i])
+		}
 	}
 	return piis
 }
@@ -1158,7 +1194,10 @@ func (re *RuleEngine) DetectGlobalTemplates(text string) DetectResult {
 				continue
 			}
 			rule := rules[idx]
-			action := rule.Action; if action == "" { action = levelToAction(rule.Level) }
+			action := rule.Action
+			if action == "" {
+				action = levelToAction(rule.Level)
+			}
 			if existing, ok := matchesByName[rule.Name]; ok {
 				if rule.Priority > existing.Priority ||
 					(rule.Priority == existing.Priority && actionWeight(action) > actionWeight(existing.Action)) {
@@ -1178,7 +1217,10 @@ func (re *RuleEngine) DetectGlobalTemplates(text string) DetectResult {
 			continue
 		}
 		if rr.Pattern.MatchString(text) {
-			action := rr.Action; if action == "" { action = levelToAction(rr.Level) }
+			action := rr.Action
+			if action == "" {
+				action = levelToAction(rr.Level)
+			}
 			if existing, ok := matchesByName[rr.Name]; ok {
 				if rr.Priority > existing.Priority {
 					existing.Level = rr.Level
@@ -1327,7 +1369,10 @@ func (re *RuleEngine) DetectTenantRules(tenantID, text string) DetectResult {
 				continue
 			}
 			rule := rules[idx]
-			action := rule.Action; if action == "" { action = levelToAction(rule.Level) }
+			action := rule.Action
+			if action == "" {
+				action = levelToAction(rule.Level)
+			}
 			if existing, ok := matchesByName[rule.Name]; ok {
 				if rule.Priority > existing.Priority ||
 					(rule.Priority == existing.Priority && actionWeight(action) > actionWeight(existing.Action)) {
@@ -1367,7 +1412,10 @@ func (re *RuleEngine) DetectTenantRules(tenantID, text string) DetectResult {
 		if !matched {
 			continue
 		}
-		action := rr.Action; if action == "" { action = levelToAction(rr.Level) }
+		action := rr.Action
+		if action == "" {
+			action = levelToAction(rr.Level)
+		}
 		if existing, ok := matchesByName[rr.Name]; ok {
 			if rr.Priority > existing.Priority ||
 				(rr.Priority == existing.Priority && actionWeight(action) > actionWeight(existing.Action)) {
@@ -1492,9 +1540,13 @@ func compileOutboundRules(configs []OutboundRuleConfig) []OutboundRule {
 	var rules []OutboundRule
 	for _, c := range configs {
 		rule := OutboundRule{Name: c.Name, DisplayName: c.DisplayName, Action: c.Action, Replacement: c.Replacement, Priority: c.Priority, Message: c.Message, ShadowMode: c.ShadowMode, Enabled: isEnabled(c.Enabled)}
-		if rule.Action == "" { rule.Action = "log" }
+		if rule.Action == "" {
+			rule.Action = "log"
+		}
 		var patterns []string
-		if c.Pattern != "" { patterns = append(patterns, c.Pattern) }
+		if c.Pattern != "" {
+			patterns = append(patterns, c.Pattern)
+		}
 		patterns = append(patterns, c.Patterns...)
 		for _, p := range patterns {
 			compiled, err := regexp.Compile(p)
@@ -1504,14 +1556,18 @@ func compileOutboundRules(configs []OutboundRuleConfig) []OutboundRule {
 			}
 			rule.Regexps = append(rule.Regexps, compiled)
 		}
-		if len(rule.Regexps) > 0 { rules = append(rules, rule) }
+		if len(rule.Regexps) > 0 {
+			rules = append(rules, rule)
+		}
 	}
 	return rules
 }
 
 func (ore *OutboundRuleEngine) Reload(configs []OutboundRuleConfig) {
 	newRules := compileOutboundRules(configs)
-	ore.mu.Lock(); ore.rules = newRules; ore.mu.Unlock()
+	ore.mu.Lock()
+	ore.rules = newRules
+	ore.mu.Unlock()
 	log.Printf("[出站规则] 热更新完成，加载 %d 条规则", len(newRules))
 }
 
@@ -1635,9 +1691,12 @@ type OutboundDetectResult struct {
 }
 
 func (ore *OutboundRuleEngine) Detect(text string) OutboundDetectResult {
-	ore.mu.RLock(); defer ore.mu.RUnlock()
+	ore.mu.RLock()
+	defer ore.mu.RUnlock()
 	result := OutboundDetectResult{Action: "pass"}
-	if text == "" { return result }
+	if text == "" {
+		return result
+	}
 
 	// v3.6: collect all matching rules and pick the one with highest priority
 	type matchedOutbound struct {
@@ -1657,7 +1716,9 @@ func (ore *OutboundRuleEngine) Detect(text string) OutboundDetectResult {
 
 	for _, rule := range allRules {
 		// 跳过禁用的规则
-		if !rule.Enabled { continue }
+		if !rule.Enabled {
+			continue
+		}
 		for _, compiled := range rule.Regexps {
 			if compiled.MatchString(text) {
 				matches = append(matches, matchedOutbound{
@@ -1741,10 +1802,10 @@ type RuleHitDetail struct {
 
 // RuleHitStats 规则命中率统计（线程安全）
 type RuleHitStats struct {
-	mu       sync.RWMutex
-	hits     map[string]int64     // key: rule_name, value: hit count
-	lastHit  map[string]time.Time // key: rule_name, value: last hit time
-	groups   map[string]string    // key: rule_name, value: group (v3.11)
+	mu      sync.RWMutex
+	hits    map[string]int64     // key: rule_name, value: hit count
+	lastHit map[string]time.Time // key: rule_name, value: last hit time
+	groups  map[string]string    // key: rule_name, value: group (v3.11)
 }
 
 func NewRuleHitStats() *RuleHitStats {
@@ -1850,4 +1911,3 @@ func (rhs *RuleHitStats) Reset() {
 	rhs.groups = make(map[string]string)
 	rhs.mu.Unlock()
 }
-

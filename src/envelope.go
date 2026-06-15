@@ -46,7 +46,7 @@ type ChainVerifyResult struct {
 	ValidCount   int      `json:"valid_count"`
 	InvalidCount int      `json:"invalid_count"`
 	BrokenAt     int      `json:"broken_at,omitempty"` // 链断裂的位置索引（0-based），-1 表示无断裂
-	Details      []string `json:"details,omitempty"`    // 详细信息
+	Details      []string `json:"details,omitempty"`   // 详细信息
 }
 
 // EnvelopeManager 信封管理器
@@ -57,11 +57,11 @@ type EnvelopeManager struct {
 	prevHash  string     // 内存中缓存的最后一个信封的 ContentHash
 
 	// v18.0+ Merkle Tree 批次
-	pendingLeaves []pendingLeaf  // 待构建批次的叶子缓冲区
-	batchSize     int            // 批次大小（默认 64）
-	prevBatchRoot string         // 前一个批次的 Root（根链）
-	flushTicker   *time.Ticker   // 定时 flush 定时器
-	stopCh        chan struct{}   // 停止信号
+	pendingLeaves []pendingLeaf // 待构建批次的叶子缓冲区
+	batchSize     int           // 批次大小（默认 64）
+	prevBatchRoot string        // 前一个批次的 Root（根链）
+	flushTicker   *time.Ticker  // 定时 flush 定时器
+	stopCh        chan struct{} // 停止信号
 }
 
 // NewEnvelopeManager 创建信封管理器

@@ -52,10 +52,10 @@ type k8sPort struct {
 // ============================================================
 
 type kubeConfig struct {
-	CurrentContext string              `yaml:"current-context"`
-	Clusters       []kubeClusterEntry  `yaml:"clusters"`
-	Users          []kubeUserEntry     `yaml:"users"`
-	Contexts       []kubeContextEntry  `yaml:"contexts"`
+	CurrentContext string             `yaml:"current-context"`
+	Clusters       []kubeClusterEntry `yaml:"clusters"`
+	Users          []kubeUserEntry    `yaml:"users"`
+	Contexts       []kubeContextEntry `yaml:"contexts"`
 }
 
 type kubeClusterEntry struct {
@@ -76,7 +76,7 @@ type kubeUserEntry struct {
 }
 
 type kubeUser struct {
-	Token                string `yaml:"token"`
+	Token                 string `yaml:"token"`
 	ClientCertificate     string `yaml:"client-certificate"`
 	ClientCertificateData string `yaml:"client-certificate-data"`
 	ClientKey             string `yaml:"client-key"`

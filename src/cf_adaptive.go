@@ -15,11 +15,11 @@ import (
 // AdaptiveConfig 自适应策略配置
 type AdaptiveConfig struct {
 	Enabled             bool    `json:"enabled" yaml:"enabled"`
-	MonthlyBudgetUSD    float64 `json:"monthly_budget_usd" yaml:"monthly_budget_usd"`         // 月预算（美元）
-	CostPerVerification float64 `json:"cost_per_verification" yaml:"cost_per_verification"`     // 每次验证的预估成本
-	PriorityMode        string  `json:"priority_mode" yaml:"priority_mode"`                     // "risk_score" / "tool_severity" / "hybrid"
-	MinRiskForSync      float64 `json:"min_risk_for_sync" yaml:"min_risk_for_sync"`             // 同步验证的最低风险分
-	FeedbackEnabled     bool    `json:"feedback_enabled" yaml:"feedback_enabled"`                // 是否接受人类反馈
+	MonthlyBudgetUSD    float64 `json:"monthly_budget_usd" yaml:"monthly_budget_usd"`       // 月预算（美元）
+	CostPerVerification float64 `json:"cost_per_verification" yaml:"cost_per_verification"` // 每次验证的预估成本
+	PriorityMode        string  `json:"priority_mode" yaml:"priority_mode"`                 // "risk_score" / "tool_severity" / "hybrid"
+	MinRiskForSync      float64 `json:"min_risk_for_sync" yaml:"min_risk_for_sync"`         // 同步验证的最低风险分
+	FeedbackEnabled     bool    `json:"feedback_enabled" yaml:"feedback_enabled"`           // 是否接受人类反馈
 }
 
 // CostTracker 成本追踪器
@@ -28,7 +28,7 @@ type CostTracker struct {
 	MonthlyUsed   float64     `json:"monthly_used"`
 	MonthlyBudget float64     `json:"monthly_budget"`
 	DailyHistory  []DailyCost `json:"daily_history"` // 最近30天
-	CurrentMonth  string      `json:"current_month"`  // "2026-03"
+	CurrentMonth  string      `json:"current_month"` // "2026-03"
 }
 
 // DailyCost 每日成本记录
@@ -52,29 +52,29 @@ type PendingVerification struct {
 
 // EffectTracker 效果追踪器
 type EffectTracker struct {
-	mu           sync.RWMutex
-	TotalChecked int64   `json:"total_checked"`
-	TruePositive int64   `json:"true_positive"`  // 正确阻断
-	FalsePositive int64  `json:"false_positive"` // 误报
-	TrueNegative int64   `json:"true_negative"`  // 正确放行
-	FalseNegative int64  `json:"false_negative"` // 漏报
-	Accuracy     float64 `json:"accuracy"`
-	Precision    float64 `json:"precision"`
-	Recall       float64 `json:"recall"`
-	F1Score      float64 `json:"f1_score"`
+	mu            sync.RWMutex
+	TotalChecked  int64   `json:"total_checked"`
+	TruePositive  int64   `json:"true_positive"`  // 正确阻断
+	FalsePositive int64   `json:"false_positive"` // 误报
+	TrueNegative  int64   `json:"true_negative"`  // 正确放行
+	FalseNegative int64   `json:"false_negative"` // 漏报
+	Accuracy      float64 `json:"accuracy"`
+	Precision     float64 `json:"precision"`
+	Recall        float64 `json:"recall"`
+	F1Score       float64 `json:"f1_score"`
 }
 
 // CostSummary 成本摘要
 type CostSummary struct {
-	MonthlyUsed      float64     `json:"monthly_used"`
-	MonthlyBudget    float64     `json:"monthly_budget"`
-	UsagePct         float64     `json:"usage_pct"`
-	DailyHistory     []DailyCost `json:"daily_history"`
-	CurrentMonth     string      `json:"current_month"`
-	PredictedTotal   float64     `json:"predicted_total"`
-	RemainingBudget  float64     `json:"remaining_budget"`
-	AvgDailyCost     float64     `json:"avg_daily_cost"`
-	TotalVerifications int       `json:"total_verifications"`
+	MonthlyUsed        float64     `json:"monthly_used"`
+	MonthlyBudget      float64     `json:"monthly_budget"`
+	UsagePct           float64     `json:"usage_pct"`
+	DailyHistory       []DailyCost `json:"daily_history"`
+	CurrentMonth       string      `json:"current_month"`
+	PredictedTotal     float64     `json:"predicted_total"`
+	RemainingBudget    float64     `json:"remaining_budget"`
+	AvgDailyCost       float64     `json:"avg_daily_cost"`
+	TotalVerifications int         `json:"total_verifications"`
 }
 
 // AdaptiveStrategy 自适应验证策略引擎
@@ -100,19 +100,19 @@ var defaultAdaptiveConfig = AdaptiveConfig{
 // toolSeverityMap 工具危险等级权重 (0-1)
 var toolSeverityMap = map[string]float64{
 	"shell_exec":      1.0,
-	"execute_command":  1.0,
-	"run_command":      1.0,
-	"send_email":       0.8,
-	"send_message":     0.7,
-	"file_write":       0.7,
-	"write_file":       0.7,
-	"create_file":      0.6,
-	"http_request":     0.8,
-	"fetch_url":        0.7,
-	"database_query":   0.6,
-	"sql_query":        0.6,
-	"delete_file":      0.9,
-	"remove_file":      0.9,
+	"execute_command": 1.0,
+	"run_command":     1.0,
+	"send_email":      0.8,
+	"send_message":    0.7,
+	"file_write":      0.7,
+	"write_file":      0.7,
+	"create_file":     0.6,
+	"http_request":    0.8,
+	"fetch_url":       0.7,
+	"database_query":  0.6,
+	"sql_query":       0.6,
+	"delete_file":     0.9,
+	"remove_file":     0.9,
 }
 
 // NewAdaptiveStrategy 初始化自适应验证策略引擎

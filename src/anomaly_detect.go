@@ -17,14 +17,14 @@ import (
 
 // AnomalyConfig 异常检测可配参数
 type AnomalyConfig struct {
-	WindowDays        int     `json:"window_days" yaml:"window_days"`               // 基线窗口天数，默认 7
-	WarningThreshold  float64 `json:"warning_threshold" yaml:"warning_threshold"`   // 告警阈值（σ），默认 2.0
-	CriticalThreshold float64 `json:"critical_threshold" yaml:"critical_threshold"` // 严重阈值（σ），默认 3.0
-	MinStdDev         float64 `json:"min_std_dev" yaml:"min_std_dev"`               // 最小标准差，默认 1.0
-	MinReadyDays      int     `json:"min_ready_days" yaml:"min_ready_days"`         // 基线就绪最少天数，默认 3
+	WindowDays        int     `json:"window_days" yaml:"window_days"`                     // 基线窗口天数，默认 7
+	WarningThreshold  float64 `json:"warning_threshold" yaml:"warning_threshold"`         // 告警阈值（σ），默认 2.0
+	CriticalThreshold float64 `json:"critical_threshold" yaml:"critical_threshold"`       // 严重阈值（σ），默认 3.0
+	MinStdDev         float64 `json:"min_std_dev" yaml:"min_std_dev"`                     // 最小标准差，默认 1.0
+	MinReadyDays      int     `json:"min_ready_days" yaml:"min_ready_days"`               // 基线就绪最少天数，默认 3
 	BaselineInterval  int     `json:"baseline_interval_min" yaml:"baseline_interval_min"` // 基线更新间隔(分钟)，默认 60
 	CheckInterval     int     `json:"check_interval_min" yaml:"check_interval_min"`       // 异常检查间隔(分钟)，默认 5
-	MaxAlerts         int     `json:"max_alerts" yaml:"max_alerts"`                 // 最大告警数，默认 100
+	MaxAlerts         int     `json:"max_alerts" yaml:"max_alerts"`                       // 最大告警数，默认 100
 }
 
 // DefaultAnomalyConfig 返回默认配置
@@ -60,15 +60,15 @@ type AnomalyDetector struct {
 
 // Baseline 一个指标的基线
 type Baseline struct {
-	MetricName string     `json:"metric_name"`
-	WindowDays int        `json:"window_days"`
-	HourlyMean [24]float64 `json:"hourly_mean"`
-	HourlyStd  [24]float64 `json:"hourly_std"`
-	DailyMean  float64    `json:"daily_mean"`
-	DailyStd   float64    `json:"daily_std"`
-	SampleCount int       `json:"sample_count"`
-	LastUpdate time.Time  `json:"last_update"`
-	Ready      bool       `json:"ready"`
+	MetricName  string      `json:"metric_name"`
+	WindowDays  int         `json:"window_days"`
+	HourlyMean  [24]float64 `json:"hourly_mean"`
+	HourlyStd   [24]float64 `json:"hourly_std"`
+	DailyMean   float64     `json:"daily_mean"`
+	DailyStd    float64     `json:"daily_std"`
+	SampleCount int         `json:"sample_count"`
+	LastUpdate  time.Time   `json:"last_update"`
+	Ready       bool        `json:"ready"`
 }
 
 // AnomalyAlert 异常告警
@@ -700,15 +700,15 @@ func (d *AnomalyDetector) getEffectiveThresholds(metricName string) (float64, fl
 
 // TrendPoint 趋势数据点
 type TrendPoint struct {
-	Hour          int     `json:"hour"`
-	BaselineMean  float64 `json:"baseline_mean"`
-	BaselineStd   float64 `json:"baseline_std"`
-	UpperWarn     float64 `json:"upper_warn"`
-	LowerWarn     float64 `json:"lower_warn"`
-	UpperCrit     float64 `json:"upper_crit"`
-	LowerCrit     float64 `json:"lower_crit"`
-	CurrentValue  float64 `json:"current_value,omitempty"`
-	IsCurrent     bool    `json:"is_current,omitempty"`
+	Hour         int     `json:"hour"`
+	BaselineMean float64 `json:"baseline_mean"`
+	BaselineStd  float64 `json:"baseline_std"`
+	UpperWarn    float64 `json:"upper_warn"`
+	LowerWarn    float64 `json:"lower_warn"`
+	UpperCrit    float64 `json:"upper_crit"`
+	LowerCrit    float64 `json:"lower_crit"`
+	CurrentValue float64 `json:"current_value,omitempty"`
+	IsCurrent    bool    `json:"is_current,omitempty"`
 }
 
 // GetMetricTrend 获取指标的24h趋势数据（基线+阈值带）

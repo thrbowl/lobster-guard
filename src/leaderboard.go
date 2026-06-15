@@ -407,31 +407,31 @@ func countToIntensity(count int) string {
 
 // SLAOverview SLA 概览
 type SLAOverview struct {
-	Config  SLAConfig          `json:"config"`
-	Tenants []TenantSLAStatus  `json:"tenants"`
-	Summary SLASummary         `json:"summary"`
+	Config  SLAConfig         `json:"config"`
+	Tenants []TenantSLAStatus `json:"tenants"`
+	Summary SLASummary        `json:"summary"`
 }
 
 // TenantSLAStatus 单个租户的 SLA 状态
 type TenantSLAStatus struct {
-	TenantID     string  `json:"tenant_id"`
-	TenantName   string  `json:"tenant_name"`
-	HealthScore  int     `json:"health_score"`
-	HealthMet    bool    `json:"health_met"`
-	IncidentCount int    `json:"incident_count"`
-	IncidentMet  bool    `json:"incident_met"`
-	RedTeamScore float64 `json:"redteam_score"`
-	RedTeamMet   bool    `json:"redteam_met"`
-	SLAStatus    string  `json:"sla_status"`
-	SLAScore     float64 `json:"sla_score"`
+	TenantID      string  `json:"tenant_id"`
+	TenantName    string  `json:"tenant_name"`
+	HealthScore   int     `json:"health_score"`
+	HealthMet     bool    `json:"health_met"`
+	IncidentCount int     `json:"incident_count"`
+	IncidentMet   bool    `json:"incident_met"`
+	RedTeamScore  float64 `json:"redteam_score"`
+	RedTeamMet    bool    `json:"redteam_met"`
+	SLAStatus     string  `json:"sla_status"`
+	SLAScore      float64 `json:"sla_score"`
 }
 
 // SLASummary SLA 汇总
 type SLASummary struct {
-	Total   int `json:"total"`
-	Green   int `json:"green"`
-	Yellow  int `json:"yellow"`
-	Red     int `json:"red"`
+	Total  int `json:"total"`
+	Green  int `json:"green"`
+	Yellow int `json:"yellow"`
+	Red    int `json:"red"`
 }
 
 // GetSLAOverview 获取 SLA 达标概览

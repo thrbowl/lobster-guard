@@ -4,8 +4,6 @@ package main
 import (
 	"database/sql"
 	"testing"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 func newTestPlanCompiler(t *testing.T) (*PlanCompiler, *sql.DB) {

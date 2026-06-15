@@ -6,8 +6,6 @@ import (
 	"database/sql"
 	"strings"
 	"testing"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 func setupTenantTestDB(t *testing.T) *sql.DB {
@@ -287,7 +285,7 @@ func TestTenantEvaluateFilter(t *testing.T) {
 	engine.AddRule(PathPolicyRule{
 		ID: "pp-test-x", Name: "tenant_x_only", RuleType: "cumulative",
 		Conditions: `{"label":"test_label","threshold":1}`,
-		Action: "block", Enabled: true, Priority: 1, TenantID: "tenant-x",
+		Action:     "block", Enabled: true, Priority: 1, TenantID: "tenant-x",
 	})
 
 	// 创建 tenant-x context

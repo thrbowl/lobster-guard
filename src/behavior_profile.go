@@ -1031,7 +1031,7 @@ func (bp *BehaviorProfileEngine) SeedBehaviorDemoData(db *sql.DB) (profiles int,
 			tools: []struct{ name, risk string }{
 				{"exec", "critical"}, {"curl", "high"}, {"read_file", "medium"}, {"send_email", "high"}, {"write_file", "high"},
 			},
-			traces: 28,
+			traces:  28,
 			blocked: true,
 		},
 		{

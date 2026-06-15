@@ -5,8 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"testing"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 func setupTestLLMAuditor(t *testing.T) (*LLMAuditor, *sql.DB) {
@@ -166,12 +164,12 @@ func TestClassifyToolRisk(t *testing.T) {
 		risk string
 	}{
 		// 工具名直接命中策略规则（无参数规则的 block/warn）
-		{"shell_run", "critical"},   // *shell* → block
-		{"write_file", "critical"},  // *write*file* → block
-		{"eval_code", "critical"},   // *eval* → block
-		{"send_email", "high"},      // *send*email* → warn
-		{"read_file", "high"},       // *read*file* → warn
-		{"http_client", "high"},     // *http* → warn
+		{"shell_run", "critical"},  // *shell* → block
+		{"write_file", "critical"}, // *write*file* → block
+		{"eval_code", "critical"},  // *eval* → block
+		{"send_email", "high"},     // *send*email* → warn
+		{"read_file", "high"},      // *read*file* → warn
+		{"http_client", "high"},    // *http* → warn
 		// *command* 规则均带 ParamRules，工具名阶段不评估 → low
 		{"run_command", "low"},
 		// 无规则命中 → low

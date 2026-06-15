@@ -171,8 +171,8 @@ type IFCConfig struct {
 	DefaultConf        IFCLevel             `yaml:"default_confidentiality" json:"default_confidentiality"`
 	DefaultInteg       IntegLevel           `yaml:"default_integrity" json:"default_integrity"`
 	ViolationAction    string               `yaml:"violation_action" json:"violation_action"`
-	SourceRules        []IFCSourceRule       `yaml:"source_rules" json:"source_rules"`
-	ToolRequirements   []IFCToolRequirement  `yaml:"tool_requirements" json:"tool_requirements"`
+	SourceRules        []IFCSourceRule      `yaml:"source_rules" json:"source_rules"`
+	ToolRequirements   []IFCToolRequirement `yaml:"tool_requirements" json:"tool_requirements"`
 	QuarantineEnabled  bool                 `yaml:"quarantine_enabled" json:"quarantine_enabled"`
 	QuarantineUpstream string               `yaml:"quarantine_upstream" json:"quarantine_upstream"`
 	HidingEnabled      bool                 `yaml:"hiding_enabled" json:"hiding_enabled"`
@@ -474,7 +474,7 @@ func (e *IFCEngine) Propagate(traceID, outputName string, inputVarIDs []string) 
 }
 
 // PropagateWithTool — Fides-aligned: joins input var labels + tool's own source rule label (ℓf).
-// Algorithm 5 line 9: ℓ'' = ⊔(τ(x) for x in R(f)) ⊔ ℓf ⊔ ⊔(ℓa for a in args)
+// Algorithm 5 line 9: ℓ” = ⊔(τ(x) for x in R(f)) ⊔ ℓf ⊔ ⊔(ℓa for a in args)
 func (e *IFCEngine) PropagateWithTool(traceID, outputName, toolName string, inputVarIDs []string) *IFCVariable {
 	var maxConf IFCLevel
 	var minInteg IntegLevel = IntegHigh
@@ -627,7 +627,7 @@ func (e *IFCEngine) CheckToolCallFides(traceID, toolName string, inputVarIDs []s
 	return &IFCDecision{
 		Allowed:  true,
 		Decision: "allow",
-		Reason:   fmt.Sprintf("tool %s: args{conf=%s} ctx{integ=%s} meets P-F{maxConf=%s} P-T{minInteg=%s}",
+		Reason: fmt.Sprintf("tool %s: args{conf=%s} ctx{integ=%s} meets P-F{maxConf=%s} P-T{minInteg=%s}",
 			toolName, argsLabel.Confidentiality, ctxLabel.Integrity, reqLabel.Confidentiality, reqLabel.Integrity),
 	}
 }
@@ -701,11 +701,11 @@ func (e *IFCEngine) createViolation(traceID, toolName, violationType string, agg
 // and whether any hiding was performed.
 
 type IFCSelectiveHideResult struct {
-	Modified    string   `json:"modified"`
-	Hidden      bool     `json:"hidden"`
-	VarIDs      []string `json:"var_ids"`
-	Reason      string   `json:"reason"`
-	OrigLabel   IFCLabel `json:"orig_label"`
+	Modified     string   `json:"modified"`
+	Hidden       bool     `json:"hidden"`
+	VarIDs       []string `json:"var_ids"`
+	Reason       string   `json:"reason"`
+	OrigLabel    IFCLabel `json:"orig_label"`
 	ContextLabel IFCLabel `json:"context_label"`
 }
 

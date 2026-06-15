@@ -14,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
 	"gopkg.in/yaml.v3"
 )
 
@@ -267,7 +266,7 @@ func TestRouteStats(t *testing.T) {
 
 func TestUpstreamPoolSelect(t *testing.T) {
 	cfg := &Config{
-		StaticUpstreams:       []StaticUpstreamConfig{
+		StaticUpstreams: []StaticUpstreamConfig{
 			{ID: "up-a", Address: "127.0.0.1", Port: 18790},
 			{ID: "up-b", Address: "127.0.0.1", Port: 18791},
 		},
@@ -294,7 +293,9 @@ func TestUpstreamPoolRegisterDeregister(t *testing.T) {
 	pool.Register("test-1", "10.0.0.1", 18790, map[string]string{"env": "test"})
 	found := false
 	for _, up := range pool.ListUpstreams() {
-		if up.ID == "test-1" { found = true }
+		if up.ID == "test-1" {
+			found = true
+		}
 	}
 	if !found {
 		t.Fatal("注册后应能查到")
@@ -307,7 +308,9 @@ func TestUpstreamPoolRegisterDeregister(t *testing.T) {
 
 	pool.Deregister("test-1")
 	for _, up := range pool.ListUpstreams() {
-		if up.ID == "test-1" { t.Fatal("注销后不应存在") }
+		if up.ID == "test-1" {
+			t.Fatal("注销后不应存在")
+		}
 	}
 }
 
@@ -323,7 +326,6 @@ func TestUpstreamPoolGetAnyHealthy(t *testing.T) {
 		t.Fatal("应返回健康代理")
 	}
 }
-
 
 // ============================================================
 
@@ -541,11 +543,11 @@ func TestRoutePolicyEngine_Match(t *testing.T) {
 	engine := NewRoutePolicyEngine(policies)
 
 	tests := []struct {
-		name       string
-		info       *UserInfo
-		appID      string
-		wantUID    string
-		wantMatch  bool
+		name      string
+		info      *UserInfo
+		appID     string
+		wantUID   string
+		wantMatch bool
 	}{
 		{
 			name:      "exact email match",
@@ -688,10 +690,10 @@ func TestRoutePolicyEngine_Empty(t *testing.T) {
 func TestRoutePolicyEngine_DefaultFallback(t *testing.T) {
 	// 关键场景：default 排在第一位，但精确匹配仍应优先
 	policies := []RoutePolicyConfig{
-		{Match: RoutePolicyMatch{Default: true}, UpstreamID: "fallback"},          // 排第一
-		{Match: RoutePolicyMatch{Email: "vip@example.com"}, UpstreamID: "vip"},    // 精确邮箱
+		{Match: RoutePolicyMatch{Default: true}, UpstreamID: "fallback"},        // 排第一
+		{Match: RoutePolicyMatch{Email: "vip@example.com"}, UpstreamID: "vip"},  // 精确邮箱
 		{Match: RoutePolicyMatch{Department: "天眼事业部"}, UpstreamID: "tianyan"},   // 部门
-		{Match: RoutePolicyMatch{EmailSuffix: "@test.com"}, UpstreamID: "test"},   // 邮箱后缀
+		{Match: RoutePolicyMatch{EmailSuffix: "@test.com"}, UpstreamID: "test"}, // 邮箱后缀
 	}
 	engine := NewRoutePolicyEngine(policies)
 
@@ -1127,4 +1129,3 @@ func TestNeedsCredentials(t *testing.T) {
 		t.Errorf("wecom needs: %v", wp.NeedsCredentials())
 	}
 }
-

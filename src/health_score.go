@@ -17,20 +17,20 @@ import (
 
 // HealthScoreResult 安全健康分结果
 type HealthScoreResult struct {
-	Score      int                  `json:"score"`
-	Level      string               `json:"level"`
-	LevelLabel string               `json:"level_label"`
-	Deductions []HealthDeduction    `json:"deductions"`
-	Trend      []HealthScoreTrend   `json:"trend"`
-	UpdatedAt  string               `json:"updated_at"`
+	Score      int                `json:"score"`
+	Level      string             `json:"level"`
+	LevelLabel string             `json:"level_label"`
+	Deductions []HealthDeduction  `json:"deductions"`
+	Trend      []HealthScoreTrend `json:"trend"`
+	UpdatedAt  string             `json:"updated_at"`
 }
 
 // HealthDeduction 单项扣分
 type HealthDeduction struct {
-	Name     string `json:"name"`
-	Points   int    `json:"points"`
-	MaxPoints int   `json:"max_points"`
-	Detail   string `json:"detail"`
+	Name      string `json:"name"`
+	Points    int    `json:"points"`
+	MaxPoints int    `json:"max_points"`
+	Detail    string `json:"detail"`
 }
 
 // HealthScoreTrend 每天的分数趋势
@@ -104,7 +104,8 @@ func (e *HealthScoreEngine) Calculate() (*HealthScoreResult, error) {
 		if berr == nil {
 			var parts []string
 			for breakRows.Next() {
-				var et string; var cnt int64
+				var et string
+				var cnt int64
 				if breakRows.Scan(&et, &cnt) == nil {
 					parts = append(parts, fmt.Sprintf("%s×%d", et, cnt))
 				}
@@ -309,7 +310,8 @@ func (e *HealthScoreEngine) CalculateForTenant(tenantID string) (*HealthScoreRes
 		if berr == nil {
 			var parts []string
 			for breakRows.Next() {
-				var et string; var cnt int64
+				var et string
+				var cnt int64
 				if breakRows.Scan(&et, &cnt) == nil {
 					parts = append(parts, fmt.Sprintf("%s×%d", et, cnt))
 				}
@@ -646,12 +648,12 @@ func (e *OWASPMatrixEngine) CalculateWithFilterTenant(sinceRFC3339, tenantID str
 
 // StrictModeManager 严格模式管理器
 type StrictModeManager struct {
-	mu           sync.RWMutex
-	enabled      bool
-	origInbound  []InboundRuleConfig  // 保存原始 IM 规则
-	origLLMRules []LLMRule            // 保存原始 LLM 规则
-	inboundEngine  *RuleEngine
-	llmRuleEngine  *LLMRuleEngine
+	mu            sync.RWMutex
+	enabled       bool
+	origInbound   []InboundRuleConfig // 保存原始 IM 规则
+	origLLMRules  []LLMRule           // 保存原始 LLM 规则
+	inboundEngine *RuleEngine
+	llmRuleEngine *LLMRuleEngine
 }
 
 // NewStrictModeManager 创建
@@ -740,7 +742,7 @@ func (m *StrictModeManager) SetEnabled(enabled bool) {
 type NotificationItem struct {
 	ID        string `json:"id"`
 	Timestamp string `json:"timestamp"`
-	Type      string `json:"type"`    // canary_leak / budget_exceeded / blocked / high_risk_tool
+	Type      string `json:"type"` // canary_leak / budget_exceeded / blocked / high_risk_tool
 	TypeLabel string `json:"type_label"`
 	Severity  string `json:"severity"` // critical / high / medium / low
 	Summary   string `json:"summary"`
@@ -921,16 +923,16 @@ func containsCI(s, substr string) bool {
 
 // SystemHealthInfo 系统健康信息（CPU/内存/磁盘/协程）
 type SystemHealthInfo struct {
-	CPUPercent    float64 `json:"cpu_percent"`
-	MemoryUsedMB float64 `json:"memory_used_mb"`
-	MemoryTotalMB float64 `json:"memory_total_mb"`
-	MemoryPercent float64 `json:"memory_percent"`
+	CPUPercent      float64 `json:"cpu_percent"`
+	MemoryUsedMB    float64 `json:"memory_used_mb"`
+	MemoryTotalMB   float64 `json:"memory_total_mb"`
+	MemoryPercent   float64 `json:"memory_percent"`
 	DiskUsedPercent float64 `json:"disk_used_percent"`
-	Goroutines    int     `json:"goroutines"`
+	Goroutines      int     `json:"goroutines"`
 }
 
 // GetSystemHealth 获取系统健康指标
-func GetSystemHealth(dbPath string) *SystemHealthInfo {
+func GetSystemHealth() *SystemHealthInfo {
 	info := &SystemHealthInfo{}
 
 	// Memory
@@ -944,7 +946,7 @@ func GetSystemHealth(dbPath string) *SystemHealthInfo {
 	}
 
 	// Disk
-	info.DiskUsedPercent = getDiskUsagePercent(dbPath)
+	info.DiskUsedPercent = getDiskUsagePercent("/")
 
 	// Goroutines
 	info.Goroutines = getGoroutineCount()

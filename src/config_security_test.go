@@ -122,8 +122,8 @@ func TestValidateConfigSecurity_WeakSecrets(t *testing.T) {
 		DBPath:          "/var/lib/lobster-guard/audit.db",
 		Auth: AuthConfig{
 			Enabled:         true,
-			JWTSecret:       "too-short",       // < 32 chars
-			DefaultPassword: "weak",             // < 8 chars
+			JWTSecret:       "too-short", // < 32 chars
+			DefaultPassword: "weak",      // < 8 chars
 		},
 	}
 
@@ -182,11 +182,11 @@ func TestValidateConfigSecurity_PortConflict(t *testing.T) {
 // TestValidateConfigSecurity_EnvelopeNoKey 验证信封启用但无密钥被检出
 func TestValidateConfigSecurity_EnvelopeNoKey(t *testing.T) {
 	cfg := &Config{
-		InboundListen:    ":8443",
-		OutboundListen:   ":8444",
-		ManagementListen: ":9090",
-		DBPath:           "/var/lib/lobster-guard/audit.db",
-		EnvelopeEnabled:  true,
+		InboundListen:     ":8443",
+		OutboundListen:    ":8444",
+		ManagementListen:  ":9090",
+		DBPath:            "/var/lib/lobster-guard/audit.db",
+		EnvelopeEnabled:   true,
 		EnvelopeSecretKey: "",
 	}
 

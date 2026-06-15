@@ -125,10 +125,10 @@ func (api *ManagementAPI) handleReversalTest(w http.ResponseWriter, r *http.Requ
 	reversed, record := api.reversalEngine.Reverse(req.TraceID, req.Response)
 	if record == nil {
 		jsonResponse(w, 200, map[string]interface{}{
-			"reversed":  false,
-			"trace_id":  req.TraceID,
-			"original":  req.Response,
-			"result":    reversed,
+			"reversed": false,
+			"trace_id": req.TraceID,
+			"original": req.Response,
+			"result":   reversed,
 		})
 		return
 	}

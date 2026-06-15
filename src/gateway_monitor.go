@@ -405,7 +405,9 @@ func (api *ManagementAPI) handleGatewayPing(w http.ResponseWriter, r *http.Reque
 	}
 	if !resp.OK {
 		errMsg := "API 返回失败"
-		if resp.Error != nil { errMsg = resp.Error.Message }
+		if resp.Error != nil {
+			errMsg = resp.Error.Message
+		}
 		jsonResponse(w, 200, map[string]interface{}{
 			"reachable": true, "authenticated": true, "api_ok": false,
 			"latency_ms": latency2, "error": "api_error", "message": errMsg, "source": "tools_invoke_fallback",
@@ -413,7 +415,9 @@ func (api *ManagementAPI) handleGatewayPing(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	statusText := ""
-	if resp.Result != nil && len(resp.Result.Content) > 0 { statusText = resp.Result.Content[0].Text }
+	if resp.Result != nil && len(resp.Result.Content) > 0 {
+		statusText = resp.Result.Content[0].Text
+	}
 	jsonResponse(w, 200, map[string]interface{}{
 		"reachable": true, "authenticated": true, "api_ok": true,
 		"latency_ms": latency2, "status_text": statusText, "source": "tools_invoke_fallback",
@@ -475,7 +479,9 @@ func (api *ManagementAPI) handleGatewaySessions(w http.ResponseWriter, r *http.R
 	}
 	if !resp.OK {
 		errMsg := "sessions_list 调用失败"
-		if resp.Error != nil { errMsg = resp.Error.Message }
+		if resp.Error != nil {
+			errMsg = resp.Error.Message
+		}
 		jsonResponse(w, 502, map[string]interface{}{"error": "api_error", "message": errMsg})
 		return
 	}
@@ -532,7 +538,9 @@ func (api *ManagementAPI) handleGatewayCron(w http.ResponseWriter, r *http.Reque
 	}
 	if !resp.OK {
 		errMsg := "cron list 调用失败"
-		if resp.Error != nil { errMsg = resp.Error.Message }
+		if resp.Error != nil {
+			errMsg = resp.Error.Message
+		}
 		jsonResponse(w, 502, map[string]interface{}{"error": "api_error", "message": errMsg})
 		return
 	}
@@ -583,9 +591,13 @@ func (api *ManagementAPI) handleGatewayStatus(w http.ResponseWriter, r *http.Req
 			result := map[string]interface{}{
 				"latency_ms": latency, "source": "wss_rpc", "wss_state": "connected",
 			}
-			for k, v := range statusPayload { result["status_"+k] = v }
+			for k, v := range statusPayload {
+				result["status_"+k] = v
+			}
 			if healthErr == nil {
-				for k, v := range healthPayload { result["health_"+k] = v }
+				for k, v := range healthPayload {
+					result["health_"+k] = v
+				}
 			}
 			result["wss_stats"] = client.Stats()
 			jsonResponse(w, 200, result)
@@ -609,15 +621,21 @@ func (api *ManagementAPI) handleGatewayStatus(w http.ResponseWriter, r *http.Req
 	}
 	if !resp.OK {
 		errMsg := "session_status 调用失败"
-		if resp.Error != nil { errMsg = resp.Error.Message }
+		if resp.Error != nil {
+			errMsg = resp.Error.Message
+		}
 		jsonResponse(w, 502, map[string]interface{}{"error": "api_error", "message": errMsg})
 		return
 	}
 	statusText := ""
-	if resp.Result != nil && len(resp.Result.Content) > 0 { statusText = resp.Result.Content[0].Text }
+	if resp.Result != nil && len(resp.Result.Content) > 0 {
+		statusText = resp.Result.Content[0].Text
+	}
 	result := map[string]interface{}{"status_text": statusText, "latency_ms": latency, "source": "tools_invoke_fallback"}
 	if resp.Result != nil && resp.Result.Details != nil {
-		for k, v := range resp.Result.Details { result[k] = v }
+		for k, v := range resp.Result.Details {
+			result[k] = v
+		}
 	}
 	jsonResponse(w, 200, result)
 }
@@ -642,7 +660,9 @@ func (api *ManagementAPI) handleGatewayAgents(w http.ResponseWriter, r *http.Req
 		scan := directScanOpenClaw(up.OpenClawConfigPath)
 		agents, _ := directScanToOverviewData(scan)
 		result := map[string]interface{}{"agents": agents, "count": len(agents), "source": "direct_scan"}
-		if scan.Error != "" { result["warning"] = scan.Error }
+		if scan.Error != "" {
+			result["warning"] = scan.Error
+		}
 		jsonResponse(w, 200, result)
 		return
 	}
@@ -678,7 +698,9 @@ func (api *ManagementAPI) handleGatewayAgents(w http.ResponseWriter, r *http.Req
 	}
 	if !resp.OK {
 		errMsg := "agents_list 调用失败"
-		if resp.Error != nil { errMsg = resp.Error.Message }
+		if resp.Error != nil {
+			errMsg = resp.Error.Message
+		}
 		jsonResponse(w, 502, map[string]interface{}{"error": "api_error", "message": errMsg})
 		return
 	}
@@ -771,8 +793,16 @@ func (api *ManagementAPI) handleGatewayOverview(w http.ResponseWriter, r *http.R
 	var totalSessions, activeSessions, totalAgents, totalCronJobs int
 
 	for _, r := range results {
-		if r.GatewayStatus == "connected" { onlineCount++ } else { offlineCount++ }
-		if r.TokenConfigured { tokenConfigured++ } else { tokenNotConfigured++ }
+		if r.GatewayStatus == "connected" {
+			onlineCount++
+		} else {
+			offlineCount++
+		}
+		if r.TokenConfigured {
+			tokenConfigured++
+		} else {
+			tokenNotConfigured++
+		}
 		totalSessions += r.SessionCount
 		activeSessions += r.ActiveSessions
 		totalAgents += r.AgentCount
@@ -792,8 +822,8 @@ func (api *ManagementAPI) handleGatewayOverview(w http.ResponseWriter, r *http.R
 func (api *ManagementAPI) overviewViaWSS(client *GatewayWSClient, u *Upstream, result *gwOverviewResult) {
 	var (
 		statusPayload, sessPayload, agentsPayload, cronPayload map[string]interface{}
-		statusErr, sessErr, agentsErr, cronErr                  error
-		innerWg                                                 sync.WaitGroup
+		statusErr, sessErr, agentsErr, cronErr                 error
+		innerWg                                                sync.WaitGroup
 	)
 
 	innerWg.Add(4)
@@ -845,7 +875,9 @@ func (api *ManagementAPI) overviewViaWSS(client *GatewayWSClient, u *Upstream, r
 				continue
 			}
 			if updatedAt := extractTimestampMs(s, "updatedAt", "updated_at"); updatedAt > 0 {
-				if now-updatedAt < 30*60*1000 { result.ActiveSessions++ }
+				if now-updatedAt < 30*60*1000 {
+					result.ActiveSessions++
+				}
 			}
 		}
 	}
@@ -900,7 +932,9 @@ func (api *ManagementAPI) overviewViaToolsInvoke(u *Upstream, result *gwOverview
 		if sessErr == nil {
 			sessPayload = map[string]interface{}{"sessions": func() []interface{} {
 				out := make([]interface{}, len(rpcSess))
-				for i, s := range rpcSess { out[i] = s }
+				for i, s := range rpcSess {
+					out[i] = s
+				}
 				return out
 			}()}
 		}
@@ -933,7 +967,9 @@ func (api *ManagementAPI) overviewViaToolsInvoke(u *Upstream, result *gwOverview
 		}
 	} else if statusResp != nil && !statusResp.OK {
 		result.GatewayStatus = "error"
-		if statusResp.Error != nil { result.Error = statusResp.Error.Message }
+		if statusResp.Error != nil {
+			result.Error = statusResp.Error.Message
+		}
 	} else {
 		result.GatewayStatus = "connected"
 		if statusResp != nil && statusResp.Result != nil && len(statusResp.Result.Content) > 0 {
@@ -954,7 +990,9 @@ func (api *ManagementAPI) overviewViaToolsInvoke(u *Upstream, result *gwOverview
 				continue
 			}
 			if updatedAt := extractTimestampMs(s, "updatedAt", "updated_at"); updatedAt > 0 {
-				if now-updatedAt < 30*60*1000 { result.ActiveSessions++ }
+				if now-updatedAt < 30*60*1000 {
+					result.ActiveSessions++
+				}
 			}
 		}
 	}
@@ -1168,10 +1206,16 @@ func (api *ManagementAPI) handleGatewaySessionHistory(w http.ResponseWriter, r *
 
 	limit := 30
 	if l := r.URL.Query().Get("limit"); l != "" {
-		if n, err := fmt.Sscanf(l, "%d", &limit); err != nil || n != 1 { limit = 30 }
+		if n, err := fmt.Sscanf(l, "%d", &limit); err != nil || n != 1 {
+			limit = 30
+		}
 	}
-	if limit < 1 { limit = 1 }
-	if limit > 100 { limit = 100 }
+	if limit < 1 {
+		limit = 1
+	}
+	if limit > 100 {
+		limit = 100
+	}
 
 	// v29.0: 优先 WSS RPC chat.history
 	payload, err := api.rpcCall(up, "chat.history", map[string]interface{}{
@@ -1201,7 +1245,9 @@ func (api *ManagementAPI) handleGatewaySessionHistory(w http.ResponseWriter, r *
 	}
 	if !resp.OK {
 		errMsg := "sessions_history 调用失败"
-		if resp.Error != nil { errMsg = resp.Error.Message }
+		if resp.Error != nil {
+			errMsg = resp.Error.Message
+		}
 		jsonResponse(w, 502, map[string]interface{}{"error": "api_error", "message": errMsg})
 		return
 	}
@@ -1648,8 +1694,14 @@ func (api *ManagementAPI) handleGatewayWSSStatus(w http.ResponseWriter, r *http.
 func (api *ManagementAPI) handleGatewayModels(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/models")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 200, map[string]interface{}{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 200, map[string]interface{}{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	payload, err := api.rpcCall(up, "models.list", map[string]interface{}{})
 	if err != nil {
@@ -1663,8 +1715,14 @@ func (api *ManagementAPI) handleGatewayModels(w http.ResponseWriter, r *http.Req
 func (api *ManagementAPI) handleGatewayChannels(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/channels")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 200, map[string]interface{}{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 200, map[string]interface{}{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	probe := r.URL.Query().Get("probe") == "true"
 	payload, err := api.rpcCall(up, "channels.status", map[string]interface{}{
@@ -1681,8 +1739,14 @@ func (api *ManagementAPI) handleGatewayChannels(w http.ResponseWriter, r *http.R
 func (api *ManagementAPI) handleGatewayNodes(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/nodes")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 200, map[string]interface{}{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 200, map[string]interface{}{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	payload, err := api.rpcCall(up, "node.list", map[string]interface{}{})
 	if err != nil {
@@ -1696,15 +1760,25 @@ func (api *ManagementAPI) handleGatewayNodes(w http.ResponseWriter, r *http.Requ
 func (api *ManagementAPI) handleGatewayLogs(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/logs")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 200, map[string]interface{}{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 200, map[string]interface{}{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	limit := 50
 	if l := r.URL.Query().Get("limit"); l != "" {
 		fmt.Sscanf(l, "%d", &limit)
 	}
-	if limit < 1 { limit = 1 }
-	if limit > 500 { limit = 500 }
+	if limit < 1 {
+		limit = 1
+	}
+	if limit > 500 {
+		limit = 500
+	}
 
 	payload, err := api.rpcCall(up, "logs.tail", map[string]interface{}{"limit": limit})
 	if err != nil {
@@ -1718,8 +1792,14 @@ func (api *ManagementAPI) handleGatewayLogs(w http.ResponseWriter, r *http.Reque
 func (api *ManagementAPI) handleGatewayConfig(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/config")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 200, map[string]interface{}{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 200, map[string]interface{}{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	payload, err := api.rpcCall(up, "config.get", map[string]interface{}{})
 	if err != nil {
@@ -1733,8 +1813,14 @@ func (api *ManagementAPI) handleGatewayConfig(w http.ResponseWriter, r *http.Req
 func (api *ManagementAPI) handleGatewayUsage(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/usage")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 200, map[string]interface{}{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 200, map[string]interface{}{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	payload, err := api.rpcCall(up, "usage.cost", map[string]interface{}{})
 	if err != nil {
@@ -1750,8 +1836,14 @@ func (api *ManagementAPI) handleGatewayUsage(w http.ResponseWriter, r *http.Requ
 func (api *ManagementAPI) handleGatewaySessionPatch(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/session")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	var body map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -1775,8 +1867,14 @@ func (api *ManagementAPI) handleGatewaySessionPatch(w http.ResponseWriter, r *ht
 func (api *ManagementAPI) handleGatewaySessionDelete(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/session")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	sessionKey := r.URL.Query().Get("key")
 	if sessionKey == "" {
@@ -1799,8 +1897,14 @@ func (api *ManagementAPI) handleGatewaySessionDelete(w http.ResponseWriter, r *h
 func (api *ManagementAPI) handleGatewaySessionReset(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/session/reset")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	var body map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -1825,8 +1929,14 @@ func (api *ManagementAPI) handleGatewaySessionReset(w http.ResponseWriter, r *ht
 func (api *ManagementAPI) handleGatewaySessionCompact(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/session/compact")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	var body map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -1853,8 +1963,14 @@ func (api *ManagementAPI) handleGatewaySessionCompact(w http.ResponseWriter, r *
 func (api *ManagementAPI) handleGatewayChatSend(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/chat/send")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	var body map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -1880,8 +1996,14 @@ func (api *ManagementAPI) handleGatewayChatSend(w http.ResponseWriter, r *http.R
 func (api *ManagementAPI) handleGatewayChatAbort(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/chat/abort")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	var body map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -1908,8 +2030,14 @@ func (api *ManagementAPI) handleGatewayChatAbort(w http.ResponseWriter, r *http.
 func (api *ManagementAPI) handleGatewayCronAdd(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/cron/add")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	var body map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -1929,8 +2057,14 @@ func (api *ManagementAPI) handleGatewayCronAdd(w http.ResponseWriter, r *http.Re
 func (api *ManagementAPI) handleGatewayCronUpdate(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/cron/update")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	var body map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -1954,8 +2088,14 @@ func (api *ManagementAPI) handleGatewayCronUpdate(w http.ResponseWriter, r *http
 func (api *ManagementAPI) handleGatewayCronRemove(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/cron/remove")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	jobID := r.URL.Query().Get("id")
 	if jobID == "" {
@@ -1982,8 +2122,14 @@ func (api *ManagementAPI) handleGatewayCronRemove(w http.ResponseWriter, r *http
 func (api *ManagementAPI) handleGatewayCronRun(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/cron/run")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	var body map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -2011,8 +2157,14 @@ func (api *ManagementAPI) handleGatewayCronRun(w http.ResponseWriter, r *http.Re
 func (api *ManagementAPI) handleGatewayCronRuns(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/cron/runs")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	jobID := r.URL.Query().Get("id")
 	if jobID == "" {
@@ -2038,8 +2190,14 @@ func (api *ManagementAPI) handleGatewayCronRuns(w http.ResponseWriter, r *http.R
 func (api *ManagementAPI) handleGatewayAgentCreate(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/agents/create")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	var body map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -2059,8 +2217,14 @@ func (api *ManagementAPI) handleGatewayAgentCreate(w http.ResponseWriter, r *htt
 func (api *ManagementAPI) handleGatewayAgentUpdate(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/agents/update")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	var body map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -2080,8 +2244,14 @@ func (api *ManagementAPI) handleGatewayAgentUpdate(w http.ResponseWriter, r *htt
 func (api *ManagementAPI) handleGatewayAgentDelete(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/agents/delete")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	agentID := r.URL.Query().Get("agentId")
 	if agentID == "" {
@@ -2107,8 +2277,14 @@ func (api *ManagementAPI) handleGatewayAgentDelete(w http.ResponseWriter, r *htt
 func (api *ManagementAPI) handleGatewayAgentFiles(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/agents/files")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	agentID := r.URL.Query().Get("agentId")
 	params := map[string]interface{}{}
@@ -2128,8 +2304,14 @@ func (api *ManagementAPI) handleGatewayAgentFiles(w http.ResponseWriter, r *http
 func (api *ManagementAPI) handleGatewayAgentFileGet(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/agents/file")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	agentID := r.URL.Query().Get("agentId")
 	name := r.URL.Query().Get("name")
@@ -2155,8 +2337,14 @@ func (api *ManagementAPI) handleGatewayAgentFileGet(w http.ResponseWriter, r *ht
 func (api *ManagementAPI) handleGatewayAgentFileSet(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/agents/file")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	var body map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -2185,8 +2373,14 @@ func (api *ManagementAPI) handleGatewayAgentFileSet(w http.ResponseWriter, r *ht
 func (api *ManagementAPI) handleGatewayConfigPatch(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/config")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	var body map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -2206,8 +2400,14 @@ func (api *ManagementAPI) handleGatewayConfigPatch(w http.ResponseWriter, r *htt
 func (api *ManagementAPI) handleGatewayConfigSchema(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/config/schema")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	payload, err := api.rpcCall(up, "config.schema", map[string]interface{}{})
 	if err != nil {
@@ -2223,8 +2423,14 @@ func (api *ManagementAPI) handleGatewayConfigSchema(w http.ResponseWriter, r *ht
 func (api *ManagementAPI) handleGatewaySkillsBins(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/skills/bins")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	params := map[string]interface{}{}
 	if agentID := r.URL.Query().Get("agentId"); agentID != "" {
@@ -2243,8 +2449,14 @@ func (api *ManagementAPI) handleGatewaySkillsBins(w http.ResponseWriter, r *http
 func (api *ManagementAPI) handleGatewaySkillsInstall(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/skills/install")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	var body map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -2264,8 +2476,14 @@ func (api *ManagementAPI) handleGatewaySkillsInstall(w http.ResponseWriter, r *h
 func (api *ManagementAPI) handleGatewaySkillsUpdate(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/skills/update")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	var body map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -2287,8 +2505,14 @@ func (api *ManagementAPI) handleGatewaySkillsUpdate(w http.ResponseWriter, r *ht
 func (api *ManagementAPI) handleGatewayHeartbeat(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/heartbeat")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	payload, err := api.rpcCall(up, "last-heartbeat", map[string]interface{}{})
 	if err != nil {
@@ -2302,8 +2526,14 @@ func (api *ManagementAPI) handleGatewayHeartbeat(w http.ResponseWriter, r *http.
 func (api *ManagementAPI) handleGatewaySetHeartbeats(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/heartbeat")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	var body map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -2323,8 +2553,14 @@ func (api *ManagementAPI) handleGatewaySetHeartbeats(w http.ResponseWriter, r *h
 func (api *ManagementAPI) handleGatewayWake(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/wake")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	var body map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -2346,8 +2582,14 @@ func (api *ManagementAPI) handleGatewayWake(w http.ResponseWriter, r *http.Reque
 func (api *ManagementAPI) handleGatewayDevicePairs(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/devices")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	payload, err := api.rpcCall(up, "device.pair.list", map[string]interface{}{})
 	if err != nil {
@@ -2375,8 +2617,14 @@ func (api *ManagementAPI) handleGatewayDevicePairAction(w http.ResponseWriter, r
 
 	id := extractUpstreamIDFromGatewayPath(path, suffix)
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	var body map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -2398,8 +2646,14 @@ func (api *ManagementAPI) handleGatewayDevicePairAction(w http.ResponseWriter, r
 func (api *ManagementAPI) handleGatewayNodePairs(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/node-pairs")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	payload, err := api.rpcCall(up, "node.pair.list", map[string]interface{}{})
 	if err != nil {
@@ -2427,8 +2681,14 @@ func (api *ManagementAPI) handleGatewayNodePairAction(w http.ResponseWriter, r *
 
 	id := extractUpstreamIDFromGatewayPath(path, suffix)
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	var body map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -2448,8 +2708,14 @@ func (api *ManagementAPI) handleGatewayNodePairAction(w http.ResponseWriter, r *
 func (api *ManagementAPI) handleGatewayNodeDescribe(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/nodes/describe")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	nodeID := r.URL.Query().Get("node")
 	if nodeID == "" {
@@ -2469,8 +2735,14 @@ func (api *ManagementAPI) handleGatewayNodeDescribe(w http.ResponseWriter, r *ht
 func (api *ManagementAPI) handleGatewayNodeRename(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/nodes/rename")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	var body map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -2492,8 +2764,14 @@ func (api *ManagementAPI) handleGatewayNodeRename(w http.ResponseWriter, r *http
 func (api *ManagementAPI) handleGatewaySystemEvent(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/system-event")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 
 	var body map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -2514,8 +2792,14 @@ func (api *ManagementAPI) handleGatewaySystemEvent(w http.ResponseWriter, r *htt
 func (api *ManagementAPI) handleGatewayExecApprovals(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/exec-approvals")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 	payload, err := api.rpcCall(up, "exec.approvals.list", map[string]interface{}{})
 	if err != nil {
 		// Gateway 不支持此方法时优雅降级为空列表
@@ -2531,66 +2815,128 @@ func (api *ManagementAPI) handleGatewayExecApprovals(w http.ResponseWriter, r *h
 
 func (api *ManagementAPI) handleGatewayExecApprovalAction(w http.ResponseWriter, r *http.Request, approve bool) {
 	suffix := "/gateway/exec-approvals/approve"
-	if !approve { suffix = "/gateway/exec-approvals/reject" }
+	if !approve {
+		suffix = "/gateway/exec-approvals/reject"
+	}
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, suffix)
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 	var body map[string]interface{}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil { jsonResponse(w, 400, map[string]string{"error": "invalid_json"}); return }
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		jsonResponse(w, 400, map[string]string{"error": "invalid_json"})
+		return
+	}
 	method := "exec.approvals.approve"
-	if !approve { method = "exec.approvals.reject" }
+	if !approve {
+		method = "exec.approvals.reject"
+	}
 	payload, err := api.rpcCall(up, method, body)
-	if err != nil { jsonResponse(w, 502, map[string]interface{}{"error": "rpc_failed", "message": err.Error()}); return }
+	if err != nil {
+		jsonResponse(w, 502, map[string]interface{}{"error": "rpc_failed", "message": err.Error()})
+		return
+	}
 	jsonResponse(w, 200, payload)
 }
 
 func (api *ManagementAPI) handleGatewayRestart(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/restart")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 	var body map[string]interface{}
 	json.NewDecoder(r.Body).Decode(&body)
-	if body == nil { body = map[string]interface{}{} }
+	if body == nil {
+		body = map[string]interface{}{}
+	}
 	payload, err := api.rpcCall(up, "gateway.restart", body)
-	if err != nil { jsonResponse(w, 502, map[string]interface{}{"error": "rpc_failed", "message": err.Error()}); return }
+	if err != nil {
+		jsonResponse(w, 502, map[string]interface{}{"error": "rpc_failed", "message": err.Error()})
+		return
+	}
 	jsonResponse(w, 200, payload)
 }
 
 func (api *ManagementAPI) handleGatewayUpdate(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/update")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 	var body map[string]interface{}
 	json.NewDecoder(r.Body).Decode(&body)
-	if body == nil { body = map[string]interface{}{} }
+	if body == nil {
+		body = map[string]interface{}{}
+	}
 	payload, err := api.rpcCall(up, "gateway.update", body)
-	if err != nil { jsonResponse(w, 502, map[string]interface{}{"error": "rpc_failed", "message": err.Error()}); return }
+	if err != nil {
+		jsonResponse(w, 502, map[string]interface{}{"error": "rpc_failed", "message": err.Error()})
+		return
+	}
 	jsonResponse(w, 200, payload)
 }
 
 func (api *ManagementAPI) handleGatewayMemorySearch(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/memory/search")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 	var body map[string]interface{}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil { jsonResponse(w, 400, map[string]string{"error": "invalid_json"}); return }
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		jsonResponse(w, 400, map[string]string{"error": "invalid_json"})
+		return
+	}
 	payload, err := api.rpcCall(up, "memory.search", body)
-	if err != nil { jsonResponse(w, 502, map[string]interface{}{"error": "rpc_failed", "message": err.Error()}); return }
+	if err != nil {
+		jsonResponse(w, 502, map[string]interface{}{"error": "rpc_failed", "message": err.Error()})
+		return
+	}
 	jsonResponse(w, 200, payload)
 }
 
 func (api *ManagementAPI) handleGatewaySkillUninstall(w http.ResponseWriter, r *http.Request) {
 	id := extractUpstreamIDFromGatewayPath(r.URL.Path, "/gateway/skills/uninstall")
 	up, ok := api.pool.GetUpstream(id)
-	if !ok { jsonResponse(w, 404, map[string]string{"error": "upstream not found"}); return }
-	if up.GatewayToken == "" { jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"}); return }
+	if !ok {
+		jsonResponse(w, 404, map[string]string{"error": "upstream not found"})
+		return
+	}
+	if up.GatewayToken == "" {
+		jsonResponse(w, 400, map[string]string{"error": "gateway_token_not_configured"})
+		return
+	}
 	var body map[string]interface{}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil { jsonResponse(w, 400, map[string]string{"error": "invalid_json"}); return }
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		jsonResponse(w, 400, map[string]string{"error": "invalid_json"})
+		return
+	}
 	payload, err := api.rpcCall(up, "skills.uninstall", body)
-	if err != nil { jsonResponse(w, 502, map[string]interface{}{"error": "rpc_failed", "message": err.Error()}); return }
+	if err != nil {
+		jsonResponse(w, 502, map[string]interface{}{"error": "rpc_failed", "message": err.Error()})
+		return
+	}
 	jsonResponse(w, 200, payload)
 }

@@ -199,8 +199,8 @@ func (api *ManagementAPI) handleTaintRulesList(w http.ResponseWriter, r *http.Re
 	builtin := api.taintTracker.ListBuiltinRules()
 	custom := api.taintTracker.ListCustomRules()
 	jsonResponse(w, 200, map[string]interface{}{
-		"builtin":      builtin,
-		"custom":       custom,
+		"builtin":       builtin,
+		"custom":        custom,
 		"builtin_count": len(builtin),
 		"custom_count":  len(custom),
 	})

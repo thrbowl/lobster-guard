@@ -132,7 +132,7 @@ func TestLLMRules_ActionLog(t *testing.T) {
 			ID: "test-log", Name: "Log Rule", Category: "custom",
 			Direction: "request", Type: "keyword",
 			Patterns: []string{"log_this_content"},
-			Action: "log", Enabled: true, Priority: 1,
+			Action:   "log", Enabled: true, Priority: 1,
 		},
 	}
 	engine := NewLLMRuleEngine(rules)
@@ -175,7 +175,7 @@ func TestLLMRules_ShadowMode(t *testing.T) {
 			ID: "shadow-1", Name: "Shadow Rule", Category: "custom",
 			Direction: "request", Type: "keyword",
 			Patterns: []string{"shadow_test_pattern"},
-			Action: "block", Enabled: true, Priority: 10,
+			Action:   "block", Enabled: true, Priority: 10,
 			ShadowMode: true,
 		},
 	}
@@ -202,7 +202,7 @@ func TestLLMRules_DirectionRequest(t *testing.T) {
 			ID: "req-only", Name: "Request Only", Category: "custom",
 			Direction: "request", Type: "keyword",
 			Patterns: []string{"request_direction_test"},
-			Action: "warn", Enabled: true, Priority: 1,
+			Action:   "warn", Enabled: true, Priority: 1,
 		},
 	}
 	engine := NewLLMRuleEngine(rules)
@@ -226,7 +226,7 @@ func TestLLMRules_DirectionResponse(t *testing.T) {
 			ID: "resp-only", Name: "Response Only", Category: "custom",
 			Direction: "response", Type: "keyword",
 			Patterns: []string{"response_direction_test"},
-			Action: "warn", Enabled: true, Priority: 1,
+			Action:   "warn", Enabled: true, Priority: 1,
 		},
 	}
 	engine := NewLLMRuleEngine(rules)
@@ -288,7 +288,7 @@ func TestLLMRules_CRUD(t *testing.T) {
 		ID: "test-new-001", Name: "Test New Rule", Category: "custom",
 		Direction: "request", Type: "keyword",
 		Patterns: []string{"new_test_pattern"},
-		Action: "log", Enabled: true, Priority: 1,
+		Action:   "log", Enabled: true, Priority: 1,
 	}
 	newRules = append(newRules, newRule)
 	engine.UpdateRules(newRules)
@@ -351,13 +351,13 @@ func TestLLMRules_EnableDisable(t *testing.T) {
 			ID: "enabled-rule", Name: "Enabled", Category: "custom",
 			Direction: "request", Type: "keyword",
 			Patterns: []string{"enable_test_pattern"},
-			Action: "block", Enabled: true, Priority: 10,
+			Action:   "block", Enabled: true, Priority: 10,
 		},
 		{
 			ID: "disabled-rule", Name: "Disabled", Category: "custom",
 			Direction: "request", Type: "keyword",
 			Patterns: []string{"disable_test_pattern"},
-			Action: "block", Enabled: false, Priority: 10,
+			Action:   "block", Enabled: false, Priority: 10,
 		},
 	}
 	engine := NewLLMRuleEngine(rules)
@@ -381,13 +381,13 @@ func TestLLMRules_Priority(t *testing.T) {
 			ID: "low-pri", Name: "Low Priority", Category: "custom",
 			Direction: "request", Type: "keyword",
 			Patterns: []string{"priority_test_content"},
-			Action: "log", Enabled: true, Priority: 1,
+			Action:   "log", Enabled: true, Priority: 1,
 		},
 		{
 			ID: "high-pri", Name: "High Priority", Category: "custom",
 			Direction: "request", Type: "keyword",
 			Patterns: []string{"priority_test_content"},
-			Action: "block", Enabled: true, Priority: 20,
+			Action:   "block", Enabled: true, Priority: 20,
 		},
 	}
 	engine := NewLLMRuleEngine(rules)
@@ -438,7 +438,7 @@ func TestLLMRules_ApplyRewriteKeyword(t *testing.T) {
 			ID: "rewrite-kw", Name: "Rewrite Keyword", Category: "custom",
 			Direction: "response", Type: "keyword",
 			Patterns: []string{"SENSITIVE_DATA"},
-			Action: "rewrite", RewriteTo: "[REDACTED]", Enabled: true, Priority: 10,
+			Action:   "rewrite", RewriteTo: "[REDACTED]", Enabled: true, Priority: 10,
 		},
 	}
 	engine := NewLLMRuleEngine(rules)

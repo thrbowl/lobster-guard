@@ -83,20 +83,20 @@ type LLMAuditConfig struct {
 
 // InboundRuleConfig 入站规则配置（v3.5 外部化）
 type InboundRuleConfig struct {
-	Name          string   `yaml:"name" json:"name"`
-	DisplayName   string   `yaml:"display_name,omitempty" json:"display_name,omitempty"` // 中文显示名称
-	Patterns      []string `yaml:"patterns" json:"patterns"`
-	Action        string   `yaml:"action" json:"action"`                                  // block / warn / log / confirm
-	Category      string   `yaml:"category" json:"category"`                              // prompt_injection / jailbreak / command_injection / pii 等
-	Priority      int      `yaml:"priority" json:"priority"`                              // v3.6 优先级权重，数字越大越高，默认 0
-	Message       string   `yaml:"message" json:"message"`                                // v3.6 自定义拦截提示，为空则用默认
-	Type          string   `yaml:"type" json:"type"`                                      // v3.11 规则类型: "keyword"（默认，AC 自动机）或 "regex"（正则）
-	Group         string   `yaml:"group" json:"group"`                                    // v3.11 规则分组标签（如 "jailbreak"/"injection"/"social_engineering"/"pii"）
-	ShadowMode    bool     `yaml:"shadow_mode" json:"shadow_mode"`                        // 影子模式：只记录不拦截
-	Enabled       *bool    `yaml:"enabled" json:"enabled"`                                // 启用/禁用（nil = 默认启用）
+	Name        string   `yaml:"name" json:"name"`
+	DisplayName string   `yaml:"display_name,omitempty" json:"display_name,omitempty"` // 中文显示名称
+	Patterns    []string `yaml:"patterns" json:"patterns"`
+	Action      string   `yaml:"action" json:"action"`           // block / warn / log / confirm
+	Category    string   `yaml:"category" json:"category"`       // prompt_injection / jailbreak / command_injection / pii 等
+	Priority    int      `yaml:"priority" json:"priority"`       // v3.6 优先级权重，数字越大越高，默认 0
+	Message     string   `yaml:"message" json:"message"`         // v3.6 自定义拦截提示，为空则用默认
+	Type        string   `yaml:"type" json:"type"`               // v3.11 规则类型: "keyword"（默认，AC 自动机）或 "regex"（正则）
+	Group       string   `yaml:"group" json:"group"`             // v3.11 规则分组标签（如 "jailbreak"/"injection"/"social_engineering"/"pii"）
+	ShadowMode  bool     `yaml:"shadow_mode" json:"shadow_mode"` // 影子模式：只记录不拦截
+	Enabled     *bool    `yaml:"enabled" json:"enabled"`         // 启用/禁用（nil = 默认启用）
 	// v37.0 confirm 动作专属字段
-	TimeoutAction string   `yaml:"timeout_action,omitempty" json:"timeout_action,omitempty"` // 超时动作覆盖（"block"|"pass"）
-	DefaultAction string   `yaml:"default_action,omitempty" json:"default_action,omitempty"` // 非Y/N时动作（"confirm"|"cancel"|""继续等待）
+	TimeoutAction string `yaml:"timeout_action,omitempty" json:"timeout_action,omitempty"` // 超时动作覆盖（"block"|"pass"）
+	DefaultAction string `yaml:"default_action,omitempty" json:"default_action,omitempty"` // 非Y/N时动作（"confirm"|"cancel"|""继续等待）
 }
 
 // RuleBindingConfig 规则绑定配置（v3.11 按 app_id 绑定规则组）
@@ -158,7 +158,8 @@ type Config struct {
 	OutboundListen          string                 `yaml:"outbound_listen"`
 	OpenClawUpstream        string                 `yaml:"openclaw_upstream"`
 	LanxinUpstream          string                 `yaml:"lanxin_upstream"`
-	DBPath                  string                 `yaml:"db_path"`
+	DatabaseURL             string                 `yaml:"database_url"`
+	DBPath                  string                 `yaml:"db_path,omitempty"` // deprecated: PostgreSQL uses database_url
 	LogLevel                string                 `yaml:"log_level"`
 	DetectTimeoutMs         int                    `yaml:"detect_timeout_ms"`
 	InboundDetectEnabled    bool                   `yaml:"inbound_detect_enabled"`
@@ -354,10 +355,10 @@ type OutboundRuleConfig struct {
 	Patterns    []string `yaml:"patterns"`
 	Action      string   `yaml:"action"`
 	Replacement string   `yaml:"replacement,omitempty" json:"replacement,omitempty"` // redact 动作时的替换文本，为空则用 [REDACTED]
-	Priority    int      `yaml:"priority"`                       // v3.6 优先级权重，数字越大越高，默认 0
-	Message     string   `yaml:"message"`                        // v3.6 自定义拦截提示，为空则用默认
-	ShadowMode  bool     `yaml:"shadow_mode" json:"shadow_mode"` // 影子模式：只记录不拦截
-	Enabled     *bool    `yaml:"enabled" json:"enabled"`         // 启用/禁用（nil = 默认启用）
+	Priority    int      `yaml:"priority"`                                           // v3.6 优先级权重，数字越大越高，默认 0
+	Message     string   `yaml:"message"`                                            // v3.6 自定义拦截提示，为空则用默认
+	ShadowMode  bool     `yaml:"shadow_mode" json:"shadow_mode"`                     // 影子模式：只记录不拦截
+	Enabled     *bool    `yaml:"enabled" json:"enabled"`                             // 启用/禁用（nil = 默认启用）
 }
 
 type StaticUpstreamConfig struct {
@@ -381,8 +382,8 @@ type FixedResponseConfig struct {
 
 // RoutePolicyConfig 路由策略配置（v3.9）
 type RoutePolicyConfig struct {
-	Match         RoutePolicyMatch  `yaml:"match" json:"match"`
-	UpstreamID    string            `yaml:"upstream_id" json:"upstream_id"`
+	Match         RoutePolicyMatch     `yaml:"match" json:"match"`
+	UpstreamID    string               `yaml:"upstream_id" json:"upstream_id"`
 	FixedResponse *FixedResponseConfig `yaml:"fixed_response,omitempty" json:"fixed_response,omitempty"` // v34.0 固定返回
 }
 
@@ -403,7 +404,7 @@ func loadConfig(path string) (*Config, error) {
 	cfg := &Config{
 		InboundListen: ":8443", OutboundListen: ":8444",
 		OpenClawUpstream: "http://localhost:18790", LanxinUpstream: "https://apigw.lx.qianxin.com",
-		DBPath: "/var/lib/lobster-guard/audit.db", LogLevel: "info", DetectTimeoutMs: 200,
+		DatabaseURL: "", LogLevel: "info", DetectTimeoutMs: 200,
 		InboundDetectEnabled: true, OutboundAuditEnabled: true,
 		ManagementListen: ":9090", HeartbeatIntervalSec: 10, HeartbeatTimeoutCount: 3,
 		RouteDefaultPolicy: "least-users", RoutePersist: true,
@@ -1468,6 +1469,10 @@ func validateConfig(cfg *Config) []string {
 	// static_upstreams 不能为空
 	if len(cfg.StaticUpstreams) == 0 && cfg.OpenClawUpstream == "" {
 		errs = append(errs, "static_upstreams 为空且未配置 openclaw_upstream，至少需要一个上游")
+	}
+
+	if cfg.DatabaseURL == "" {
+		errs = append(errs, "database_url 未配置")
 	}
 
 	// management_token 不能为空

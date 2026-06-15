@@ -10,8 +10,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 func setupCFTestDB(t *testing.T) *sql.DB {

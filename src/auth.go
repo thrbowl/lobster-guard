@@ -589,7 +589,9 @@ func (u *User) CanViewTenant(tenantID string) bool {
 }
 
 // getClientIP 提取客户端 IP
-func getClientIP(r interface{ Header() interface{ Get(string) string } }) string {
+func getClientIP(r interface {
+	Header() interface{ Get(string) string }
+}) string {
 	// 通过 X-Forwarded-For 或 X-Real-IP 或 RemoteAddr
 	return "" // 占位，在 handler 中实现
 }

@@ -68,9 +68,9 @@ func (tb *TokenBucket) Allow() bool {
 }
 
 type RateLimiterStats struct {
-	TotalAllowed int64            `json:"total_allowed"`
-	TotalLimited int64            `json:"total_limited"`
-	LimitRate    float64          `json:"limit_rate_percent"`
+	TotalAllowed int64             `json:"total_allowed"`
+	TotalLimited int64             `json:"total_limited"`
+	LimitRate    float64           `json:"limit_rate_percent"`
 	TopLimited   []SenderLimitInfo `json:"top_limited"`
 }
 
@@ -305,11 +305,11 @@ type MetricsCollector struct {
 
 func NewMetricsCollector() *MetricsCollector {
 	return &MetricsCollector{
-		requestsTotal:  make(map[string]int64),
-		latencyBuckets: make(map[string]*LatencyHistogram),
+		requestsTotal:   make(map[string]int64),
+		latencyBuckets:  make(map[string]*LatencyHistogram),
 		wsMessagesTotal: make(map[string]int64),
 		wsMessageBytes:  make(map[string]int64),
-		startTime:      time.Now(),
+		startTime:       time.Now(),
 	}
 }
 
@@ -601,4 +601,3 @@ func formatFloat(f float64) string {
 	}
 	return fmt.Sprintf("%g", f)
 }
-

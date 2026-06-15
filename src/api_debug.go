@@ -11,11 +11,11 @@ import (
 
 // LayerResult 单层检测结果
 type LayerResult struct {
-	Action       string        `json:"action"`
-	MatchedRules []LayerMatch  `json:"matched_rules"`
-	RuleCount    int           `json:"rule_count"`
-	PatternCount int           `json:"pattern_count"`
-	LatencyUs    int64         `json:"latency_us"`
+	Action       string       `json:"action"`
+	MatchedRules []LayerMatch `json:"matched_rules"`
+	RuleCount    int          `json:"rule_count"`
+	PatternCount int          `json:"pattern_count"`
+	LatencyUs    int64        `json:"latency_us"`
 }
 
 // LayerMatch 单条命中
@@ -196,10 +196,10 @@ func (api *ManagementAPI) handleDetectAllLayers(w http.ResponseWriter, r *http.R
 	totalHits := len(inboundLayer.MatchedRules) + len(llmReqLayer.MatchedRules) + len(llmRespLayer.MatchedRules) + len(outboundLayer.MatchedRules)
 
 	jsonResponse(w, 200, map[string]interface{}{
-		"overall_action": overallAction,
-		"total_hits":     totalHits,
+		"overall_action":   overallAction,
+		"total_hits":       totalHits,
 		"total_latency_us": time.Since(totalStart).Microseconds(),
-		"tenant_id":      req.TenantID,
+		"tenant_id":        req.TenantID,
 		"layers": map[string]interface{}{
 			"inbound":      inboundLayer,
 			"llm_request":  llmReqLayer,
@@ -340,7 +340,7 @@ func (api *ManagementAPI) handleRuleOverlap(w http.ResponseWriter, r *http.Reque
 			"outbound_patterns":     outboundCount,
 			"overlap_ratio_percent": float64(len(overlaps)) / float64(uniquePatterns) * 100,
 		},
-		"overlaps": overlaps,
+		"overlaps":       overlaps,
 		"recommendation": getOverlapRecommendation(len(overlaps), uniquePatterns),
 	})
 }

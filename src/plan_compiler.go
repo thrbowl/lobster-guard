@@ -430,7 +430,7 @@ func (pc *PlanCompiler) EvaluateToolCall(traceID, toolName, toolArgs string) *Pl
 			ID: planGenID(), TraceID: traceID, PlanID: plan.ID, StepOrder: plan.CurrentStep,
 			ToolName: toolName, Expected: exp.ToolName, Severity: "moderate",
 			Description: fmt.Sprintf("out of order: got %s expected %s step %d", toolName, exp.ToolName, plan.CurrentStep+1),
-			Action: pc.config.ViolationAction, Timestamp: now,
+			Action:      pc.config.ViolationAction, Timestamp: now,
 		}
 		dec = pc.config.ViolationAction
 		reason = viol.Description
@@ -445,7 +445,7 @@ func (pc *PlanCompiler) EvaluateToolCall(traceID, toolName, toolArgs string) *Pl
 			ID: planGenID(), TraceID: traceID, PlanID: plan.ID, StepOrder: plan.CurrentStep,
 			ToolName: toolName, Expected: exp.ToolName, Severity: sev,
 			Description: fmt.Sprintf("unexpected %s expected %s step %d", toolName, exp.ToolName, plan.CurrentStep+1),
-			Timestamp: now,
+			Timestamp:   now,
 		}
 		if pc.config.StrictMode {
 			dec = "block"

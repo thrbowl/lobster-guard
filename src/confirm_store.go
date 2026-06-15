@@ -11,14 +11,14 @@ import (
 type PendingConfirm struct {
 	SenderID      string
 	AppID         string
-	MsgText       string    // 原始消息文本（用于日志）
-	Body          []byte    // 原始 HTTP request body（用于重放）
-	ReqPath       string    // 原始请求路径
+	MsgText       string // 原始消息文本（用于日志）
+	Body          []byte // 原始 HTTP request body（用于重放）
+	ReqPath       string // 原始请求路径
 	TraceID       string
 	UpstreamID    string
 	RuleName      string
-	TimeoutAction string    // "block" | "pass"，空则用全局配置
-	DefaultAction string    // "confirm" | "cancel" | "" (继续等待)
+	TimeoutAction string // "block" | "pass"，空则用全局配置
+	DefaultAction string // "confirm" | "cancel" | "" (继续等待)
 	ExpiresAt     time.Time
 	cancelCh      chan struct{} // 关闭此 channel 取消超时 goroutine
 }
@@ -119,4 +119,3 @@ func (cs *ConfirmStore) onTimeout(pc *PendingConfirm) {
 		go cs.proxy.replayConfirmedRequest(pc)
 	}
 }
-

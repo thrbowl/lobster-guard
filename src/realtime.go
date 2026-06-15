@@ -11,13 +11,13 @@ const realtimeSlots = 60
 
 // RealtimeSlot 一秒的统计数据
 type RealtimeSlot struct {
-	Timestamp  int64 `json:"ts"`           // Unix 秒
-	InboundN   int64 `json:"inbound"`      // 入站请求数
-	OutboundN  int64 `json:"outbound"`     // 出站请求数
-	BlockN     int64 `json:"block"`        // 拦截数
-	WarnN      int64 `json:"warn"`         // 告警数
-	LatencySum int64 `json:"latency_sum"`  // 延迟累计（微秒）
-	LatencyN   int64 `json:"latency_n"`    // 延迟计数
+	Timestamp  int64 `json:"ts"`          // Unix 秒
+	InboundN   int64 `json:"inbound"`     // 入站请求数
+	OutboundN  int64 `json:"outbound"`    // 出站请求数
+	BlockN     int64 `json:"block"`       // 拦截数
+	WarnN      int64 `json:"warn"`        // 告警数
+	LatencySum int64 `json:"latency_sum"` // 延迟累计（微秒）
+	LatencyN   int64 `json:"latency_n"`   // 延迟计数
 }
 
 // RealtimeEvent 攻击实时事件
@@ -161,5 +161,5 @@ type RealtimeSnapshot struct {
 	TotalReq     int64           `json:"total_requests"`
 	TotalBlock   int64           `json:"total_blocks"`
 	BlockRate    float64         `json:"block_rate"`
-	AvgLatencyMs float64        `json:"avg_latency_ms"`
+	AvgLatencyMs float64         `json:"avg_latency_ms"`
 }

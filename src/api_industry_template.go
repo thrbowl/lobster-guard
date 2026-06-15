@@ -53,7 +53,9 @@ func (api *ManagementAPI) handleIndustryTemplateEnable(w http.ResponseWriter, r 
 		jsonResponse(w, 400, map[string]string{"error": "template id required"})
 		return
 	}
-	var req struct{ Enabled bool `json:"enabled"` }
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		jsonResponse(w, 400, map[string]string{"error": "invalid JSON: " + err.Error()})
 		return

@@ -83,9 +83,9 @@ type TaintEntry struct {
 
 // TaintPropagation 传播记录
 type TaintPropagation struct {
-	Stage     string    `json:"stage"`     // inbound → llm_request → llm_response → outbound
+	Stage     string    `json:"stage"` // inbound → llm_request → llm_response → outbound
 	Label     string    `json:"label"`
-	Action    string    `json:"action"`    // 此阶段的处理动作
+	Action    string    `json:"action"` // 此阶段的处理动作
 	Timestamp time.Time `json:"timestamp"`
 	Detail    string    `json:"detail"`
 }
@@ -518,13 +518,13 @@ func (tt *TaintTracker) Stats() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"enabled":        tt.config.Enabled,
-		"action":         tt.config.Action,
-		"ttl_minutes":    tt.config.TTLMinutes,
-		"active_count":   activeCount,
-		"total_marked":   tt.totalMarked,
-		"total_blocked":  tt.totalBlocked,
-		"total_warned":   tt.totalWarned,
+		"enabled":            tt.config.Enabled,
+		"action":             tt.config.Action,
+		"ttl_minutes":        tt.config.TTLMinutes,
+		"active_count":       activeCount,
+		"total_marked":       tt.totalMarked,
+		"total_blocked":      tt.totalBlocked,
+		"total_warned":       tt.totalWarned,
 		"label_distribution": labelDist,
 	}
 }

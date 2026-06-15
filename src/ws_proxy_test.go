@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // ============================================================
@@ -131,9 +130,9 @@ func wsDialURL(srv *httptest.Server, path string, params map[string]string) stri
 
 func TestIsWebSocketUpgrade(t *testing.T) {
 	tests := []struct {
-		name    string
-		h       map[string]string
-		expect  bool
+		name   string
+		h      map[string]string
+		expect bool
 	}{
 		{"正常 WS", map[string]string{"Upgrade": "websocket", "Connection": "Upgrade"}, true},
 		{"大小写", map[string]string{"Upgrade": "WebSocket", "Connection": "upgrade"}, true},
@@ -354,7 +353,11 @@ func TestWSProxy_MaxConnections(t *testing.T) {
 		}
 		cs = append(cs, c)
 	}
-	defer func() { for _, c := range cs { c.Close() } }()
+	defer func() {
+		for _, c := range cs {
+			c.Close()
+		}
+	}()
 	if wm.ActiveCount() != 3 {
 		t.Errorf("active=%d", wm.ActiveCount())
 	}
@@ -617,7 +620,7 @@ func TestWSProxy_DefaultConfig(t *testing.T) {
 
 func TestWSConfig_Validation(t *testing.T) {
 	cfg := &Config{
-		WSMode: "invalid",
+		WSMode:          "invalid",
 		StaticUpstreams: []StaticUpstreamConfig{{ID: "u", Address: "127.0.0.1", Port: 8080}},
 	}
 	errs := validateConfig(cfg)

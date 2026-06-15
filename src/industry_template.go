@@ -216,9 +216,15 @@ func (s *industryTemplateStore) migrateLegacyTemplates() {
 			newID := normalizeIndustryTemplateID(oldID)
 			tpl := byID[newID]
 			tpl.ID = newID
-			if name != "" { tpl.Name = normalizeIndustryTemplateName(name) }
-			if desc != "" { tpl.Description = desc }
-			if category != "" { tpl.Category = category }
+			if name != "" {
+				tpl.Name = normalizeIndustryTemplateName(name)
+			}
+			if desc != "" {
+				tpl.Description = desc
+			}
+			if category != "" {
+				tpl.Category = category
+			}
 			if json.Unmarshal([]byte(rulesJSON), &tpl.InboundRules) != nil {
 				continue
 			}
@@ -238,9 +244,15 @@ func (s *industryTemplateStore) migrateLegacyTemplates() {
 			newID := normalizeIndustryTemplateID(oldID)
 			tpl := byID[newID]
 			tpl.ID = newID
-			if tpl.Name == "" && name != "" { tpl.Name = normalizeIndustryTemplateName(name) }
-			if tpl.Description == "" && desc != "" { tpl.Description = desc }
-			if tpl.Category == "" && category != "" { tpl.Category = category }
+			if tpl.Name == "" && name != "" {
+				tpl.Name = normalizeIndustryTemplateName(name)
+			}
+			if tpl.Description == "" && desc != "" {
+				tpl.Description = desc
+			}
+			if tpl.Category == "" && category != "" {
+				tpl.Category = category
+			}
 			if json.Unmarshal([]byte(rulesJSON), &tpl.LLMRules) != nil {
 				continue
 			}
@@ -257,9 +269,13 @@ func (s *industryTemplateStore) migrateLegacyTemplates() {
 		llmJSON, _ := json.Marshal(tpl.LLMRules)
 		outboundJSON, _ := json.Marshal(tpl.OutboundRules)
 		builtIn := 0
-		if tpl.BuiltIn { builtIn = 1 }
+		if tpl.BuiltIn {
+			builtIn = 1
+		}
 		enabled := 0
-		if tpl.Enabled { enabled = 1 }
+		if tpl.Enabled {
+			enabled = 1
+		}
 		s.db.Exec(`INSERT OR IGNORE INTO industry_templates (id, name, description, category, inbound_rules_json, llm_rules_json, outbound_rules_json, enabled, built_in, created_at, updated_at)
 			VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
 			tpl.ID, tpl.Name, tpl.Description, tpl.Category, string(inboundJSON), string(llmJSON), string(outboundJSON), enabled, builtIn, time.Now().UTC().Format(time.RFC3339), time.Now().UTC().Format(time.RFC3339))
@@ -323,7 +339,9 @@ func (s *industryTemplateStore) create(tpl IndustryTemplate) error {
 	llmJSON, _ := json.Marshal(tpl.LLMRules)
 	outboundJSON, _ := json.Marshal(tpl.OutboundRules)
 	builtIn := 0
-	if tpl.BuiltIn { builtIn = 1 }
+	if tpl.BuiltIn {
+		builtIn = 1
+	}
 	now := time.Now().UTC().Format(time.RFC3339)
 	_, err := s.db.Exec(`INSERT INTO industry_templates (id, name, description, category, inbound_rules_json, llm_rules_json, outbound_rules_json, enabled, built_in, created_at, updated_at)
 		VALUES (?,?,?,?,?,?,?,?,?,?,?)`, tpl.ID, tpl.Name, tpl.Description, tpl.Category, string(inboundJSON), string(llmJSON), string(outboundJSON), 0, builtIn, now, now)

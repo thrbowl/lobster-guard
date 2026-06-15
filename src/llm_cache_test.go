@@ -7,8 +7,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // setupTestCache 创建测试用缓存实例

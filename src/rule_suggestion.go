@@ -15,21 +15,21 @@ import (
 
 // RuleSuggestion 规则建议
 type RuleSuggestion struct {
-	ID           string    `json:"id"`
-	CreatedAt    time.Time `json:"created_at"`
-	Source       string    `json:"source"`        // "evolution" | "redteam" | "manual"
-	SourceDetail string    `json:"source_detail"` // e.g. "gen-5-synonym_replace" or "redteam-run-xxx"
-	RuleName     string    `json:"rule_name"`
-	RuleType     string    `json:"rule_type"`  // "keyword" | "regex"
-	Patterns     []string  `json:"patterns"`
-	Action       string    `json:"action"`     // suggested action: "block" | "warn" | "review"
-	Category     string    `json:"category"`
-	Engine       string    `json:"engine"`     // "inbound" | "llm" | "outbound"
-	Reason       string    `json:"reason"`     // why this rule is suggested
-	Status       string    `json:"status"`     // "pending" | "accepted" | "rejected"
+	ID           string     `json:"id"`
+	CreatedAt    time.Time  `json:"created_at"`
+	Source       string     `json:"source"`        // "evolution" | "redteam" | "manual"
+	SourceDetail string     `json:"source_detail"` // e.g. "gen-5-synonym_replace" or "redteam-run-xxx"
+	RuleName     string     `json:"rule_name"`
+	RuleType     string     `json:"rule_type"` // "keyword" | "regex"
+	Patterns     []string   `json:"patterns"`
+	Action       string     `json:"action"` // suggested action: "block" | "warn" | "review"
+	Category     string     `json:"category"`
+	Engine       string     `json:"engine"` // "inbound" | "llm" | "outbound"
+	Reason       string     `json:"reason"` // why this rule is suggested
+	Status       string     `json:"status"` // "pending" | "accepted" | "rejected"
 	ReviewedAt   *time.Time `json:"reviewed_at,omitempty"`
-	ReviewedBy   string    `json:"reviewed_by,omitempty"`
-	RejectReason string    `json:"reject_reason,omitempty"`
+	ReviewedBy   string     `json:"reviewed_by,omitempty"`
+	RejectReason string     `json:"reject_reason,omitempty"`
 }
 
 // SuggestionQueue 规则建议队列

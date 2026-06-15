@@ -22,7 +22,9 @@ func (api *ManagementAPI) handlePathPolicyList(w http.ResponseWriter, r *http.Re
 	} else {
 		rules = api.pathPolicyEngine.ListRules()
 	}
-	if rules == nil { rules = []PathPolicyRule{} }
+	if rules == nil {
+		rules = []PathPolicyRule{}
+	}
 	jsonResponse(w, 200, map[string]interface{}{"rules": rules, "total": len(rules)})
 }
 
@@ -40,7 +42,9 @@ func (api *ManagementAPI) handlePathPolicyCreate(w http.ResponseWriter, r *http.
 		jsonResponse(w, 400, map[string]string{"error": "id, name, rule_type required"})
 		return
 	}
-	if rule.Action == "" { rule.Action = "warn" }
+	if rule.Action == "" {
+		rule.Action = "warn"
+	}
 	if err := api.pathPolicyEngine.AddRule(rule); err != nil {
 		jsonResponse(w, 409, map[string]string{"error": err.Error()})
 		return
@@ -96,16 +100,22 @@ func (api *ManagementAPI) handlePathPolicyEvents(w http.ResponseWriter, r *http.
 	q := r.URL.Query()
 	traceID := q.Get("trace_id")
 	since := q.Get("since")
-	if since != "" && !strings.Contains(since, "T") { since = parseSinceParam(since) }
+	if since != "" && !strings.Contains(since, "T") {
+		since = parseSinceParam(since)
+	}
 	tenant := q.Get("tenant")
 	limit, _ := strconv.Atoi(q.Get("limit"))
-	if limit <= 0 { limit = 100 }
+	if limit <= 0 {
+		limit = 100
+	}
 	events, err := api.pathPolicyEngine.QueryEvents(traceID, since, tenant, limit)
 	if err != nil {
 		jsonResponse(w, 500, map[string]string{"error": err.Error()})
 		return
 	}
-	if events == nil { events = []map[string]interface{}{} }
+	if events == nil {
+		events = []map[string]interface{}{}
+	}
 	jsonResponse(w, 200, map[string]interface{}{"events": events, "total": len(events)})
 }
 
@@ -115,7 +125,9 @@ func (api *ManagementAPI) handlePathPolicyContexts(w http.ResponseWriter, r *htt
 		return
 	}
 	contexts := api.pathPolicyEngine.ListContexts()
-	if contexts == nil { contexts = []PathContext{} }
+	if contexts == nil {
+		contexts = []PathContext{}
+	}
 	jsonResponse(w, 200, map[string]interface{}{"contexts": contexts, "total": len(contexts)})
 }
 
@@ -157,16 +169,16 @@ func (api *ManagementAPI) handlePathPolicyRiskGauge(w http.ResponseWriter, r *ht
 	gauges := make([]map[string]interface{}, 0, len(contexts))
 	for _, ctx := range contexts {
 		gauges = append(gauges, map[string]interface{}{
-			"trace_id":    ctx.TraceID,
-			"session_id":  ctx.SessionID,
-			"tenant_id":   ctx.TenantID,
-			"risk_score":  ctx.RiskScore,
-			"step_count":  len(ctx.Steps),
-			"tool_count":  len(ctx.ToolHistory),
-			"taint_count": len(ctx.TaintLabels),
+			"trace_id":     ctx.TraceID,
+			"session_id":   ctx.SessionID,
+			"tenant_id":    ctx.TenantID,
+			"risk_score":   ctx.RiskScore,
+			"step_count":   len(ctx.Steps),
+			"tool_count":   len(ctx.ToolHistory),
+			"taint_count":  len(ctx.TaintLabels),
 			"taint_labels": ctx.TaintLabels,
-			"last_action": lastAction(ctx.Steps),
-			"age_sec":     int(time.Since(ctx.CreatedAt).Seconds()),
+			"last_action":  lastAction(ctx.Steps),
+			"age_sec":      int(time.Since(ctx.CreatedAt).Seconds()),
 		})
 	}
 	// 按风险分降序
@@ -175,7 +187,9 @@ func (api *ManagementAPI) handlePathPolicyRiskGauge(w http.ResponseWriter, r *ht
 }
 
 func lastAction(steps []PathStep) string {
-	if len(steps) == 0 { return "" }
+	if len(steps) == 0 {
+		return ""
+	}
 	return steps[len(steps)-1].Action
 }
 
@@ -184,7 +198,9 @@ func sortGauges(gs []map[string]interface{}) {
 		for j := i + 1; j < len(gs); j++ {
 			si, _ := gs[i]["risk_score"].(float64)
 			sj, _ := gs[j]["risk_score"].(float64)
-			if sj > si { gs[i], gs[j] = gs[j], gs[i] }
+			if sj > si {
+				gs[i], gs[j] = gs[j], gs[i]
+			}
 		}
 	}
 }
@@ -196,7 +212,9 @@ func (api *ManagementAPI) handlePathPolicyTemplates(w http.ResponseWriter, r *ht
 		return
 	}
 	templates := api.pathPolicyEngine.ListTemplates()
-	if templates == nil { templates = []PolicyTemplate{} }
+	if templates == nil {
+		templates = []PolicyTemplate{}
+	}
 	jsonResponse(w, 200, map[string]interface{}{"templates": templates, "total": len(templates)})
 }
 
@@ -259,7 +277,9 @@ func (api *ManagementAPI) handlePathPolicyTemplateDelete(w http.ResponseWriter, 
 	}
 	if err := api.pathPolicyEngine.DeleteTemplate(id); err != nil {
 		status := 404
-		if strings.Contains(err.Error(), "built-in") { status = 403 }
+		if strings.Contains(err.Error(), "built-in") {
+			status = 403
+		}
 		jsonResponse(w, status, map[string]string{"error": err.Error()})
 		return
 	}
@@ -300,6 +320,8 @@ func (api *ManagementAPI) handlePathPolicyTemplateDeactivate(w http.ResponseWrit
 
 func extractTemplateID(path string) string {
 	s := strings.TrimPrefix(path, "/api/v1/path-policies/templates/")
-	if i := strings.Index(s, "/"); i >= 0 { s = s[:i] }
+	if i := strings.Index(s, "/"); i >= 0 {
+		s = s[:i]
+	}
 	return s
 }

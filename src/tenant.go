@@ -42,9 +42,9 @@ type TenantSummary struct {
 type TenantMember struct {
 	ID          int    `json:"id"`
 	TenantID    string `json:"tenant_id"`
-	MatchType   string `json:"match_type"`   // "sender_id" | "app_id" | "pattern"
-	MatchValue  string `json:"match_value"`  // 具体值或通配符模式
-	Description string `json:"description"`  // 备注
+	MatchType   string `json:"match_type"`  // "sender_id" | "app_id" | "pattern"
+	MatchValue  string `json:"match_value"` // 具体值或通配符模式
+	Description string `json:"description"` // 备注
 	CreatedAt   string `json:"created_at"`
 }
 
@@ -55,10 +55,10 @@ type TenantManager struct {
 	mu      sync.RWMutex
 
 	// 成员映射缓存（v14.0 闭环）
-	memberMu      sync.RWMutex
-	senderMap     map[string]string // sender_id → tenant_id (精确匹配)
-	appMap        map[string]string // app_id → tenant_id (精确匹配)
-	patternRules  []patternEntry    // pattern 规则列表
+	memberMu     sync.RWMutex
+	senderMap    map[string]string // sender_id → tenant_id (精确匹配)
+	appMap       map[string]string // app_id → tenant_id (精确匹配)
+	patternRules []patternEntry    // pattern 规则列表
 }
 
 // patternEntry 通配符匹配规则
@@ -448,17 +448,17 @@ func (tm *TenantManager) ListMembers(tenantID string) ([]TenantMember, error) {
 // TenantConfig 租户安全策略配置
 type TenantConfig struct {
 	TenantID             string `json:"tenant_id"`
-	DisabledRules        string `json:"disabled_rules"`          // 逗号分隔的禁用规则名
-	ExtraRulesYAML       string `json:"extra_rules_yaml"`        // 租户额外规则（YAML格式）
-	SourceClassifierYAML string `json:"source_classifier_yaml"`  // 租户 source classifier override（YAML格式）
+	DisabledRules        string `json:"disabled_rules"`         // 逗号分隔的禁用规则名
+	ExtraRulesYAML       string `json:"extra_rules_yaml"`       // 租户额外规则（YAML格式）
+	SourceClassifierYAML string `json:"source_classifier_yaml"` // 租户 source classifier override（YAML格式）
 	StrictMode           bool   `json:"strict_mode"`
 	CanaryEnabled        bool   `json:"canary_enabled"`
 	BudgetEnabled        bool   `json:"budget_enabled"`
 	BudgetMaxTokens      int    `json:"budget_max_tokens"` // 0=使用全局
 	BudgetMaxTools       int    `json:"budget_max_tools"`  // 0=使用全局
-	ToolBlacklist        string `json:"tool_blacklist"`     // 逗号分隔
-	AlertLevel           string `json:"alert_level"`        // low/medium/high/critical
-	AlertWebhook         string `json:"alert_webhook"`      // 租户专属 webhook
+	ToolBlacklist        string `json:"tool_blacklist"`    // 逗号分隔
+	AlertLevel           string `json:"alert_level"`       // low/medium/high/critical
+	AlertWebhook         string `json:"alert_webhook"`     // 租户专属 webhook
 	UpdatedAt            string `json:"updated_at"`
 }
 

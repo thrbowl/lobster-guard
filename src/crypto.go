@@ -47,17 +47,24 @@ func NewAhoCorasick(patterns []string) *AhoCorasick {
 		ac.output[s] = append(ac.output[s], i)
 	}
 	var q []int
-	for _, s := range ac.gotoFn[0] { q = append(q, s) }
+	for _, s := range ac.gotoFn[0] {
+		q = append(q, s)
+	}
 	for len(q) > 0 {
-		r := q[0]; q = q[1:]
+		r := q[0]
+		q = q[1:]
 		for ch, s := range ac.gotoFn[r] {
 			q = append(q, s)
 			st := ac.fail[r]
 			for st != 0 {
-				if _, ok := ac.gotoFn[st][ch]; ok { break }
+				if _, ok := ac.gotoFn[st][ch]; ok {
+					break
+				}
 				st = ac.fail[st]
 			}
-			if nx, ok := ac.gotoFn[st][ch]; ok && nx != s { ac.fail[s] = nx }
+			if nx, ok := ac.gotoFn[st][ch]; ok && nx != s {
+				ac.fail[s] = nx
+			}
 			if ac.output[ac.fail[s]] != nil {
 				cp := make([]int, len(ac.output[s]))
 				copy(cp, ac.output[s])
@@ -73,10 +80,14 @@ func (ac *AhoCorasick) Search(text string) []int {
 	s := 0
 	for _, ch := range strings.ToLower(text) {
 		for s != 0 {
-			if _, ok := ac.gotoFn[s][ch]; ok { break }
+			if _, ok := ac.gotoFn[s][ch]; ok {
+				break
+			}
 			s = ac.fail[s]
 		}
-		if nx, ok := ac.gotoFn[s][ch]; ok { s = nx }
+		if nx, ok := ac.gotoFn[s][ch]; ok {
+			s = nx
+		}
 		matches = append(matches, ac.output[s]...)
 	}
 	return matches
@@ -86,22 +97,29 @@ func (ac *AhoCorasick) Search(text string) []int {
 // 蓝信加解密
 // ============================================================
 
-type LanxinCrypto struct { aesKey, iv []byte; signToken string }
+type LanxinCrypto struct {
+	aesKey, iv []byte
+	signToken  string
+}
 
 func NewLanxinCrypto(callbackKey, signToken string) (*LanxinCrypto, error) {
 	dec, err := base64.StdEncoding.DecodeString(callbackKey + "=")
-	if err != nil { return nil, fmt.Errorf("解码 callbackKey 失败: %w", err) }
-	if len(dec) < 32 { return nil, fmt.Errorf("callbackKey 过短: %d", len(dec)) }
+	if err != nil {
+		return nil, fmt.Errorf("解码 callbackKey 失败: %w", err)
+	}
+	if len(dec) < 32 {
+		return nil, fmt.Errorf("callbackKey 过短: %d", len(dec))
+	}
 	k := dec[:32]
 	return &LanxinCrypto{aesKey: k, iv: k[:16], signToken: signToken}, nil
 }
 
 type LanxinWebhookBody struct {
 	DataEncrypt string `json:"dataEncrypt"`
-	Encrypt     string `json:"encrypt"`    // 兼容字段
-	Signature   string `json:"signature"`  // 可能在 URL query 中
-	Timestamp   string `json:"timestamp"`  // 可能在 URL query 中
-	Nonce       string `json:"nonce"`      // 可能在 URL query 中
+	Encrypt     string `json:"encrypt"`   // 兼容字段
+	Signature   string `json:"signature"` // 可能在 URL query 中
+	Timestamp   string `json:"timestamp"` // 可能在 URL query 中
+	Nonce       string `json:"nonce"`     // 可能在 URL query 中
 }
 
 // DataEncryptValue 返回密文（兼容 dataEncrypt 和 encrypt 两种字段名）
@@ -121,21 +139,36 @@ func (lc *LanxinCrypto) VerifySignature(b *LanxinWebhookBody) bool {
 
 func (lc *LanxinCrypto) Decrypt(dataEncrypt string) ([]byte, error) {
 	ct, err := base64.StdEncoding.DecodeString(dataEncrypt)
-	if err != nil { return nil, fmt.Errorf("base64 解码失败: %w", err) }
+	if err != nil {
+		return nil, fmt.Errorf("base64 解码失败: %w", err)
+	}
 	block, err := aes.NewCipher(lc.aesKey)
-	if err != nil { return nil, fmt.Errorf("AES 失败: %w", err) }
-	if len(ct)%aes.BlockSize != 0 { return nil, fmt.Errorf("密文长度不合法") }
+	if err != nil {
+		return nil, fmt.Errorf("AES 失败: %w", err)
+	}
+	if len(ct)%aes.BlockSize != 0 {
+		return nil, fmt.Errorf("密文长度不合法")
+	}
 	pt := make([]byte, len(ct))
 	cipher.NewCBCDecrypter(block, lc.iv).CryptBlocks(pt, ct)
 	if n := len(pt); n > 0 {
 		pad := int(pt[n-1])
 		if pad > 0 && pad <= aes.BlockSize && pad <= n {
 			ok := true
-			for i := n - pad; i < n; i++ { if pt[i] != byte(pad) { ok = false; break } }
-			if ok { pt = pt[:n-pad] }
+			for i := n - pad; i < n; i++ {
+				if pt[i] != byte(pad) {
+					ok = false
+					break
+				}
+			}
+			if ok {
+				pt = pt[:n-pad]
+			}
 		}
 	}
-	if len(pt) < 20 { return nil, fmt.Errorf("数据过短: %d", len(pt)) }
+	if len(pt) < 20 {
+		return nil, fmt.Errorf("数据过短: %d", len(pt))
+	}
 	cl := binary.BigEndian.Uint32(pt[16:20])
 	var raw string
 	if int(cl) <= len(pt)-20 {
@@ -163,16 +196,31 @@ func extractFirstJSON(s string) string {
 	escape := false
 	for i := 0; i < len(s); i++ {
 		c := s[i]
-		if escape { escape = false; continue }
-		if inStr {
-			if c == '\\' { escape = true } else if c == '"' { inStr = false }
+		if escape {
+			escape = false
 			continue
 		}
-		if c == '"' { inStr = true; continue }
-		if c == '{' { depth++; continue }
+		if inStr {
+			if c == '\\' {
+				escape = true
+			} else if c == '"' {
+				inStr = false
+			}
+			continue
+		}
+		if c == '"' {
+			inStr = true
+			continue
+		}
+		if c == '{' {
+			depth++
+			continue
+		}
 		if c == '}' {
 			depth--
-			if depth == 0 { return s[:i+1] }
+			if depth == 0 {
+				return s[:i+1]
+			}
 		}
 	}
 	return ""
@@ -180,31 +228,53 @@ func extractFirstJSON(s string) string {
 
 func extractMessageText(data []byte) (text, senderID, eventType, appID string) {
 	data = bytes.TrimSpace(data)
-	if len(data) == 0 { return }
+	if len(data) == 0 {
+		return
+	}
 
 	var msg map[string]interface{}
-	if json.Unmarshal(data, &msg) != nil { return }
+	if json.Unmarshal(data, &msg) != nil {
+		return
+	}
 
-	if et, ok := msg["eventType"].(string); ok { eventType = et }
+	if et, ok := msg["eventType"].(string); ok {
+		eventType = et
+	}
 	if d, ok := msg["data"].(map[string]interface{}); ok {
 		for _, k := range []string{"FromStaffId", "from", "senderId", "sender_id"} {
-			if s, ok := d[k].(string); ok && s != "" { senderID = s; break }
+			if s, ok := d[k].(string); ok && s != "" {
+				senderID = s
+				break
+			}
 		}
 		// appID: entryId 或 appId
 		for _, k := range []string{"entryId", "appId", "app_id"} {
-			if s, ok := d[k].(string); ok && s != "" { appID = s; break }
+			if s, ok := d[k].(string); ok && s != "" {
+				appID = s
+				break
+			}
 		}
 		if md, ok := d["msgData"].(map[string]interface{}); ok {
 			if to, ok := md["text"].(map[string]interface{}); ok {
 				for _, k := range []string{"content", "Content"} {
-					if c, ok := to[k].(string); ok { text = c; return }
+					if c, ok := to[k].(string); ok {
+						text = c
+						return
+					}
 				}
 			}
-			if s, ok := md["text"].(string); ok { text = s; return }
-			if c, ok := md["content"].(string); ok { text = c; return }
+			if s, ok := md["text"].(string); ok {
+				text = s
+				return
+			}
+			if c, ok := md["content"].(string); ok {
+				text = c
+				return
+			}
 		}
 	}
-	if c, ok := msg["content"].(string); ok { text = c }
+	if c, ok := msg["content"].(string); ok {
+		text = c
+	}
 	return
 }
-

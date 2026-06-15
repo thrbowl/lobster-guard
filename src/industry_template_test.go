@@ -57,12 +57,12 @@ func TestDefaultIndustryTemplates(t *testing.T) {
 func TestIndustryTemplateCRUDAndCompatAPI(t *testing.T) {
 	api := newIndustryTemplateTestAPI(t)
 	body := IndustryTemplate{
-		ID:          "tpl-custom-retail",
-		Name:        "自定义零售模板",
-		Description: "test",
-		Category:    "industry",
-		InboundRules: []InboundRuleConfig{{Name: "retail-in", Patterns: []string{"会员号"}, Action: "warn", Category: "pii"}},
-		LLMRules: []LLMRule{{ID: "retail-llm-1", Name: "retail-llm", Direction: "request", Type: "keyword", Patterns: []string{"export order"}, Action: "warn", Enabled: true}},
+		ID:            "tpl-custom-retail",
+		Name:          "自定义零售模板",
+		Description:   "test",
+		Category:      "industry",
+		InboundRules:  []InboundRuleConfig{{Name: "retail-in", Patterns: []string{"会员号"}, Action: "warn", Category: "pii"}},
+		LLMRules:      []LLMRule{{ID: "retail-llm-1", Name: "retail-llm", Direction: "request", Type: "keyword", Patterns: []string{"export order"}, Action: "warn", Enabled: true}},
 		OutboundRules: []OutboundRuleConfig{{Name: "retail-out", Patterns: []string{"订单号[:：]"}, Action: "warn"}},
 	}
 	buf, _ := json.Marshal(body)

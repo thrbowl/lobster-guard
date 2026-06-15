@@ -29,14 +29,16 @@ func (api *ManagementAPI) handleHealthz(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// v4.2: 增强型健康检查
-	healthResult := PerformHealthChecks(api.store, api.pool, api.cfg.DBPath)
+	healthResult := PerformHealthChecks(api.store, api.pool)
 
 	// 同时保留原有的详细信息
 	upstreams := api.pool.ListUpstreams()
 	healthyCount := 0
 	upstreamList := []map[string]interface{}{}
 	for _, up := range upstreams {
-		if up.Healthy { healthyCount++ }
+		if up.Healthy {
+			healthyCount++
+		}
 		upstreamList = append(upstreamList, map[string]interface{}{
 			"id": up.ID, "address": up.Address, "port": up.Port,
 			"healthy": up.Healthy, "user_count": up.UserCount, "static": up.Static,
@@ -78,7 +80,7 @@ func (api *ManagementAPI) handleHealthz(w http.ResponseWriter, r *http.Request) 
 	}
 	result["modules"] = modules
 	// v11.1: 系统健康指标
-	result["system"] = GetSystemHealth(api.cfg.DBPath)
+	result["system"] = GetSystemHealth()
 	// v11.1: 严格模式状态
 	if api.strictMode != nil {
 		result["strict_mode"] = api.strictMode.IsEnabled()
@@ -173,9 +175,9 @@ func (api *ManagementAPI) handleDiscoveryStatus(w http.ResponseWriter, r *http.R
 // RouteEntryWithConflict 路由条目 + 策略冲突信息
 type RouteEntryWithConflict struct {
 	RouteEntry
-	PolicyConflict  bool   `json:"policy_conflict"`
-	PolicyUpstream  string `json:"policy_upstream,omitempty"`
-	PolicyRule      string `json:"policy_rule,omitempty"`
+	PolicyConflict bool   `json:"policy_conflict"`
+	PolicyUpstream string `json:"policy_upstream,omitempty"`
+	PolicyRule     string `json:"policy_rule,omitempty"`
 }
 
 func (api *ManagementAPI) handleStats(w http.ResponseWriter, r *http.Request) {
@@ -193,7 +195,9 @@ func (api *ManagementAPI) handleStats(w http.ResponseWriter, r *http.Request) {
 	upstreams := api.pool.ListUpstreams()
 	healthyCount := 0
 	for _, up := range upstreams {
-		if up.Healthy { healthyCount++ }
+		if up.Healthy {
+			healthyCount++
+		}
 	}
 	stats["upstreams_total"] = len(upstreams)
 	stats["upstreams_healthy"] = healthyCount
@@ -585,17 +589,17 @@ func (api *ManagementAPI) handleSimulateTraffic(w http.ResponseWriter, r *http.R
 				events = append(events, fmt.Sprintf("honeypot_triggered: template=%s", tpl.Name))
 				// 记录触发
 				trigger := &HoneypotTrigger{
-					ID:           fmt.Sprintf("sim-trig-%d", now.UnixNano()%1000000),
-					Timestamp:    now.Format(time.RFC3339),
-					TenantID:     tenantID,
-					SenderID:     senderID,
-					TemplateID:   tpl.ID,
-					TemplateName: tpl.Name,
-					TriggerType:  tpl.TriggerType,
+					ID:            fmt.Sprintf("sim-trig-%d", now.UnixNano()%1000000),
+					Timestamp:     now.Format(time.RFC3339),
+					TenantID:      tenantID,
+					SenderID:      senderID,
+					TemplateID:    tpl.ID,
+					TemplateName:  tpl.Name,
+					TriggerType:   tpl.TriggerType,
 					OriginalInput: inText,
-					FakeResponse: tpl.ResponseTemplate,
-					Watermark:    watermark,
-					TraceID:      traceID,
+					FakeResponse:  tpl.ResponseTemplate,
+					Watermark:     watermark,
+					TraceID:       traceID,
 				}
 				api.honeypotEngine.RecordTrigger(trigger)
 
@@ -738,7 +742,7 @@ func (api *ManagementAPI) handleSimulateTraffic(w http.ResponseWriter, r *http.R
 			callID, _ := api.llmAuditor.RecordCallWithTenant(
 				ts, traceID, "gpt-4o", 500, 800, 1300,
 				1200.0, 200, false, 0, "",
-				true,  // canaryLeaked = true!
+				true, // canaryLeaked = true!
 				false, "", "", tenantID)
 			events = append(events, fmt.Sprintf("llm_call: id=%d canary_leaked=true!", callID))
 		}
@@ -763,7 +767,7 @@ func (api *ManagementAPI) handleSimulateTraffic(w http.ResponseWriter, r *http.R
 				ts, budgetTraceID, "gpt-4o", 50000, 30000, 80000,
 				5000.0, 200, true, 3, "",
 				false,
-				true,  // budgetExceeded = true!
+				true, // budgetExceeded = true!
 				"daily_token_limit:80000/50000", "", tenantID)
 			events = append(events, fmt.Sprintf("llm_call: id=%d budget_exceeded=true (80K/50K tokens)", callID))
 		}
@@ -831,8 +835,12 @@ func (api *ManagementAPI) handleSimulateTraffic(w http.ResponseWriter, r *http.R
 				// LLM 调用
 				if api.llmAuditor != nil {
 					model := "gpt-4o"
-					if i%3 == 1 { model = "claude-3.5-sonnet" }
-					if i%3 == 2 { model = "deepseek-chat" }
+					if i%3 == 1 {
+						model = "claude-3.5-sonnet"
+					}
+					if i%3 == 2 {
+						model = "deepseek-chat"
+					}
 					callID, _ := api.llmAuditor.RecordCallWithTenant(
 						turnTime.Format(time.RFC3339), traceID, model,
 						80+i*20, 150+i*30, 230+i*50,
@@ -913,7 +921,9 @@ func (api *ManagementAPI) handleSimulateTraffic(w http.ResponseWriter, r *http.R
 
 			// 记录审计日志
 			action := outResult.Action
-			if llmAction == "block" { action = "block" }
+			if llmAction == "block" {
+				action = "block"
+			}
 			api.logger.LogWithTrace("outbound", senderID, action, outResult.Reason, rt.response, "", 1.0, upstreamID, appID, traceID)
 		}
 
@@ -1017,339 +1027,339 @@ func (api *ManagementAPI) handleConfigSettingsUpdate(w http.ResponseWriter, r *h
 	errNoFieldsToUpdate := errors.New("no fields to update")
 	if err := persistence.PatchWith(func(raw map[string]interface{}) error {
 
-	// 基础配置
-	if v, ok := req["inbound_listen"]; ok {
-		s := fmt.Sprintf("%v", v)
-		api.cfg.InboundListen = s
-		raw["inbound_listen"] = s
-		updated = append(updated, "inbound_listen")
-		needRestart = true
-	}
-	if v, ok := req["outbound_listen"]; ok {
-		s := fmt.Sprintf("%v", v)
-		api.cfg.OutboundListen = s
-		raw["outbound_listen"] = s
-		updated = append(updated, "outbound_listen")
-		needRestart = true
-	}
-	if v, ok := req["management_listen"]; ok {
-		s := fmt.Sprintf("%v", v)
-		api.cfg.ManagementListen = s
-		raw["management_listen"] = s
-		updated = append(updated, "management_listen")
-		needRestart = true
-	}
-	if v, ok := req["openclaw_upstream"]; ok {
-		s := fmt.Sprintf("%v", v)
-		api.cfg.OpenClawUpstream = s
-		raw["openclaw_upstream"] = s
-		updated = append(updated, "openclaw_upstream")
-	}
-	if v, ok := req["lanxin_upstream"]; ok {
-		s := fmt.Sprintf("%v", v)
-		api.cfg.LanxinUpstream = s
-		raw["lanxin_upstream"] = s
-		updated = append(updated, "lanxin_upstream")
-	}
-	if v, ok := req["log_level"]; ok {
-		s := fmt.Sprintf("%v", v)
-		api.cfg.LogLevel = s
-		raw["log_level"] = s
-		updated = append(updated, "log_level")
-	}
-	if v, ok := req["log_format"]; ok {
-		s := fmt.Sprintf("%v", v)
-		api.cfg.LogFormat = s
-		raw["log_format"] = s
-		updated = append(updated, "log_format")
-	}
-	// v29.0: 全局默认 Gateway Origin
-	if v, ok := req["default_gateway_origin"]; ok {
-		s := fmt.Sprintf("%v", v)
-		api.cfg.DefaultGatewayOrigin = s
-		raw["default_gateway_origin"] = s
-		updated = append(updated, "default_gateway_origin")
-		// 更新 WSS manager 的默认 origin
-		if api.gwManager != nil {
-			api.gwManager.defaultOrigin = s
+		// 基础配置
+		if v, ok := req["inbound_listen"]; ok {
+			s := fmt.Sprintf("%v", v)
+			api.cfg.InboundListen = s
+			raw["inbound_listen"] = s
+			updated = append(updated, "inbound_listen")
+			needRestart = true
 		}
-	}
+		if v, ok := req["outbound_listen"]; ok {
+			s := fmt.Sprintf("%v", v)
+			api.cfg.OutboundListen = s
+			raw["outbound_listen"] = s
+			updated = append(updated, "outbound_listen")
+			needRestart = true
+		}
+		if v, ok := req["management_listen"]; ok {
+			s := fmt.Sprintf("%v", v)
+			api.cfg.ManagementListen = s
+			raw["management_listen"] = s
+			updated = append(updated, "management_listen")
+			needRestart = true
+		}
+		if v, ok := req["openclaw_upstream"]; ok {
+			s := fmt.Sprintf("%v", v)
+			api.cfg.OpenClawUpstream = s
+			raw["openclaw_upstream"] = s
+			updated = append(updated, "openclaw_upstream")
+		}
+		if v, ok := req["lanxin_upstream"]; ok {
+			s := fmt.Sprintf("%v", v)
+			api.cfg.LanxinUpstream = s
+			raw["lanxin_upstream"] = s
+			updated = append(updated, "lanxin_upstream")
+		}
+		if v, ok := req["log_level"]; ok {
+			s := fmt.Sprintf("%v", v)
+			api.cfg.LogLevel = s
+			raw["log_level"] = s
+			updated = append(updated, "log_level")
+		}
+		if v, ok := req["log_format"]; ok {
+			s := fmt.Sprintf("%v", v)
+			api.cfg.LogFormat = s
+			raw["log_format"] = s
+			updated = append(updated, "log_format")
+		}
+		// v29.0: 全局默认 Gateway Origin
+		if v, ok := req["default_gateway_origin"]; ok {
+			s := fmt.Sprintf("%v", v)
+			api.cfg.DefaultGatewayOrigin = s
+			raw["default_gateway_origin"] = s
+			updated = append(updated, "default_gateway_origin")
+			// 更新 WSS manager 的默认 origin
+			if api.gwManager != nil {
+				api.gwManager.defaultOrigin = s
+			}
+		}
 
-	// 安全检测
-	if v, ok := req["inbound_detect_enabled"]; ok {
-		b, _ := v.(bool)
-		api.cfg.InboundDetectEnabled = b
-		raw["inbound_detect_enabled"] = b
-		updated = append(updated, "inbound_detect_enabled")
-	}
-	if v, ok := req["outbound_audit_enabled"]; ok {
-		b, _ := v.(bool)
-		api.cfg.OutboundAuditEnabled = b
-		raw["outbound_audit_enabled"] = b
-		updated = append(updated, "outbound_audit_enabled")
-	}
-	if v, ok := req["detect_timeout_ms"]; ok {
-		n := toInt(v)
-		if n > 0 {
-			api.cfg.DetectTimeoutMs = n
-			raw["detect_timeout_ms"] = n
-			updated = append(updated, "detect_timeout_ms")
-		}
-	}
-
-	// 限流配置
-	if v, ok := req["rate_limit"]; ok {
-		if rlMap, ok2 := v.(map[string]interface{}); ok2 {
-			if gv, ok3 := rlMap["global_rps"]; ok3 {
-				api.cfg.RateLimit.GlobalRPS = toFloat64(gv)
-			}
-			if gv, ok3 := rlMap["global_burst"]; ok3 {
-				api.cfg.RateLimit.GlobalBurst = toInt(gv)
-			}
-			if gv, ok3 := rlMap["per_sender_rps"]; ok3 {
-				api.cfg.RateLimit.PerSenderRPS = toFloat64(gv)
-			}
-			if gv, ok3 := rlMap["per_sender_burst"]; ok3 {
-				api.cfg.RateLimit.PerSenderBurst = toInt(gv)
-			}
-			raw["rate_limit"] = rlMap
-			updated = append(updated, "rate_limit")
-		}
-	}
-
-	// 会话关联
-	if v, ok := req["session_idle_timeout_min"]; ok {
-		n := toInt(v)
-		if n > 0 {
-			api.cfg.SessionIdleTimeoutMin = n
-			raw["session_idle_timeout_min"] = n
-			updated = append(updated, "session_idle_timeout_min")
-			if api.sessionCorrelator != nil {
-				api.sessionCorrelator.mu.Lock()
-				api.sessionCorrelator.idleTimeoutMs = int64(n) * 60 * 1000
-				api.sessionCorrelator.mu.Unlock()
-			}
-		}
-	}
-	if v, ok := req["session_fp_window_sec"]; ok {
-		n := toInt(v)
-		if n > 0 {
-			api.cfg.SessionFPWindowSec = n
-			raw["session_fp_window_sec"] = n
-			updated = append(updated, "session_fp_window_sec")
-			if api.sessionCorrelator != nil {
-				api.sessionCorrelator.mu.Lock()
-				api.sessionCorrelator.fpWindowMs = int64(n) * 1000
-				api.sessionCorrelator.mu.Unlock()
-			}
-		}
-	}
-
-	// 告警配置
-	if v, ok := req["alert_webhook"]; ok {
-		s := fmt.Sprintf("%v", v)
-		api.cfg.AlertWebhook = s
-		raw["alert_webhook"] = s
-		updated = append(updated, "alert_webhook")
-	}
-	if v, ok := req["alert_min_interval"]; ok {
-		n := toInt(v)
-		api.cfg.AlertMinInterval = n
-		raw["alert_min_interval"] = n
-		updated = append(updated, "alert_min_interval")
-	}
-	if v, ok := req["alert_format"]; ok {
-		s := fmt.Sprintf("%v", v)
-		api.cfg.AlertFormat = s
-		raw["alert_format"] = s
-		updated = append(updated, "alert_format")
-	}
-
-	// 高级配置
-	if v, ok := req["db_path"]; ok {
-		s := fmt.Sprintf("%v", v)
-		api.cfg.DBPath = s
-		raw["db_path"] = s
-		updated = append(updated, "db_path")
-		needRestart = true
-	}
-	if v, ok := req["heartbeat_interval_sec"]; ok {
-		n := toInt(v)
-		if n > 0 {
-			api.cfg.HeartbeatIntervalSec = n
-			raw["heartbeat_interval_sec"] = n
-			updated = append(updated, "heartbeat_interval_sec")
-		}
-	}
-	if v, ok := req["route_default_policy"]; ok {
-		s := fmt.Sprintf("%v", v)
-		api.cfg.RouteDefaultPolicy = s
-		raw["route_default_policy"] = s
-		updated = append(updated, "route_default_policy")
-	}
-	if v, ok := req["audit_retention_days"]; ok {
-		n := toInt(v)
-		if n > 0 {
-			api.cfg.AuditRetentionDays = n
-			raw["audit_retention_days"] = n
-			updated = append(updated, "audit_retention_days")
-		}
-	}
-	if v, ok := req["ws_idle_timeout"]; ok {
-		n := toInt(v)
-		api.cfg.WSIdleTimeout = n
-		raw["ws_idle_timeout"] = n
-		updated = append(updated, "ws_idle_timeout")
-	}
-	if v, ok := req["backup_auto_interval"]; ok {
-		n := toInt(v)
-		api.cfg.BackupAutoInterval = n
-		raw["backup_auto_interval"] = n
-		updated = append(updated, "backup_auto_interval")
-	}
-
-	// 统一引擎开关 — 所有引擎的 enabled 都通过此 map 管理
-	type engineDef struct {
-		cfgPtr   *bool
-		yamlKey  string // "" = top-level bool field
-		topYaml  string // explicit yaml key for top-level bool fields
-	}
-	engineMap := map[string]engineDef{
-		// 基础检测（top-level bool，需要显式指定 yaml tag 名）
-		"engine_inbound_detect":  {&api.cfg.InboundDetectEnabled, "", "inbound_detect_enabled"},
-		"engine_session_detect":  {&api.cfg.SessionDetectEnabled, "", "session_detect_enabled"},
-		"engine_llm_detect":      {&api.cfg.LLMDetectEnabled, "", "llm_detect_enabled"},
-		"engine_semantic":        {&api.cfg.SemanticDetector.Enabled, "semantic_detector", ""},
-		// 蜜罐
-		"engine_honeypot":        {&api.cfg.Honeypot.Enabled, "honeypot", ""},
-		"engine_honeypot_deep":   {&api.cfg.HoneypotDeep.Enabled, "honeypot_deep", ""},
-		"engine_singularity":     {&api.cfg.Singularity.Enabled, "singularity", ""},
-		// IFC
-		"engine_ifc":             {&api.cfg.IFC.Enabled, "ifc", ""},
-		"engine_ifc_quarantine":  {&api.cfg.IFC.QuarantineEnabled, "ifc", ""},
-		"engine_ifc_hiding":      {&api.cfg.IFC.HidingEnabled, "ifc", ""},
-		// 策略
-		"engine_path_policy":     {&api.cfg.PathPolicy.Enabled, "path_policy", ""},
-		"engine_tool_policy":     {&api.cfg.ToolPolicy.Enabled, "tool_policy", ""},
-		// CaMeL
-		"engine_plan_compiler":   {&api.cfg.PlanCompiler.Enabled, "plan_compiler", ""},
-		"engine_capability":      {&api.cfg.Capability.Enabled, "capability", ""},
-		"engine_deviation":       {&api.cfg.Deviation.Enabled, "deviation", ""},
-		"engine_counterfactual":  {&api.cfg.Counterfactual.Enabled, "counterfactual", ""},
-		// 辅助（top-level bool）
-		"engine_envelope":        {&api.cfg.EnvelopeEnabled, "", "envelope_enabled"},
-		"engine_evolution":       {&api.cfg.EvolutionEnabled, "", "evolution_enabled"},
-		"engine_adaptive":        {&api.cfg.AdaptiveDecision.Enabled, "adaptive_decision", ""},
-		"engine_taint_tracker":   {&api.cfg.TaintTracker.Enabled, "taint_tracker", ""},
-		"engine_taint_reversal":  {&api.cfg.TaintReversal.Enabled, "taint_reversal", ""},
-		"engine_event_bus":       {&api.cfg.EventBus.Enabled, "event_bus", ""},
-	}
-	// toStringMap 将 yaml.v2 解析出的 map[interface{}]interface{} 安全转为 map[string]interface{}
-	toStringMap := func(v interface{}) map[string]interface{} {
-		switch m := v.(type) {
-		case map[string]interface{}:
-			return m
-		case map[interface{}]interface{}:
-			out := make(map[string]interface{}, len(m))
-			for k, val := range m {
-				out[fmt.Sprintf("%v", k)] = val
-			}
-			return out
-		}
-		return map[string]interface{}{}
-	}
-	for reqKey, eng := range engineMap {
-		if v, ok := req[reqKey]; ok {
+		// 安全检测
+		if v, ok := req["inbound_detect_enabled"]; ok {
 			b, _ := v.(bool)
-			*eng.cfgPtr = b
-			if eng.yamlKey == "" {
-				// top-level bool: 用显式指定的 yaml tag 写入
-				raw[eng.topYaml] = b
-			} else {
-				// nested struct: 用 toStringMap 兼容 yaml.v2/v3，保留已有字段
-				sub := toStringMap(raw[eng.yamlKey])
-				switch reqKey {
-				case "engine_ifc_quarantine":
-					sub["quarantine_enabled"] = b
-				case "engine_ifc_hiding":
-					sub["hiding_enabled"] = b
-				default:
-					sub["enabled"] = b
+			api.cfg.InboundDetectEnabled = b
+			raw["inbound_detect_enabled"] = b
+			updated = append(updated, "inbound_detect_enabled")
+		}
+		if v, ok := req["outbound_audit_enabled"]; ok {
+			b, _ := v.(bool)
+			api.cfg.OutboundAuditEnabled = b
+			raw["outbound_audit_enabled"] = b
+			updated = append(updated, "outbound_audit_enabled")
+		}
+		if v, ok := req["detect_timeout_ms"]; ok {
+			n := toInt(v)
+			if n > 0 {
+				api.cfg.DetectTimeoutMs = n
+				raw["detect_timeout_ms"] = n
+				updated = append(updated, "detect_timeout_ms")
+			}
+		}
+
+		// 限流配置
+		if v, ok := req["rate_limit"]; ok {
+			if rlMap, ok2 := v.(map[string]interface{}); ok2 {
+				if gv, ok3 := rlMap["global_rps"]; ok3 {
+					api.cfg.RateLimit.GlobalRPS = toFloat64(gv)
 				}
-				raw[eng.yamlKey] = sub
+				if gv, ok3 := rlMap["global_burst"]; ok3 {
+					api.cfg.RateLimit.GlobalBurst = toInt(gv)
+				}
+				if gv, ok3 := rlMap["per_sender_rps"]; ok3 {
+					api.cfg.RateLimit.PerSenderRPS = toFloat64(gv)
+				}
+				if gv, ok3 := rlMap["per_sender_burst"]; ok3 {
+					api.cfg.RateLimit.PerSenderBurst = toInt(gv)
+				}
+				raw["rate_limit"] = rlMap
+				updated = append(updated, "rate_limit")
 			}
-			if reqKey == "engine_honeypot" && api.honeypotEngine != nil {
-				api.honeypotEngine.SetEnabled(b)
+		}
+
+		// 会话关联
+		if v, ok := req["session_idle_timeout_min"]; ok {
+			n := toInt(v)
+			if n > 0 {
+				api.cfg.SessionIdleTimeoutMin = n
+				raw["session_idle_timeout_min"] = n
+				updated = append(updated, "session_idle_timeout_min")
+				if api.sessionCorrelator != nil {
+					api.sessionCorrelator.mu.Lock()
+					api.sessionCorrelator.idleTimeoutMs = int64(n) * 60 * 1000
+					api.sessionCorrelator.mu.Unlock()
+				}
 			}
-			updated = append(updated, reqKey)
+		}
+		if v, ok := req["session_fp_window_sec"]; ok {
+			n := toInt(v)
+			if n > 0 {
+				api.cfg.SessionFPWindowSec = n
+				raw["session_fp_window_sec"] = n
+				updated = append(updated, "session_fp_window_sec")
+				if api.sessionCorrelator != nil {
+					api.sessionCorrelator.mu.Lock()
+					api.sessionCorrelator.fpWindowMs = int64(n) * 1000
+					api.sessionCorrelator.mu.Unlock()
+				}
+			}
+		}
+
+		// 告警配置
+		if v, ok := req["alert_webhook"]; ok {
+			s := fmt.Sprintf("%v", v)
+			api.cfg.AlertWebhook = s
+			raw["alert_webhook"] = s
+			updated = append(updated, "alert_webhook")
+		}
+		if v, ok := req["alert_min_interval"]; ok {
+			n := toInt(v)
+			api.cfg.AlertMinInterval = n
+			raw["alert_min_interval"] = n
+			updated = append(updated, "alert_min_interval")
+		}
+		if v, ok := req["alert_format"]; ok {
+			s := fmt.Sprintf("%v", v)
+			api.cfg.AlertFormat = s
+			raw["alert_format"] = s
+			updated = append(updated, "alert_format")
+		}
+
+		// 高级配置
+		if v, ok := req["database_url"]; ok {
+			s := fmt.Sprintf("%v", v)
+			api.cfg.DatabaseURL = s
+			raw["database_url"] = s
+			updated = append(updated, "database_url")
 			needRestart = true
 		}
-	}
-
-	// 污染逆转双模式字段
-	if v, ok := req["taint_reversal_request_mode"]; ok {
-		s := fmt.Sprintf("%v", v)
-		api.cfg.TaintReversal.RequestMode = s
-		sub := toStringMap(raw["taint_reversal"])
-		sub["request_mode"] = s
-		raw["taint_reversal"] = sub
-		updated = append(updated, "taint_reversal_request_mode")
-	}
-	if v, ok := req["taint_reversal_response_mode"]; ok {
-		s := fmt.Sprintf("%v", v)
-		api.cfg.TaintReversal.ResponseMode = s
-		sub := toStringMap(raw["taint_reversal"])
-		sub["response_mode"] = s
-		raw["taint_reversal"] = sub
-		updated = append(updated, "taint_reversal_response_mode")
-	}
-
-	// v37.0 人工确认配置（接受 human_confirm 子对象）
-	if v, ok := req["human_confirm"]; ok {
-		if sub, ok2 := v.(map[string]interface{}); ok2 {
-			existing := toStringMap(raw["human_confirm"])
-			if b, ok3 := sub["enabled"]; ok3 {
-				if bv, ok4 := b.(bool); ok4 {
-					api.cfg.HumanConfirm.Enabled = bv
-					existing["enabled"] = bv
-				}
+		if v, ok := req["heartbeat_interval_sec"]; ok {
+			n := toInt(v)
+			if n > 0 {
+				api.cfg.HeartbeatIntervalSec = n
+				raw["heartbeat_interval_sec"] = n
+				updated = append(updated, "heartbeat_interval_sec")
 			}
-			if n, ok3 := sub["timeout_sec"]; ok3 {
-				nv := toInt(n)
-				api.cfg.HumanConfirm.TimeoutSec = nv
-				existing["timeout_sec"] = nv
-				_ = ok3
-			}
-			if s, ok3 := sub["timeout_action"]; ok3 {
-				sv := fmt.Sprintf("%v", s)
-				api.cfg.HumanConfirm.TimeoutAction = sv
-				existing["timeout_action"] = sv
-			}
-			if s, ok3 := sub["confirm_msg"]; ok3 {
-				sv := fmt.Sprintf("%v", s)
-				api.cfg.HumanConfirm.ConfirmMsg = sv
-				existing["confirm_msg"] = sv
-			}
-			if s, ok3 := sub["confirmed_msg"]; ok3 {
-				sv := fmt.Sprintf("%v", s)
-				api.cfg.HumanConfirm.ConfirmedMsg = sv
-				existing["confirmed_msg"] = sv
-			}
-			if s, ok3 := sub["cancelled_msg"]; ok3 {
-				sv := fmt.Sprintf("%v", s)
-				api.cfg.HumanConfirm.CancelledMsg = sv
-				existing["cancelled_msg"] = sv
-			}
-			if s, ok3 := sub["timeout_msg"]; ok3 {
-				sv := fmt.Sprintf("%v", s)
-				api.cfg.HumanConfirm.TimeoutMsg = sv
-				existing["timeout_msg"] = sv
-			}
-			raw["human_confirm"] = existing
-			updated = append(updated, "human_confirm")
-			needRestart = true
 		}
-	}
+		if v, ok := req["route_default_policy"]; ok {
+			s := fmt.Sprintf("%v", v)
+			api.cfg.RouteDefaultPolicy = s
+			raw["route_default_policy"] = s
+			updated = append(updated, "route_default_policy")
+		}
+		if v, ok := req["audit_retention_days"]; ok {
+			n := toInt(v)
+			if n > 0 {
+				api.cfg.AuditRetentionDays = n
+				raw["audit_retention_days"] = n
+				updated = append(updated, "audit_retention_days")
+			}
+		}
+		if v, ok := req["ws_idle_timeout"]; ok {
+			n := toInt(v)
+			api.cfg.WSIdleTimeout = n
+			raw["ws_idle_timeout"] = n
+			updated = append(updated, "ws_idle_timeout")
+		}
+		if v, ok := req["backup_auto_interval"]; ok {
+			n := toInt(v)
+			api.cfg.BackupAutoInterval = n
+			raw["backup_auto_interval"] = n
+			updated = append(updated, "backup_auto_interval")
+		}
+
+		// 统一引擎开关 — 所有引擎的 enabled 都通过此 map 管理
+		type engineDef struct {
+			cfgPtr  *bool
+			yamlKey string // "" = top-level bool field
+			topYaml string // explicit yaml key for top-level bool fields
+		}
+		engineMap := map[string]engineDef{
+			// 基础检测（top-level bool，需要显式指定 yaml tag 名）
+			"engine_inbound_detect": {&api.cfg.InboundDetectEnabled, "", "inbound_detect_enabled"},
+			"engine_session_detect": {&api.cfg.SessionDetectEnabled, "", "session_detect_enabled"},
+			"engine_llm_detect":     {&api.cfg.LLMDetectEnabled, "", "llm_detect_enabled"},
+			"engine_semantic":       {&api.cfg.SemanticDetector.Enabled, "semantic_detector", ""},
+			// 蜜罐
+			"engine_honeypot":      {&api.cfg.Honeypot.Enabled, "honeypot", ""},
+			"engine_honeypot_deep": {&api.cfg.HoneypotDeep.Enabled, "honeypot_deep", ""},
+			"engine_singularity":   {&api.cfg.Singularity.Enabled, "singularity", ""},
+			// IFC
+			"engine_ifc":            {&api.cfg.IFC.Enabled, "ifc", ""},
+			"engine_ifc_quarantine": {&api.cfg.IFC.QuarantineEnabled, "ifc", ""},
+			"engine_ifc_hiding":     {&api.cfg.IFC.HidingEnabled, "ifc", ""},
+			// 策略
+			"engine_path_policy": {&api.cfg.PathPolicy.Enabled, "path_policy", ""},
+			"engine_tool_policy": {&api.cfg.ToolPolicy.Enabled, "tool_policy", ""},
+			// CaMeL
+			"engine_plan_compiler":  {&api.cfg.PlanCompiler.Enabled, "plan_compiler", ""},
+			"engine_capability":     {&api.cfg.Capability.Enabled, "capability", ""},
+			"engine_deviation":      {&api.cfg.Deviation.Enabled, "deviation", ""},
+			"engine_counterfactual": {&api.cfg.Counterfactual.Enabled, "counterfactual", ""},
+			// 辅助（top-level bool）
+			"engine_envelope":       {&api.cfg.EnvelopeEnabled, "", "envelope_enabled"},
+			"engine_evolution":      {&api.cfg.EvolutionEnabled, "", "evolution_enabled"},
+			"engine_adaptive":       {&api.cfg.AdaptiveDecision.Enabled, "adaptive_decision", ""},
+			"engine_taint_tracker":  {&api.cfg.TaintTracker.Enabled, "taint_tracker", ""},
+			"engine_taint_reversal": {&api.cfg.TaintReversal.Enabled, "taint_reversal", ""},
+			"engine_event_bus":      {&api.cfg.EventBus.Enabled, "event_bus", ""},
+		}
+		// toStringMap 将 yaml.v2 解析出的 map[interface{}]interface{} 安全转为 map[string]interface{}
+		toStringMap := func(v interface{}) map[string]interface{} {
+			switch m := v.(type) {
+			case map[string]interface{}:
+				return m
+			case map[interface{}]interface{}:
+				out := make(map[string]interface{}, len(m))
+				for k, val := range m {
+					out[fmt.Sprintf("%v", k)] = val
+				}
+				return out
+			}
+			return map[string]interface{}{}
+		}
+		for reqKey, eng := range engineMap {
+			if v, ok := req[reqKey]; ok {
+				b, _ := v.(bool)
+				*eng.cfgPtr = b
+				if eng.yamlKey == "" {
+					// top-level bool: 用显式指定的 yaml tag 写入
+					raw[eng.topYaml] = b
+				} else {
+					// nested struct: 用 toStringMap 兼容 yaml.v2/v3，保留已有字段
+					sub := toStringMap(raw[eng.yamlKey])
+					switch reqKey {
+					case "engine_ifc_quarantine":
+						sub["quarantine_enabled"] = b
+					case "engine_ifc_hiding":
+						sub["hiding_enabled"] = b
+					default:
+						sub["enabled"] = b
+					}
+					raw[eng.yamlKey] = sub
+				}
+				if reqKey == "engine_honeypot" && api.honeypotEngine != nil {
+					api.honeypotEngine.SetEnabled(b)
+				}
+				updated = append(updated, reqKey)
+				needRestart = true
+			}
+		}
+
+		// 污染逆转双模式字段
+		if v, ok := req["taint_reversal_request_mode"]; ok {
+			s := fmt.Sprintf("%v", v)
+			api.cfg.TaintReversal.RequestMode = s
+			sub := toStringMap(raw["taint_reversal"])
+			sub["request_mode"] = s
+			raw["taint_reversal"] = sub
+			updated = append(updated, "taint_reversal_request_mode")
+		}
+		if v, ok := req["taint_reversal_response_mode"]; ok {
+			s := fmt.Sprintf("%v", v)
+			api.cfg.TaintReversal.ResponseMode = s
+			sub := toStringMap(raw["taint_reversal"])
+			sub["response_mode"] = s
+			raw["taint_reversal"] = sub
+			updated = append(updated, "taint_reversal_response_mode")
+		}
+
+		// v37.0 人工确认配置（接受 human_confirm 子对象）
+		if v, ok := req["human_confirm"]; ok {
+			if sub, ok2 := v.(map[string]interface{}); ok2 {
+				existing := toStringMap(raw["human_confirm"])
+				if b, ok3 := sub["enabled"]; ok3 {
+					if bv, ok4 := b.(bool); ok4 {
+						api.cfg.HumanConfirm.Enabled = bv
+						existing["enabled"] = bv
+					}
+				}
+				if n, ok3 := sub["timeout_sec"]; ok3 {
+					nv := toInt(n)
+					api.cfg.HumanConfirm.TimeoutSec = nv
+					existing["timeout_sec"] = nv
+					_ = ok3
+				}
+				if s, ok3 := sub["timeout_action"]; ok3 {
+					sv := fmt.Sprintf("%v", s)
+					api.cfg.HumanConfirm.TimeoutAction = sv
+					existing["timeout_action"] = sv
+				}
+				if s, ok3 := sub["confirm_msg"]; ok3 {
+					sv := fmt.Sprintf("%v", s)
+					api.cfg.HumanConfirm.ConfirmMsg = sv
+					existing["confirm_msg"] = sv
+				}
+				if s, ok3 := sub["confirmed_msg"]; ok3 {
+					sv := fmt.Sprintf("%v", s)
+					api.cfg.HumanConfirm.ConfirmedMsg = sv
+					existing["confirmed_msg"] = sv
+				}
+				if s, ok3 := sub["cancelled_msg"]; ok3 {
+					sv := fmt.Sprintf("%v", s)
+					api.cfg.HumanConfirm.CancelledMsg = sv
+					existing["cancelled_msg"] = sv
+				}
+				if s, ok3 := sub["timeout_msg"]; ok3 {
+					sv := fmt.Sprintf("%v", s)
+					api.cfg.HumanConfirm.TimeoutMsg = sv
+					existing["timeout_msg"] = sv
+				}
+				raw["human_confirm"] = existing
+				updated = append(updated, "human_confirm")
+				needRestart = true
+			}
+		}
 
 		if len(updated) == 0 {
 			return errNoFieldsToUpdate
@@ -1537,16 +1547,8 @@ func (api *ManagementAPI) handleSystemDiag(w http.ResponseWriter, r *http.Reques
 	}
 	result["rules"] = ruleStats
 
-	// 3. 数据库文件大小
-	dbInfo := map[string]interface{}{"path": api.cfg.DBPath}
-	if fi, err := os.Stat(api.cfg.DBPath); err == nil {
-		dbInfo["size_bytes"] = fi.Size()
-		dbInfo["size_human"] = formatBytes(fi.Size())
-	}
-	// WAL 文件
-	if fi, err := os.Stat(api.cfg.DBPath + "-wal"); err == nil {
-		dbInfo["wal_size_bytes"] = fi.Size()
-	}
+	// 3. 数据库连接信息
+	dbInfo := map[string]interface{}{"database_url": maskDatabaseURL(api.cfg.DatabaseURL)}
 	result["database"] = dbInfo
 
 	// 4. 运行时间
@@ -1789,8 +1791,8 @@ func (mapi *ManagementAPI) handleOverviewSummary(w http.ResponseWriter, r *http.
 				}
 			}
 			result["behavior"] = map[string]interface{}{
-				"anomaly_count":  len(anomalies),
-				"high_risk":      highRisk,
+				"anomaly_count": len(anomalies),
+				"high_risk":     highRisk,
 			}
 		}
 	}

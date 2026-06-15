@@ -15,38 +15,38 @@ import (
 )
 
 type DeviationDetector struct {
-	db              *sql.DB
-	mu              sync.RWMutex
-	config          DeviationConfig
-	planCompiler    *PlanCompiler
-	capEngine       *CapabilityEngine
-	stats           DeviationStats
-	repairPolicies  []RepairPolicy
+	db             *sql.DB
+	mu             sync.RWMutex
+	config         DeviationConfig
+	planCompiler   *PlanCompiler
+	capEngine      *CapabilityEngine
+	stats          DeviationStats
+	repairPolicies []RepairPolicy
 }
 
 type DeviationConfig struct {
-	Enabled        bool            `json:"enabled" yaml:"enabled"`
-	AutoRepair     bool            `json:"auto_repair" yaml:"auto_repair"`
-	MaxRepairs     int             `json:"max_repairs" yaml:"max_repairs"` // per trace
-	RepairPolicies []RepairPolicy  `json:"repair_policies" yaml:"repair_policies"`
+	Enabled        bool           `json:"enabled" yaml:"enabled"`
+	AutoRepair     bool           `json:"auto_repair" yaml:"auto_repair"`
+	MaxRepairs     int            `json:"max_repairs" yaml:"max_repairs"` // per trace
+	RepairPolicies []RepairPolicy `json:"repair_policies" yaml:"repair_policies"`
 }
 
 // RepairPolicy 定义特定偏差类型/严重度的修复策略
 type RepairPolicy struct {
-	ID          string `json:"id" yaml:"id"`
-	Name        string `json:"name" yaml:"name"`
+	ID            string `json:"id" yaml:"id"`
+	Name          string `json:"name" yaml:"name"`
 	DeviationType string `json:"deviation_type" yaml:"deviation_type"` // out_of_order / unexpected / capability_violation / * (all)
-	Severity    string `json:"severity" yaml:"severity"`               // minor / moderate / critical / * (all)
-	Action      string `json:"action" yaml:"action"`                   // replace_tool / sanitize_args / block / skip / log
-	Description string `json:"description" yaml:"description"`
-	Enabled     bool   `json:"enabled" yaml:"enabled"`
-	Builtin     bool   `json:"builtin" yaml:"builtin"`
+	Severity      string `json:"severity" yaml:"severity"`             // minor / moderate / critical / * (all)
+	Action        string `json:"action" yaml:"action"`                 // replace_tool / sanitize_args / block / skip / log
+	Description   string `json:"description" yaml:"description"`
+	Enabled       bool   `json:"enabled" yaml:"enabled"`
+	Builtin       bool   `json:"builtin" yaml:"builtin"`
 }
 
 type Deviation struct {
 	ID           string    `json:"id"`
 	TraceID      string    `json:"trace_id"`
-	Type         string    `json:"type"`     // forbidden_tool / sequence_violation / constraint_violation / capability_violation / unknown_tool
+	Type         string    `json:"type"` // forbidden_tool / sequence_violation / constraint_violation / capability_violation / unknown_tool
 	ToolName     string    `json:"tool_name"`
 	Expected     string    `json:"expected"`
 	Actual       string    `json:"actual"`

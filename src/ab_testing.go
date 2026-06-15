@@ -756,7 +756,7 @@ func (ab *ABTestEngine) SeedABTestDemoData() int {
 			VersionA: "v3.2-当前版", PromptHashA: "f0e1d2c3b4a59876", TrafficA: 50,
 			VersionB: "v4.0-新指令", PromptHashB: "1234abcd5678efgh", TrafficB: 50,
 			StartedAt: now.Add(-2 * time.Hour).Format(time.RFC3339),
-			ResultA: runningResultA, ResultB: runningResultB,
+			ResultA:   runningResultA, ResultB: runningResultB,
 		}
 		ab.mu.Unlock()
 	}

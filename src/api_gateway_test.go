@@ -12,8 +12,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // newTestGateway 创建测试用 API Gateway

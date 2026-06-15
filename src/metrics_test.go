@@ -8,8 +8,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // ============================================================
@@ -43,11 +41,11 @@ func TestMetricsCollector_Histogram(t *testing.T) {
 	mc := NewMetricsCollector()
 
 	// 记录不同延迟的请求
-	mc.RecordRequest("inbound", "pass", "test", 0.5)   // <= 1ms bucket
-	mc.RecordRequest("inbound", "pass", "test", 3.0)   // <= 5ms bucket
-	mc.RecordRequest("inbound", "pass", "test", 7.0)   // <= 10ms bucket
-	mc.RecordRequest("inbound", "pass", "test", 30.0)  // <= 50ms bucket
-	mc.RecordRequest("inbound", "pass", "test", 200.0) // <= 250ms bucket
+	mc.RecordRequest("inbound", "pass", "test", 0.5)    // <= 1ms bucket
+	mc.RecordRequest("inbound", "pass", "test", 3.0)    // <= 5ms bucket
+	mc.RecordRequest("inbound", "pass", "test", 7.0)    // <= 10ms bucket
+	mc.RecordRequest("inbound", "pass", "test", 30.0)   // <= 50ms bucket
+	mc.RecordRequest("inbound", "pass", "test", 200.0)  // <= 250ms bucket
 	mc.RecordRequest("inbound", "pass", "test", 2000.0) // > 1000ms (only in +Inf)
 
 	mc.mu.RLock()
@@ -134,7 +132,7 @@ func TestMetricsCollector_WritePrometheus(t *testing.T) {
 		`lobster_guard_rate_limit_total{decision="allowed"} 1`,
 		`lobster_guard_rate_limit_total{decision="denied"} 1`,
 		"lobster_guard_uptime_seconds",
-		`lobster_guard_info{version="`+AppVersion+`",channel="lanxin",mode="webhook"} 1`,
+		`lobster_guard_info{version="` + AppVersion + `",channel="lanxin",mode="webhook"} 1`,
 	}
 
 	for _, check := range checks {
@@ -187,18 +185,18 @@ func TestMetricsEndpoint(t *testing.T) {
 	defer db.Close()
 
 	cfg := &Config{
-		InboundListen:        ":8443",
-		OutboundListen:       ":8444",
-		OpenClawUpstream:     "http://localhost:18790",
-		LanxinUpstream:       "https://apigw.lx.qianxin.com",
-		DBPath:               tmpDB.Name(),
-		InboundDetectEnabled: true,
-		OutboundAuditEnabled: true,
-		ManagementListen:     ":9090",
-		HeartbeatIntervalSec: 10,
+		InboundListen:         ":8443",
+		OutboundListen:        ":8444",
+		OpenClawUpstream:      "http://localhost:18790",
+		LanxinUpstream:        "https://apigw.lx.qianxin.com",
+		DBPath:                tmpDB.Name(),
+		InboundDetectEnabled:  true,
+		OutboundAuditEnabled:  true,
+		ManagementListen:      ":9090",
+		HeartbeatIntervalSec:  10,
 		HeartbeatTimeoutCount: 3,
-		RouteDefaultPolicy:   "least-users",
-		RoutePersist:         false,
+		RouteDefaultPolicy:    "least-users",
+		RoutePersist:          false,
 	}
 
 	pool := NewUpstreamPool(cfg, db)
@@ -262,15 +260,15 @@ func TestMetricsEndpoint_Disabled(t *testing.T) {
 	defer db.Close()
 
 	cfg := &Config{
-		InboundListen:        ":8443",
-		OutboundListen:       ":8444",
-		OpenClawUpstream:     "http://localhost:18790",
-		LanxinUpstream:       "https://apigw.lx.qianxin.com",
-		DBPath:               tmpDB.Name(),
-		ManagementListen:     ":9090",
-		HeartbeatIntervalSec: 10,
+		InboundListen:         ":8443",
+		OutboundListen:        ":8444",
+		OpenClawUpstream:      "http://localhost:18790",
+		LanxinUpstream:        "https://apigw.lx.qianxin.com",
+		DBPath:                tmpDB.Name(),
+		ManagementListen:      ":9090",
+		HeartbeatIntervalSec:  10,
 		HeartbeatTimeoutCount: 3,
-		RouteDefaultPolicy:   "least-users",
+		RouteDefaultPolicy:    "least-users",
 	}
 
 	pool := NewUpstreamPool(cfg, db)
@@ -295,7 +293,7 @@ func TestMetricsEndpoint_Disabled(t *testing.T) {
 
 func TestUpstreamPool_Count(t *testing.T) {
 	cfg := &Config{
-		HeartbeatIntervalSec: 10,
+		HeartbeatIntervalSec:  10,
 		HeartbeatTimeoutCount: 3,
 	}
 	pool := NewUpstreamPool(cfg, nil)
@@ -397,4 +395,3 @@ func TestFormatFloat(t *testing.T) {
 		}
 	}
 }
-

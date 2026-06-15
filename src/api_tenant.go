@@ -261,8 +261,8 @@ func (api *ManagementAPI) handleTenantBindTemplate(w http.ResponseWriter, r *htt
 		return
 	}
 	jsonResponse(w, 200, map[string]interface{}{
-		"status":     "bound",
-		"tenant_id":  tenantID,
+		"status":      "bound",
+		"tenant_id":   tenantID,
 		"template_id": req.TemplateID,
 		"rules_bound": bound,
 	})

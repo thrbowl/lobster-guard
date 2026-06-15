@@ -94,7 +94,7 @@ func applySourceClassifierConfig(cfg *Config) {
 
 // initAllEngines 集中初始化所有安全引擎，返回 EngineSet
 // 保持原始初始化顺序和依赖关系
-func initAllEngines(cfg *Config, store *SQLiteStore, logger *AuditLogger, pool *UpstreamPool, routes *RouteTable, engine *RuleEngine, outboundEngine *OutboundRuleEngine, llmRuleEngine *LLMRuleEngine, llmAuditor *LLMAuditor, llmProxy *LLMProxy, tenantMgr *TenantManager, honeypotEngine *HoneypotEngine) *EngineSet {
+func initAllEngines(cfg *Config, store *SQLStore, logger *AuditLogger, pool *UpstreamPool, routes *RouteTable, engine *RuleEngine, outboundEngine *OutboundRuleEngine, llmRuleEngine *LLMRuleEngine, llmAuditor *LLMAuditor, llmProxy *LLMProxy, tenantMgr *TenantManager, honeypotEngine *HoneypotEngine) *EngineSet {
 	applySourceClassifierConfig(cfg)
 	if llmAuditor != nil {
 		llmAuditor.tenantMgr = tenantMgr

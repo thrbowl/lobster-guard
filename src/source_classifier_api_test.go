@@ -22,12 +22,12 @@ func TestManagementAPI_SourceClassifierGetAndUpdate(t *testing.T) {
 
 	putBody := map[string]interface{}{
 		"rules": []map[string]interface{}{{
-			"name": "corp-control-plane",
-			"host_pattern": `^control\.corp\.example$`,
-			"category": "internal_control_plane",
+			"name":            "corp-control-plane",
+			"host_pattern":    `^control\.corp\.example$`,
+			"category":        "internal_control_plane",
 			"confidentiality": 3,
-			"integrity": 3,
-			"trust_score": 0.91,
+			"integrity":       3,
+			"trust_score":     0.91,
 		}},
 	}
 	buf, _ := json.Marshal(putBody)
@@ -74,7 +74,7 @@ func TestClassifyToolSourceForTenant_OverrideWins(t *testing.T) {
 		t.Fatalf("create tenant: %v", err)
 	}
 	if err := tm.UpdateConfig(&TenantConfig{
-		TenantID: "tenant-a",
+		TenantID:             "tenant-a",
 		SourceClassifierYAML: "rules:\n  - name: tenant-docs-override\n    host_pattern: '^docs\\.python\\.org$'\n    category: tenant_docs\n    confidentiality: 2\n    integrity: 2\n    trust_score: 0.77\n",
 	}); err != nil {
 		t.Fatalf("update tenant config: %v", err)
@@ -138,7 +138,7 @@ func TestManagementAPI_SourceClassifierExplainUsesTenantOverrideAndReturnsDecisi
 		t.Fatalf("create tenant: %v", err)
 	}
 	if err := tm.UpdateConfig(&TenantConfig{
-		TenantID: "tenant-a",
+		TenantID:             "tenant-a",
 		SourceClassifierYAML: "rules:\n  - name: tenant-docs-override\n    host_pattern: '^docs\\.python\\.org$'\n    category: tenant_docs\n    confidentiality: 2\n    integrity: 2\n    trust_score: 0.77\n",
 	}); err != nil {
 		t.Fatalf("update tenant config: %v", err)
@@ -158,10 +158,10 @@ func TestManagementAPI_SourceClassifierExplainUsesTenantOverrideAndReturnsDecisi
 	}
 
 	body := map[string]interface{}{
-		"tenant_id":        "tenant-a",
-		"tool_name":        "web_fetch",
-		"tool_args":        map[string]interface{}{"url": "https://docs.python.org/3/library/json.html"},
-		"proposed_action":  "shell_exec",
+		"tenant_id":         "tenant-a",
+		"tool_name":         "web_fetch",
+		"tool_args":         map[string]interface{}{"url": "https://docs.python.org/3/library/json.html"},
+		"proposed_action":   "shell_exec",
 		"capability_action": "write",
 	}
 	buf, _ := json.Marshal(body)

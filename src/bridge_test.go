@@ -193,4 +193,3 @@ func TestDingtalkBridge_TicketAcquire(t *testing.T) {
 		t.Error("错误 credential 应返回空 endpoint/ticket")
 	}
 }
-

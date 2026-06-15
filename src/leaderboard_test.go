@@ -4,15 +4,11 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 	"time"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // ============================================================
@@ -21,11 +17,7 @@ import (
 
 func setupLeaderboardEngine(t *testing.T) (*LeaderboardEngine, *sql.DB, func()) {
 	t.Helper()
-	tmpDB := fmt.Sprintf("/tmp/lobster-leaderboard-test-%d.db", time.Now().UnixNano())
-	db, err := sql.Open("sqlite3", tmpDB+"?_journal_mode=WAL")
-	if err != nil {
-		t.Fatalf("打开数据库失败: %v", err)
-	}
+	db := openTestPostgres(t)
 
 	// 初始化 schema
 	db.Exec(`CREATE TABLE IF NOT EXISTS audit_log (
@@ -81,7 +73,7 @@ func setupLeaderboardEngine(t *testing.T) (*LeaderboardEngine, *sql.DB, func()) 
 	healthEng := NewHealthScoreEngine(db)
 	le := NewLeaderboardEngine(db, tenantMgr, healthEng)
 
-	cleanup := func() { db.Close(); os.Remove(tmpDB) }
+	cleanup := func() { db.Close() }
 	return le, db, cleanup
 }
 
@@ -387,11 +379,7 @@ func TestComputeTrend(t *testing.T) {
 
 func setupLeaderboardAPI(t *testing.T) (*ManagementAPI, *sql.DB, func()) {
 	t.Helper()
-	tmpDB := fmt.Sprintf("/tmp/lobster-lb-api-test-%d.db", time.Now().UnixNano())
-	db, err := sql.Open("sqlite3", tmpDB+"?_journal_mode=WAL")
-	if err != nil {
-		t.Fatalf("打开数据库失败: %v", err)
-	}
+	db := openTestPostgres(t)
 
 	// 初始化 schema
 	db.Exec(`CREATE TABLE IF NOT EXISTS audit_log (
@@ -449,7 +437,7 @@ func setupLeaderboardAPI(t *testing.T) (*ManagementAPI, *sql.DB, func()) {
 	cfg := &Config{ManagementToken: "test-token"}
 	pool := NewUpstreamPool(cfg, db)
 	routes := NewRouteTable(db, false)
-	store := NewSQLiteStore(db, tmpDB)
+	store := NewSQLStore(db)
 	shutdownMgr := NewShutdownManager(cfg)
 	engine := NewRuleEngine()
 	outboundEngine := NewOutboundRuleEngine(nil)
@@ -465,7 +453,7 @@ func setupLeaderboardAPI(t *testing.T) (*ManagementAPI, *sql.DB, func()) {
 	api.healthScoreEng = healthEng
 	api.leaderboardEng = NewLeaderboardEngine(db, tenantMgr, healthEng)
 
-	cleanup := func() { db.Close(); os.Remove(tmpDB) }
+	cleanup := func() { db.Close() }
 	return api, db, cleanup
 }
 

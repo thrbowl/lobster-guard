@@ -257,7 +257,6 @@ func (fb *FeishuBridge) Stop() error {
 	return nil
 }
 
-
 // ============================================================
 // DingtalkBridge — 钉钉长连接桥接
 // ============================================================
@@ -408,10 +407,10 @@ func (db *DingtalkBridge) Start(ctx context.Context, onMessage func(msg InboundM
 
 				// 解析钉钉 Stream 消息
 				var streamMsg struct {
-					SpecVersion string                 `json:"specVersion"`
-					Type        string                 `json:"type"`
-					Headers     map[string]string      `json:"headers"`
-					Data        string                 `json:"data"`
+					SpecVersion string            `json:"specVersion"`
+					Type        string            `json:"type"`
+					Headers     map[string]string `json:"headers"`
+					Data        string            `json:"data"`
 				}
 				if json.Unmarshal(message, &streamMsg) != nil {
 					continue
@@ -509,4 +508,3 @@ func (db *DingtalkBridge) Stop() error {
 	db.status.Connected = false
 	return nil
 }
-

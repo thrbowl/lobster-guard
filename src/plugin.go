@@ -25,13 +25,13 @@ import (
 // ============================================================
 
 type InboundMessage struct {
-	Text         string
-	SenderID     string
-	EventType    string
-	AppID        string // 应用 ID（蓝信: entryId / appId）
-	Raw          []byte
-	IsVerify     bool   // URL verification / echostr 验证请求
-	VerifyReply  []byte // 验证请求的响应内容
+	Text        string
+	SenderID    string
+	EventType   string
+	AppID       string // 应用 ID（蓝信: entryId / appId）
+	Raw         []byte
+	IsVerify    bool   // URL verification / echostr 验证请求
+	VerifyReply []byte // 验证请求的响应内容
 }
 
 // RequestAwareParser 可选接口：支持从 HTTP 请求中提取额外参数（如蓝信 URL query 中的 timestamp/nonce）
@@ -71,7 +71,6 @@ type BridgeConnector interface {
 	Stop() error
 	Status() BridgeStatus
 }
-
 
 // ============================================================
 // LanxinPlugin — 蓝信通道插件
@@ -175,13 +174,19 @@ func (lp *LanxinPlugin) ExtractOutbound(path string, body []byte) (string, bool)
 // ExtractOutboundRecipient 从蓝信出站消息中提取接收者
 func (lp *LanxinPlugin) ExtractOutboundRecipient(body []byte) string {
 	var msg map[string]interface{}
-	if json.Unmarshal(body, &msg) != nil { return "" }
+	if json.Unmarshal(body, &msg) != nil {
+		return ""
+	}
 	// 私聊: userIdList
 	if uids, ok := msg["userIdList"].([]interface{}); ok && len(uids) > 0 {
-		if s, ok := uids[0].(string); ok { return s }
+		if s, ok := uids[0].(string); ok {
+			return s
+		}
 	}
 	// 群聊: groupId
-	if gid, ok := msg["groupId"].(string); ok { return gid }
+	if gid, ok := msg["groupId"].(string); ok {
+		return gid
+	}
 	return ""
 }
 
@@ -223,7 +228,6 @@ func (lp *LanxinPlugin) SupportsBridge() bool { return false }
 func (lp *LanxinPlugin) NewBridgeConnector(cfg *Config) (BridgeConnector, error) {
 	return nil, fmt.Errorf("蓝信通道不支持桥接模式")
 }
-
 
 // ============================================================
 // FeishuPlugin — 飞书通道插件
@@ -270,9 +274,14 @@ func (fp *FeishuPlugin) feishuDecrypt(encrypted string) ([]byte, error) {
 		if pad > 0 && pad <= aes.BlockSize && pad <= n {
 			ok := true
 			for i := n - pad; i < n; i++ {
-				if plaintext[i] != byte(pad) { ok = false; break }
+				if plaintext[i] != byte(pad) {
+					ok = false
+					break
+				}
 			}
-			if ok { plaintext = plaintext[:n-pad] }
+			if ok {
+				plaintext = plaintext[:n-pad]
+			}
 		}
 	}
 	return plaintext, nil
@@ -406,7 +415,6 @@ func (fp *FeishuPlugin) NewBridgeConnector(cfg *Config) (BridgeConnector, error)
 	}, nil
 }
 
-
 // ============================================================
 // GenericPlugin — 通用 HTTP 通道插件
 // ============================================================
@@ -496,7 +504,6 @@ func (gp *GenericPlugin) NewBridgeConnector(cfg *Config) (BridgeConnector, error
 	return nil, fmt.Errorf("通用通道不支持桥接模式")
 }
 
-
 // ============================================================
 // DingtalkPlugin — 钉钉通道插件
 // ============================================================
@@ -555,9 +562,14 @@ func (dp *DingtalkPlugin) dingtalkDecrypt(encrypted string) ([]byte, error) {
 		if pad > 0 && pad <= aes.BlockSize && pad <= n {
 			ok := true
 			for i := n - pad; i < n; i++ {
-				if pt[i] != byte(pad) { ok = false; break }
+				if pt[i] != byte(pad) {
+					ok = false
+					break
+				}
 			}
-			if ok { pt = pt[:n-pad] }
+			if ok {
+				pt = pt[:n-pad]
+			}
 		}
 	}
 	// 明文格式: random(16) + msg_len(4) + msg + corpId
@@ -698,7 +710,6 @@ func (dp *DingtalkPlugin) NewBridgeConnector(cfg *Config) (BridgeConnector, erro
 	}, nil
 }
 
-
 // ============================================================
 // WecomPlugin — 企业微信通道插件
 // ============================================================
@@ -757,9 +768,14 @@ func (wp *WecomPlugin) wecomDecrypt(encrypted string) ([]byte, error) {
 		if pad > 0 && pad <= aes.BlockSize && pad <= n {
 			ok := true
 			for i := n - pad; i < n; i++ {
-				if pt[i] != byte(pad) { ok = false; break }
+				if pt[i] != byte(pad) {
+					ok = false
+					break
+				}
 			}
-			if ok { pt = pt[:n-pad] }
+			if ok {
+				pt = pt[:n-pad]
+			}
 		}
 	}
 	// 明文格式: random(16) + msg_len(4) + msg + corp_id
@@ -916,4 +932,3 @@ func (wp *WecomPlugin) VerifyURL(msgSignature, timestamp, nonce, echostr string)
 	}
 	return string(dec), nil
 }
-

@@ -11,8 +11,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // ============================================================
@@ -68,14 +66,18 @@ func TestManagementAPIAuth(t *testing.T) {
 	req := httptest.NewRequest("GET", "/api/v1/upstreams", nil)
 	rec := httptest.NewRecorder()
 	api.ServeHTTP(rec, req)
-	if rec.Code != 401 { t.Fatalf("无 token 期望 401，实际 %d", rec.Code) }
+	if rec.Code != 401 {
+		t.Fatalf("无 token 期望 401，实际 %d", rec.Code)
+	}
 
 	// 有正确 token
 	req = httptest.NewRequest("GET", "/api/v1/upstreams", nil)
 	req.Header.Set("Authorization", "Bearer mgmt-token")
 	rec = httptest.NewRecorder()
 	api.ServeHTTP(rec, req)
-	if rec.Code != 200 { t.Fatalf("有 token 期望 200，实际 %d", rec.Code) }
+	if rec.Code != 200 {
+		t.Fatalf("有 token 期望 200，实际 %d", rec.Code)
+	}
 }
 
 func TestManagementAPIRegisterFlow(t *testing.T) {
@@ -89,7 +91,9 @@ func TestManagementAPIRegisterFlow(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 	api.ServeHTTP(rec, req)
-	if rec.Code != 200 { t.Fatalf("注册期望 200，实际 %d body=%s", rec.Code, rec.Body.String()) }
+	if rec.Code != 200 {
+		t.Fatalf("注册期望 200，实际 %d body=%s", rec.Code, rec.Body.String())
+	}
 
 	// 心跳
 	body = `{"id":"claw-1","load":{"cpu":30}}`
@@ -97,7 +101,9 @@ func TestManagementAPIRegisterFlow(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer reg-token")
 	rec = httptest.NewRecorder()
 	api.ServeHTTP(rec, req)
-	if rec.Code != 200 { t.Fatalf("心跳期望 200，实际 %d", rec.Code) }
+	if rec.Code != 200 {
+		t.Fatalf("心跳期望 200，实际 %d", rec.Code)
+	}
 
 	// 注销
 	body = `{"id":"claw-1"}`
@@ -105,7 +111,9 @@ func TestManagementAPIRegisterFlow(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer reg-token")
 	rec = httptest.NewRecorder()
 	api.ServeHTTP(rec, req)
-	if rec.Code != 200 { t.Fatalf("注销期望 200，实际 %d", rec.Code) }
+	if rec.Code != 200 {
+		t.Fatalf("注销期望 200，实际 %d", rec.Code)
+	}
 }
 
 func TestManagementAPIRoutes(t *testing.T) {
@@ -118,14 +126,18 @@ func TestManagementAPIRoutes(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer mgmt-token")
 	rec := httptest.NewRecorder()
 	api.ServeHTTP(rec, req)
-	if rec.Code != 200 { t.Fatalf("绑定期望 200，实际 %d", rec.Code) }
+	if rec.Code != 200 {
+		t.Fatalf("绑定期望 200，实际 %d", rec.Code)
+	}
 
 	// 查询路由
 	req = httptest.NewRequest("GET", "/api/v1/routes", nil)
 	req.Header.Set("Authorization", "Bearer mgmt-token")
 	rec = httptest.NewRecorder()
 	api.ServeHTTP(rec, req)
-	if rec.Code != 200 { t.Fatalf("查询期望 200，实际 %d", rec.Code) }
+	if rec.Code != 200 {
+		t.Fatalf("查询期望 200，实际 %d", rec.Code)
+	}
 
 	var resp map[string]interface{}
 	json.Unmarshal(rec.Body.Bytes(), &resp)
@@ -142,7 +154,9 @@ func TestManagementAPIStats(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer mgmt-token")
 	rec := httptest.NewRecorder()
 	api.ServeHTTP(rec, req)
-	if rec.Code != 200 { t.Fatalf("stats 期望 200，实际 %d", rec.Code) }
+	if rec.Code != 200 {
+		t.Fatalf("stats 期望 200，实际 %d", rec.Code)
+	}
 
 	var resp map[string]interface{}
 	json.Unmarshal(rec.Body.Bytes(), &resp)
@@ -244,7 +258,9 @@ func TestAPIUnbindRoute(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer mgmt-token")
 	rec := httptest.NewRecorder()
 	api.ServeHTTP(rec, req)
-	if rec.Code != 200 { t.Fatalf("绑定期望 200，实际 %d", rec.Code) }
+	if rec.Code != 200 {
+		t.Fatalf("绑定期望 200，实际 %d", rec.Code)
+	}
 
 	// 解绑
 	body = `{"sender_id":"user-1","app_id":"app-x"}`
@@ -252,7 +268,9 @@ func TestAPIUnbindRoute(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer mgmt-token")
 	rec = httptest.NewRecorder()
 	api.ServeHTTP(rec, req)
-	if rec.Code != 200 { t.Fatalf("解绑期望 200，实际 %d", rec.Code) }
+	if rec.Code != 200 {
+		t.Fatalf("解绑期望 200，实际 %d", rec.Code)
+	}
 
 	// 验证已解绑
 	req = httptest.NewRequest("GET", "/api/v1/routes", nil)
@@ -272,7 +290,9 @@ func TestDBMigration(t *testing.T) {
 
 	// 创建旧 schema 的数据库
 	db, err := sql.Open("sqlite3", tmpDB+"?_journal_mode=WAL&_busy_timeout=5000")
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// 创建旧表（只有 sender_id 主键）
 	_, err = db.Exec(`CREATE TABLE user_routes (
@@ -281,7 +301,9 @@ func TestDBMigration(t *testing.T) {
 		created_at TEXT NOT NULL,
 		updated_at TEXT NOT NULL
 	)`)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// 插入旧数据
 	now := time.Now().Format(time.RFC3339)
@@ -293,7 +315,9 @@ func TestDBMigration(t *testing.T) {
 
 	// 重新打开，触发迁移
 	db2, err := sql.Open("sqlite3", tmpDB+"?_journal_mode=WAL&_busy_timeout=5000")
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer db2.Close()
 
 	migrateUserRoutes(db2)
@@ -301,7 +325,9 @@ func TestDBMigration(t *testing.T) {
 	// 验证新 schema
 	var cnt int
 	err = db2.QueryRow(`SELECT COUNT(*) FROM user_routes`).Scan(&cnt)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	if cnt != 2 {
 		t.Fatalf("迁移后应有2条数据，实际 %d", cnt)
 	}
@@ -309,7 +335,9 @@ func TestDBMigration(t *testing.T) {
 	// 验证 app_id 列存在且默认为空
 	var appID string
 	err = db2.QueryRow(`SELECT app_id FROM user_routes WHERE sender_id='old-user-1'`).Scan(&appID)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	if appID != "" {
 		t.Fatalf("旧数据的 app_id 应为空，实际 %q", appID)
 	}
@@ -318,7 +346,9 @@ func TestDBMigration(t *testing.T) {
 	db2.Exec(`INSERT INTO user_routes (sender_id, app_id, upstream_id, department, display_name, created_at, updated_at) VALUES(?,?,?,'','',?,?)`,
 		"old-user-1", "new-app", "upstream-c", now, now)
 	err = db2.QueryRow(`SELECT COUNT(*) FROM user_routes WHERE sender_id='old-user-1'`).Scan(&cnt)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	if cnt != 2 {
 		t.Fatalf("复合主键应允许同 sender_id 不同 app_id，实际 %d", cnt)
 	}
@@ -384,7 +414,9 @@ func TestRouteTablePersistWithDB(t *testing.T) {
 	defer os.Remove(tmpDB)
 
 	db, err := initDB(tmpDB)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// 绑定一些路由
 	rt := NewRouteTable(db, true)
@@ -416,8 +448,6 @@ func TestRouteTablePersistWithDB(t *testing.T) {
 
 	db.Close()
 }
-
-
 
 // ============================================================
 // v3.11 API 端点测试
@@ -822,4 +852,3 @@ func TestListRoutes_ExplicitPolicyConflict(t *testing.T) {
 		t.Errorf("policy_upstream 应为 dept-upstream，实际: %v", route["policy_upstream"])
 	}
 }
-

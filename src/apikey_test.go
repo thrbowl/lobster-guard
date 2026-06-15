@@ -6,8 +6,6 @@ import (
 	"database/sql"
 	"testing"
 	"time"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 func setupAPIKeyTestDB(t *testing.T) *sql.DB {

@@ -7,8 +7,6 @@ import (
 	"math/rand"
 	"strings"
 	"testing"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // setupEvolutionTestDB 创建一个内存数据库用于测试

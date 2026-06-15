@@ -6,8 +6,6 @@ import (
 	"math"
 	"testing"
 	"time"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 func setupAnomalyTestDB(t *testing.T) *sql.DB {

@@ -10,8 +10,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // ============================================================
@@ -27,8 +25,8 @@ func setupRedTeamEngine(t *testing.T) (*RedTeamEngine, *sql.DB, func()) {
 	}
 	engine := NewRuleEngine()
 	rt := NewRedTeamEngine(db, engine)
-	rt.outboundEngine = NewOutboundRuleEngine(nil)                     // v17.3: 使用默认出站规则
-	rt.llmRuleEngine = NewLLMRuleEngine(mergeLLMRuleDefaults(nil))    // v17.3: 使用默认 LLM 规则
+	rt.outboundEngine = NewOutboundRuleEngine(nil)                 // v17.3: 使用默认出站规则
+	rt.llmRuleEngine = NewLLMRuleEngine(mergeLLMRuleDefaults(nil)) // v17.3: 使用默认 LLM 规则
 	cleanup := func() { db.Close(); os.Remove(tmpDB) }
 	return rt, db, cleanup
 }

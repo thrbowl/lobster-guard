@@ -626,13 +626,13 @@ func (tre *TaintReversalEngine) Stats() map[string]interface{} {
 	defer tre.mu.RUnlock()
 
 	stats := map[string]interface{}{
-		"enabled":          tre.config.Enabled,
-		"mode":             tre.config.Mode,
-		"total_reversals":  tre.totalReversals,
-		"total_soft":       tre.totalSoft,
-		"total_hard":       tre.totalHard,
-		"total_stealth":    tre.totalStealth,
-		"template_count":   len(tre.templates),
+		"enabled":         tre.config.Enabled,
+		"mode":            tre.config.Mode,
+		"total_reversals": tre.totalReversals,
+		"total_soft":      tre.totalSoft,
+		"total_hard":      tre.totalHard,
+		"total_stealth":   tre.totalStealth,
+		"template_count":  len(tre.templates),
 	}
 
 	// 从数据库获取持久化统计

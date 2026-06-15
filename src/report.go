@@ -59,12 +59,12 @@ type ReportData struct {
 	IMTopRules  []reportRuleHit
 
 	// LLM 安全域
-	LLMTotalCalls   int
-	LLMTotalTokens  int64
-	LLMErrorRate    string
-	LLMEstCostUSD   string
-	OWASPItems      []reportOWASP
-	LLMTopTools     []reportToolStat
+	LLMTotalCalls  int
+	LLMTotalTokens int64
+	LLMErrorRate   string
+	LLMEstCostUSD  string
+	OWASPItems     []reportOWASP
+	LLMTopTools    []reportToolStat
 
 	// 高风险用户
 	TopRiskUsers []reportUser

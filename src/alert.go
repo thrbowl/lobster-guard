@@ -32,8 +32,12 @@ type AlertNotifier struct {
 
 // NewAlertNotifier 创建告警通知器
 func NewAlertNotifier(webhookURL, format string, minIntervalSec int, metrics *MetricsCollector) *AlertNotifier {
-	if minIntervalSec <= 0 { minIntervalSec = 60 }
-	if format == "" { format = "generic" }
+	if minIntervalSec <= 0 {
+		minIntervalSec = 60
+	}
+	if format == "" {
+		format = "generic"
+	}
 	return &AlertNotifier{
 		webhookURL:  webhookURL,
 		format:      format,
@@ -74,7 +78,9 @@ func (an *AlertNotifier) Notify(direction, senderID, rule, content, appID string
 
 	// 内容预览：前 50 字符
 	preview := content
-	if rs := []rune(preview); len(rs) > 50 { preview = string(rs[:50]) + "..." }
+	if rs := []rune(preview); len(rs) > 50 {
+		preview = string(rs[:50]) + "..."
+	}
 
 	event := AlertEvent{
 		Event:          "block",
@@ -143,4 +149,3 @@ func truncate(s string, maxRunes int) string {
 	}
 	return string(rs[:maxRunes]) + "..."
 }
-

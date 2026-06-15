@@ -7,8 +7,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // newTestEnvelopeManager 创建测试用信封管理器（内存数据库）

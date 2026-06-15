@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"testing"
 	"time"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 func setupUserProfileTestDB(t *testing.T) *sql.DB {
@@ -341,8 +339,8 @@ func TestUserProfile_ScoreRange(t *testing.T) {
 	now := time.Now().UTC()
 	// 创建多种用户
 	users := map[string]string{
-		"user-good":   "pass",
-		"user-bad":    "block",
+		"user-good": "pass",
+		"user-bad":  "block",
 	}
 	for uid, action := range users {
 		for i := 0; i < 10; i++ {

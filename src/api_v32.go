@@ -21,16 +21,16 @@ type CanaryRotationRecord struct {
 }
 
 type CanaryRotator struct {
-	mu             sync.RWMutex
-	api            *ManagementAPI
-	interval       time.Duration
-	enabled        bool
-	createdAt      time.Time
-	lastRotated    time.Time
-	history        []CanaryRotationRecord
-	graceTokens    map[string]time.Time // 旧 token → 过期时间（轮换后 grace period）
-	ticker         *time.Ticker
-	stopCh         chan struct{}
+	mu          sync.RWMutex
+	api         *ManagementAPI
+	interval    time.Duration
+	enabled     bool
+	createdAt   time.Time
+	lastRotated time.Time
+	history     []CanaryRotationRecord
+	graceTokens map[string]time.Time // 旧 token → 过期时间（轮换后 grace period）
+	ticker      *time.Ticker
+	stopCh      chan struct{}
 }
 
 func NewCanaryRotator(api *ManagementAPI) *CanaryRotator {
@@ -139,6 +139,7 @@ func (r *CanaryRotator) Status() map[string]interface{} {
 		"interval_hours":   int(r.interval.Hours()),
 	}
 }
+
 // IsCanaryLeaked 检查文本中是否包含当前或 grace period 内的旧 canary token
 func (r *CanaryRotator) IsCanaryLeaked(text string) bool {
 	r.mu.RLock()

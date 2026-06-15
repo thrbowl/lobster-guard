@@ -11,31 +11,31 @@ import (
 
 // IFCQuarantine 管理隔离LLM路由
 type IFCQuarantine struct {
-	engine *IFCEngine
-	pool   *UpstreamPool // 上游连接池（获取quarantine上游）
-	mu     sync.RWMutex
-	stats  IFCQuarantineStats
+	engine   *IFCEngine
+	pool     *UpstreamPool // 上游连接池（获取quarantine上游）
+	mu       sync.RWMutex
+	stats    IFCQuarantineStats
 	sessions map[string]*QuarantineSession // sessionID → session
 }
 
 // IFCQuarantineStats 隔离统计
 type IFCQuarantineStats struct {
-	TotalRouted     int64 `json:"total_routed"`      // 被路由到隔离LLM的总次数
-	TotalDepurified int64 `json:"total_depurified"`   // 去污成功次数
-	TotalFailed     int64 `json:"total_failed"`       // 隔离处理失败次数
-	ActiveSessions  int64 `json:"active_sessions"`    // 当前活跃隔离会话
+	TotalRouted     int64 `json:"total_routed"`     // 被路由到隔离LLM的总次数
+	TotalDepurified int64 `json:"total_depurified"` // 去污成功次数
+	TotalFailed     int64 `json:"total_failed"`     // 隔离处理失败次数
+	ActiveSessions  int64 `json:"active_sessions"`  // 当前活跃隔离会话
 }
 
 // QuarantineSession 隔离会话
 type QuarantineSession struct {
 	TraceID   string    `json:"trace_id"`
 	SessionID string    `json:"session_id"`
-	InputVars []string  `json:"input_vars"`    // 被污染的输入变量ID
-	Status    string    `json:"status"`         // pending / processing / completed / failed
-	OutputVar string    `json:"output_var"`     // 去污后的输出变量ID
+	InputVars []string  `json:"input_vars"` // 被污染的输入变量ID
+	Status    string    `json:"status"`     // pending / processing / completed / failed
+	OutputVar string    `json:"output_var"` // 去污后的输出变量ID
 	StartTime time.Time `json:"start_time"`
 	EndTime   time.Time `json:"end_time,omitempty"`
-	Upstream  string    `json:"upstream"`       // 隔离上游 URL
+	Upstream  string    `json:"upstream"` // 隔离上游 URL
 }
 
 // NewIFCQuarantine 创建隔离管理器

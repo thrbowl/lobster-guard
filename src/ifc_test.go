@@ -6,8 +6,6 @@ import (
 	"sort"
 	"strings"
 	"testing"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 func newTestIFCDB(t *testing.T) *sql.DB {
@@ -800,8 +798,8 @@ func TestIFC_SelectiveHide(t *testing.T) {
 	db := newTestIFCDB(t)
 	defer db.Close()
 	e := NewIFCEngine(db, IFCConfig{
-		Enabled:     true,
-		DefaultConf: ConfPublic,
+		Enabled:      true,
+		DefaultConf:  ConfPublic,
 		DefaultInteg: IntegHigh,
 		SourceRules: []IFCSourceRule{
 			{Source: "tool:web_fetch", Label: IFCLabel{Confidentiality: ConfPublic, Integrity: IntegTaint}},

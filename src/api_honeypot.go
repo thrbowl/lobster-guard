@@ -68,17 +68,23 @@ func (api *ManagementAPI) handleCanaryLeaks(w http.ResponseWriter, r *http.Reque
 	limit := 50
 	offset := 0
 	if l := r.URL.Query().Get("limit"); l != "" {
-		if n, err := strconv.Atoi(l); err == nil { limit = n }
+		if n, err := strconv.Atoi(l); err == nil {
+			limit = n
+		}
 	}
 	if o := r.URL.Query().Get("offset"); o != "" {
-		if n, err := strconv.Atoi(o); err == nil { offset = n }
+		if n, err := strconv.Atoi(o); err == nil {
+			offset = n
+		}
 	}
 	records, total, err := api.llmAuditor.QueryCanaryLeaks(limit, offset)
 	if err != nil {
 		jsonResponse(w, 500, map[string]string{"error": err.Error()})
 		return
 	}
-	if records == nil { records = []map[string]interface{}{} }
+	if records == nil {
+		records = []map[string]interface{}{}
+	}
 	jsonResponse(w, 200, map[string]interface{}{"records": records, "total": total})
 }
 
@@ -236,7 +242,6 @@ func (api *ManagementAPI) handleHoneypotTest(w http.ResponseWriter, r *http.Requ
 	result := api.honeypotEngine.TestHoneypot(req.Text, req.TenantID)
 	jsonResponse(w, 200, result)
 }
-
 
 // ============================================================
 // v15.1 A/B 测试 API handlers

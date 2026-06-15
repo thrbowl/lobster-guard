@@ -3,13 +3,12 @@ package main
 import (
 	"database/sql"
 	"net/http"
-	"os"
 	"sort"
 	"strings"
 	"time"
 )
 
-type sqliteTableStat struct {
+type databaseTableStat struct {
 	Name string `json:"name"`
 	Rows int64  `json:"rows"`
 }
@@ -20,61 +19,42 @@ func (api *ManagementAPI) handleSQLiteStats(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	db := api.logger.DB()
-	dbPath := ""
-	if api.cfg != nil {
-		dbPath = api.cfg.DBPath
-	}
+	stats := db.Stats()
 	result := map[string]interface{}{
 		"database": map[string]interface{}{
-			"path": dbPath,
+			"url":            maskDatabaseURL(api.cfg.DatabaseURL),
+			"open":           stats.OpenConnections,
+			"in_use":         stats.InUse,
+			"idle":           stats.Idle,
+			"wait_count":     stats.WaitCount,
+			"wait_duration":  stats.WaitDuration.String(),
+			"max_open_conns": stats.MaxOpenConnections,
 		},
-		"tables":    []sqliteTableStat{},
+		"tables":    []databaseTableStat{},
 		"write_qps": 0.0,
 	}
-	if dbPath != "" {
-		if fi, err := os.Stat(dbPath); err == nil {
-			result["database"].(map[string]interface{})["size_bytes"] = fi.Size()
-			result["database"].(map[string]interface{})["size_human"] = formatBytes(fi.Size())
-		}
-		if fi, err := os.Stat(dbPath + "-wal"); err == nil {
-			result["database"].(map[string]interface{})["wal_size_bytes"] = fi.Size()
-			result["database"].(map[string]interface{})["wal_size_human"] = formatBytes(fi.Size())
-		} else {
-			result["database"].(map[string]interface{})["wal_size_bytes"] = int64(0)
-			result["database"].(map[string]interface{})["wal_size_human"] = formatBytes(0)
-		}
-	}
-	pragmas := map[string]interface{}{}
-	var pageCount, pageSize, walAutoCheckpoint int64
-	_ = db.QueryRow(`PRAGMA page_count`).Scan(&pageCount)
-	_ = db.QueryRow(`PRAGMA page_size`).Scan(&pageSize)
-	_ = db.QueryRow(`PRAGMA wal_autocheckpoint`).Scan(&walAutoCheckpoint)
-	pragmas["page_count"] = pageCount
-	pragmas["page_size"] = pageSize
-	pragmas["wal_autocheckpoint"] = walAutoCheckpoint
-	result["pragmas"] = pragmas
 
-	tables, err := listSQLiteTables(db)
+	tables, err := listDatabaseTables(db)
 	if err == nil {
 		result["table_count"] = len(tables)
-		stats := make([]sqliteTableStat, 0, len(tables))
+		tableStats := make([]databaseTableStat, 0, len(tables))
 		for _, name := range tables {
 			count, qerr := countRows(db, name)
 			if qerr != nil {
 				continue
 			}
-			stats = append(stats, sqliteTableStat{Name: name, Rows: count})
+			tableStats = append(tableStats, databaseTableStat{Name: name, Rows: count})
 		}
-		sort.Slice(stats, func(i, j int) bool {
-			if stats[i].Rows == stats[j].Rows {
-				return stats[i].Name < stats[j].Name
+		sort.Slice(tableStats, func(i, j int) bool {
+			if tableStats[i].Rows == tableStats[j].Rows {
+				return tableStats[i].Name < tableStats[j].Name
 			}
-			return stats[i].Rows > stats[j].Rows
+			return tableStats[i].Rows > tableStats[j].Rows
 		})
-		if len(stats) > 10 {
-			stats = stats[:10]
+		if len(tableStats) > 10 {
+			tableStats = tableStats[:10]
 		}
-		result["tables"] = stats
+		result["tables"] = tableStats
 	}
 	var recentWrites int64
 	oneMinuteAgo := time.Now().UTC().Add(-1 * time.Minute).Format(time.RFC3339Nano)
@@ -84,8 +64,8 @@ func (api *ManagementAPI) handleSQLiteStats(w http.ResponseWriter, r *http.Reque
 	jsonResponse(w, 200, result)
 }
 
-func listSQLiteTables(db *sql.DB) ([]string, error) {
-	rows, err := db.Query(`SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`)
+func listDatabaseTables(db *sql.DB) ([]string, error) {
+	rows, err := db.Query(`SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE' ORDER BY table_name`)
 	if err != nil {
 		return nil, err
 	}

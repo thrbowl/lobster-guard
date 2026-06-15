@@ -166,9 +166,9 @@ func TestDetectCache_Stats(t *testing.T) {
 	cache := NewDetectCache(100, 10*time.Second)
 
 	cache.Put("a", DetectResult{Action: "pass"})
-	cache.Get("a")   // hit
-	cache.Get("b")   // miss
-	cache.Get("a")   // hit
+	cache.Get("a") // hit
+	cache.Get("b") // miss
+	cache.Get("a") // hit
 
 	hits, misses, size := cache.Stats()
 	if hits != 2 {

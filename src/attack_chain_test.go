@@ -9,8 +9,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // setupAttackChainDB 创建测试用内存数据库
@@ -79,14 +77,14 @@ func TestAttackChainEngine_SaveAndGet(t *testing.T) {
 	defer db.Close()
 
 	chain := &AttackChain{
-		ID:       "test-chain-01",
-		TenantID: "default",
-		Name:     "Test Chain",
-		Severity: "high",
-		Status:   "active",
+		ID:        "test-chain-01",
+		TenantID:  "default",
+		Name:      "Test Chain",
+		Severity:  "high",
+		Status:    "active",
 		FirstSeen: time.Now().UTC().Format(time.RFC3339),
 		LastSeen:  time.Now().UTC().Format(time.RFC3339),
-		Agents:   []string{"agent-a", "agent-b"},
+		Agents:    []string{"agent-a", "agent-b"},
 		Events: []ChainEvent{
 			{Timestamp: time.Now().UTC().Format(time.RFC3339), AgentID: "agent-a", EventType: "probe", Action: "warn", Detail: "test probe", Severity: "medium", Source: "im_audit"},
 			{Timestamp: time.Now().UTC().Format(time.RFC3339), AgentID: "agent-b", EventType: "execution", Action: "block", Detail: "test exec", Severity: "high", Source: "im_audit"},

@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"net/http/httptest"
 	"testing"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // setupLayoutTestDB 创建内存 SQLite 用于测试

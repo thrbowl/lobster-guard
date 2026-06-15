@@ -21,12 +21,12 @@ type MerkleNode struct {
 // MerkleBatch 一个 Merkle 批次
 type MerkleBatch struct {
 	ID          string    `json:"id"`
-	Root        string    `json:"root"`           // Merkle Root Hash
-	PrevRoot    string    `json:"prev_root"`      // 前一个批次的 Root（根链）
-	Signature   string    `json:"signature"`      // HMAC-SHA256(Root + PrevRoot, secretKey)
+	Root        string    `json:"root"`      // Merkle Root Hash
+	PrevRoot    string    `json:"prev_root"` // 前一个批次的 Root（根链）
+	Signature   string    `json:"signature"` // HMAC-SHA256(Root + PrevRoot, secretKey)
 	LeafCount   int       `json:"leaf_count"`
-	LeafHashes  []string  `json:"leaf_hashes"`    // 叶子节点哈希列表（信封的 ContentHash）
-	EnvelopeIDs []string  `json:"envelope_ids"`   // 信封 ID 列表
+	LeafHashes  []string  `json:"leaf_hashes"`  // 叶子节点哈希列表（信封的 ContentHash）
+	EnvelopeIDs []string  `json:"envelope_ids"` // 信封 ID 列表
 	CreatedAt   time.Time `json:"created_at"`
 }
 
@@ -531,7 +531,7 @@ func (em *EnvelopeManager) VerifyRootChain() (*RootChainVerifyResult, error) {
 // RootChainVerifyResult 根链验证结果
 type RootChainVerifyResult struct {
 	Valid        bool     `json:"valid"`
-	TotalBatches int     `json:"total_batches"`
-	BrokenAt     int     `json:"broken_at,omitempty"`
+	TotalBatches int      `json:"total_batches"`
+	BrokenAt     int      `json:"broken_at,omitempty"`
 	Details      []string `json:"details,omitempty"`
 }

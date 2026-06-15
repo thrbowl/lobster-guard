@@ -19,9 +19,9 @@ import (
 
 // PromptTracker Prompt 版本追踪器
 type PromptTracker struct {
-	db             *sql.DB
-	currentHash    string
-	mu             sync.Mutex
+	db          *sql.DB
+	currentHash string
+	mu          sync.Mutex
 	// v31.0: 提示语漂移→告警
 	eventBus       *EventBus
 	driftThreshold float64
@@ -29,15 +29,15 @@ type PromptTracker struct {
 
 // PromptVersion 一个 Prompt 版本
 type PromptVersion struct {
-	ID        int64   `json:"id"`
-	Hash      string  `json:"hash"`
-	Content   string  `json:"content"`
-	Model     string  `json:"model"`
-	FirstSeen string  `json:"first_seen"`
-	LastSeen  string  `json:"last_seen"`
-	CallCount int     `json:"call_count"`
-	PrevHash  string  `json:"prev_hash,omitempty"`
-	Tag       string  `json:"tag,omitempty"`
+	ID        int64  `json:"id"`
+	Hash      string `json:"hash"`
+	Content   string `json:"content"`
+	Model     string `json:"model"`
+	FirstSeen string `json:"first_seen"`
+	LastSeen  string `json:"last_seen"`
+	CallCount int    `json:"call_count"`
+	PrevHash  string `json:"prev_hash,omitempty"`
+	Tag       string `json:"tag,omitempty"`
 	// 安全指标（聚合，查询时计算）
 	TotalCalls    int     `json:"total_calls"`
 	CanaryLeaks   int     `json:"canary_leaks"`
@@ -494,13 +494,13 @@ func (pt *PromptTracker) SeedPromptDemoData(db *sql.DB) int {
 
 	// 3 个版本，体现安全改善故事
 	versions := []struct {
-		content  string
-		model    string
-		daysAgo  int
-		calls    int
-		canary   int
-		budget   int
-		errors   int
+		content string
+		model   string
+		daysAgo int
+		calls   int
+		canary  int
+		budget  int
+		errors  int
 	}{
 		{
 			content: "You are a helpful assistant.\nRespond in the user's language.\nBe concise and accurate.",

@@ -22,12 +22,12 @@ type SingularityBudget struct {
 	MinSingularities    int `json:"min_singularities"`    // 拓扑下限（最少几个奇点）
 
 	// 预算分配
-	TotalBudget       int    `json:"total_budget"`       // 总预算 = max(MinSingularities, 配置值)
-	AllocatedIM       int    `json:"allocated_im"`       // IM 通道分配
-	AllocatedLLM      int    `json:"allocated_llm"`      // LLM 通道分配
-	AllocatedToolCall int    `json:"allocated_toolcall"` // Tool Call 分配
-	Remaining         int    `json:"remaining"`          // 剩余预算
-	OverBudget        bool   `json:"over_budget"`        // 是否超支（总暴露 < 拓扑下限）
+	TotalBudget       int    `json:"total_budget"`        // 总预算 = max(MinSingularities, 配置值)
+	AllocatedIM       int    `json:"allocated_im"`        // IM 通道分配
+	AllocatedLLM      int    `json:"allocated_llm"`       // LLM 通道分配
+	AllocatedToolCall int    `json:"allocated_toolcall"`  // Tool Call 分配
+	Remaining         int    `json:"remaining"`           // 剩余预算
+	OverBudget        bool   `json:"over_budget"`         // 是否超支（总暴露 < 拓扑下限）
 	OverBudgetWarning string `json:"over_budget_warning"` // 超支警告
 
 	// 各通道详情

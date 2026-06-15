@@ -3,7 +3,7 @@
 # Go 源文件: 70 个 + 50 个测试 = 120 个 .go 文件，~71,900 行
 # Vue 前端: 65 个文件（38 页面 + 21 组件），~23,700 行
 # 测试用例: 950 个通过 | API 端点: ~275+ 个
-# 外部依赖: sqlite3 + yaml.v3 + gorilla/websocket + x/crypto
+# 外部依赖: PostgreSQL driver + yaml.v3 + gorilla/websocket + x/crypto
 
 APP_NAME := lobster-guard
 VERSION := 36.5.0
@@ -25,10 +25,10 @@ embed-prep:
 embed-clean:
 	@rm -rf src/dashboard src/rules
 
-# 编译（需要 CGO 支持 SQLite）
+# 编译
 .PHONY: build
 build: embed-prep
-	cd src && CGO_ENABLED=1 go build $(GO_FLAGS) -o ../$(APP_NAME) .
+	cd src && CGO_ENABLED=0 go build $(GO_FLAGS) -o ../$(APP_NAME) .
 	@$(MAKE) embed-clean
 
 # 构建 Vue 前端（dashboard/dist/ 在 embed-prep 时复制到 src/dashboard/dist/）
@@ -45,7 +45,7 @@ build-all: dashboard build
 # 静态编译（完全静态链接，适合 Docker/容器部署）
 .PHONY: static
 static: embed-prep
-	cd src && CGO_ENABLED=1 go build $(GO_FLAGS) -tags 'netgo osusergo static_build' \
+	cd src && CGO_ENABLED=0 go build $(GO_FLAGS) -tags 'netgo osusergo static_build' \
 		-ldflags='-s -w -extldflags "-static"' -o ../$(APP_NAME) .
 	@$(MAKE) embed-clean
 
@@ -53,7 +53,6 @@ static: embed-prep
 .PHONY: clean
 clean:
 	rm -f $(APP_NAME)
-	rm -f audit.db
 	rm -rf src/dashboard src/rules
 
 # 运行
@@ -64,13 +63,13 @@ run: build
 # 测试（全部测试）
 .PHONY: test
 test: embed-prep
-	cd src && CGO_ENABLED=1 go test -v -count=1 -timeout 60s ./...
+	cd src && CGO_ENABLED=0 go test -v -count=1 -timeout 60s ./...
 	@$(MAKE) embed-clean
 
 # 快速测试（不输出详细日志）
 .PHONY: test-quick
 test-quick: embed-prep
-	cd src && CGO_ENABLED=1 go test -count=1 -timeout 60s ./...
+	cd src && CGO_ENABLED=0 go test -count=1 -timeout 60s ./...
 	@$(MAKE) embed-clean
 
 # 代码检查
@@ -78,7 +77,7 @@ test-quick: embed-prep
 lint:
 	@echo "=== Go vet ==="
 	@$(MAKE) embed-prep
-	cd src && CGO_ENABLED=1 go vet ./...
+	cd src && CGO_ENABLED=0 go vet ./...
 	@$(MAKE) embed-clean
 	@echo "=== 检查完成 ==="
 
@@ -143,22 +142,22 @@ gen-rules:
 # 查看审计日志
 .PHONY: logs
 logs:
-	@sqlite3 /var/lib/lobster-guard/audit.db \
+	@psql "$${DATABASE_URL:-$${LOBSTER_GUARD_DATABASE_URL}}" -c \
 		"SELECT id, timestamp, direction, action, reason, upstream_id, substr(content_preview, 1, 50) FROM audit_log ORDER BY id DESC LIMIT 20;"
 
 # 统计
 .PHONY: stats
 stats:
 	@echo "=== 审计日志统计 ==="
-	@sqlite3 /var/lib/lobster-guard/audit.db \
+	@psql "$${DATABASE_URL:-$${LOBSTER_GUARD_DATABASE_URL}}" -c \
 		"SELECT direction, action, COUNT(*) as cnt FROM audit_log GROUP BY direction, action ORDER BY direction, cnt DESC;"
 	@echo ""
 	@echo "=== 上游容器 ==="
-	@sqlite3 /var/lib/lobster-guard/audit.db \
+	@psql "$${DATABASE_URL:-$${LOBSTER_GUARD_DATABASE_URL}}" -c \
 		"SELECT id, address, port, healthy, last_heartbeat FROM upstreams;" 2>/dev/null || echo "(无动态上游)"
 	@echo ""
 	@echo "=== 路由绑定 ==="
-	@sqlite3 /var/lib/lobster-guard/audit.db \
+	@psql "$${DATABASE_URL:-$${LOBSTER_GUARD_DATABASE_URL}}" -c \
 		"SELECT sender_id, upstream_id, updated_at FROM user_routes ORDER BY updated_at DESC LIMIT 20;" 2>/dev/null || echo "(无路由)"
 
 # 健康检查
@@ -209,7 +208,7 @@ docker-compose:
 # 本地 CI（vet + test）
 .PHONY: ci-local
 ci-local:
-	cd src && CGO_ENABLED=1 go vet ./... && CGO_ENABLED=1 go test -count=1 -timeout 120s ./...
+	cd src && CGO_ENABLED=0 go vet ./... && CGO_ENABLED=0 go test -count=1 -timeout 120s ./...
 
 .PHONY: help
 help:

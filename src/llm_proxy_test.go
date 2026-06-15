@@ -9,8 +9,6 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 func setupTestLLMProxy(t *testing.T, handler http.HandlerFunc) (*LLMProxy, *sql.DB, *httptest.Server) {

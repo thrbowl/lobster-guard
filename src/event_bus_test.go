@@ -16,8 +16,6 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 func setupTestEventBusDB(t *testing.T) *sql.DB {
@@ -629,12 +627,12 @@ func TestEventBusChannelFull(t *testing.T) {
 		},
 	}
 	eb := &EventBus{
-		db:        db,
-		targets:   []WebhookTarget{},
-		chains:    []ActionChain{},
-		eventChan: make(chan *SecurityEvent, 5), // 小缓冲
-		stopCh:    make(chan struct{}),
-		cfg:       cfg,
+		db:         db,
+		targets:    []WebhookTarget{},
+		chains:     []ActionChain{},
+		eventChan:  make(chan *SecurityEvent, 5), // 小缓冲
+		stopCh:     make(chan struct{}),
+		cfg:        cfg,
 		httpClient: &http.Client{Timeout: 10 * time.Second},
 	}
 	eb.initTables()

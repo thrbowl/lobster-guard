@@ -26,7 +26,7 @@ func TestBuildConfigSettingsResponse_ProvidesStableDTOSections(t *testing.T) {
 		AlertWebhook:          "https://alerts.example.com/hook",
 		AlertFormat:           "generic",
 		AlertMinInterval:      120,
-		DBPath:                "/tmp/lobster.db",
+		DatabaseURL:           "postgres://lobster:password@127.0.0.1:5432/lobster_guard?sslmode=disable",
 		HeartbeatIntervalSec:  9,
 		RouteDefaultPolicy:    "round-robin",
 		AuditRetentionDays:    14,
@@ -92,7 +92,7 @@ func TestBuildConfigSettingsResponse_ProvidesStableDTOSections(t *testing.T) {
 	assertEqual(t, alerts["alert_min_interval"], float64(120), "alerts.alert_min_interval")
 
 	advanced := requireObject(t, got, "advanced")
-	assertEqual(t, advanced["db_path"], "/tmp/lobster.db", "advanced.db_path")
+	assertEqual(t, advanced["database_url"], "postgres://lobster:****@127.0.0.1:5432/lobster_guard?sslmode=disable", "advanced.database_url")
 	assertEqual(t, advanced["heartbeat_interval_sec"], float64(9), "advanced.heartbeat_interval_sec")
 	assertEqual(t, advanced["route_default_policy"], "round-robin", "advanced.route_default_policy")
 	assertEqual(t, advanced["audit_retention_days"], float64(14), "advanced.audit_retention_days")

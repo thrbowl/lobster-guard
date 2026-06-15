@@ -59,8 +59,8 @@ type CFVerification struct {
 // CFStats 统计
 type CFStats struct {
 	TotalVerifications int64   `json:"total_verifications"`
-	HourlyUsed         int    `json:"hourly_used"`
-	HourlyBudget       int    `json:"hourly_budget"`
+	HourlyUsed         int     `json:"hourly_used"`
+	HourlyBudget       int     `json:"hourly_budget"`
 	BlockedCount       int64   `json:"blocked_count"`
 	AllowedCount       int64   `json:"allowed_count"`
 	InconclusiveCount  int64   `json:"inconclusive_count"`
@@ -281,7 +281,6 @@ func (v *CounterfactualVerifier) SetAdaptiveStrategy(as *AdaptiveStrategy) {
 	v.adaptiveStrategy = as
 }
 
-
 // ShouldVerify 判断是否需要对该 tool call 进行反事实验证
 func (v *CounterfactualVerifier) ShouldVerify(toolName, toolArgs, traceID string, riskScore float64) bool {
 	v.mu.RLock()
@@ -390,7 +389,7 @@ func (v *CounterfactualVerifier) Verify(ctx context.Context, originalReqBody []b
 		ID: generateCFID(), ToolName: toolName, ToolArgs: toolArgs,
 		OriginalMessages: origMsgJSON, ControlMessages: ctrlMsgJSON,
 		OriginalResult: cfTruncateStr(fmt.Sprintf(`{"tool_name":%q,"tool_args":%s}`, toolName, toolArgs), 4096),
-		TenantID: "default", CreatedAt: time.Now(),
+		TenantID:       "default", CreatedAt: time.Now(),
 	}
 	if len(senderID) > 0 {
 		vf.SenderID = senderID[0]

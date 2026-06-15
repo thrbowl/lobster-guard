@@ -113,15 +113,15 @@ type AutoReviewStats struct {
 
 // AutoReviewManager 管理自动复核状态
 type AutoReviewManager struct {
-	mu             sync.RWMutex
-	config         RuleAutoReviewConfig
+	mu              sync.RWMutex
+	config          RuleAutoReviewConfig
 	ruleBlockCounts map[string]*RuleBlockWindow // 每规则滑动窗口计数
 	autoReviewRules map[string]time.Time        // 当前处于auto-review状态的规则及过期时间
-	manualRules    map[string]bool              // 手动指定的 review 规则
-	stats          AutoReviewStats
-	stopCh         chan struct{}
-	pool           *UpstreamPool                // 用于获取 LLM 上游地址（fallback）
-	llmTargets     []LLMTargetConfig            // LLM Proxy 的上游 targets（优先使用）
+	manualRules     map[string]bool             // 手动指定的 review 规则
+	stats           AutoReviewStats
+	stopCh          chan struct{}
+	pool            *UpstreamPool     // 用于获取 LLM 上游地址（fallback）
+	llmTargets      []LLMTargetConfig // LLM Proxy 的上游 targets（优先使用）
 	// 统计原子计数
 	totalReviews   int64
 	allowedCount   int64
