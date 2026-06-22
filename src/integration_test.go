@@ -214,10 +214,7 @@ func setupTestEnv(t *testing.T) *testEnv {
 	}
 	channel := NewLanxinPlugin(crypto)
 
-	db, err := initDB(dbPath)
-	if err != nil {
-		t.Fatalf("初始化数据库失败: %v", err)
-	}
+	db := openTestPostgres(t)
 
 	engine := NewRuleEngine()
 	outboundEngine := NewOutboundRuleEngine(cfg.OutboundRules)
@@ -737,7 +734,7 @@ func TestInboundNoUpstream(t *testing.T) {
 
 	crypto, _ := NewLanxinCrypto(cfg.CallbackKey, cfg.CallbackSignToken)
 	channel := NewLanxinPlugin(crypto)
-	db, _ := initDB(dbPath)
+	db := openTestPostgres(t)
 	defer db.Close()
 	engine := NewRuleEngine()
 	logger, _ := NewAuditLogger(db)

@@ -211,7 +211,7 @@ func (em *EnvelopeManager) initMerkleTables() {
 
 // loadLastBatchRoot 从数据库加载最后一个批次的 Root
 func (em *EnvelopeManager) loadLastBatchRoot() {
-	row := em.db.QueryRow(`SELECT root FROM merkle_batches ORDER BY created_at DESC, rowid DESC LIMIT 1`)
+	row := em.db.QueryRow(`SELECT root FROM merkle_batches ORDER BY created_at DESC, id DESC LIMIT 1`)
 	var root string
 	if row.Scan(&root) == nil {
 		em.prevBatchRoot = root
@@ -472,7 +472,7 @@ func (em *EnvelopeManager) ListBatches(limit int) ([]MerkleBatch, error) {
 
 // VerifyRootChain 验证批次间的根链完整性
 func (em *EnvelopeManager) VerifyRootChain() (*RootChainVerifyResult, error) {
-	batches, err := em.db.Query(`SELECT id, root, prev_root, signature, leaf_count, leaf_hashes_json, envelope_ids_json, created_at FROM merkle_batches ORDER BY created_at ASC, rowid ASC`)
+	batches, err := em.db.Query(`SELECT id, root, prev_root, signature, leaf_count, leaf_hashes_json, envelope_ids_json, created_at FROM merkle_batches ORDER BY created_at ASC, id ASC`)
 	if err != nil {
 		return nil, err
 	}

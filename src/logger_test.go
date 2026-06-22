@@ -365,11 +365,7 @@ func (m *mockResponseWriter) WriteHeader(statusCode int) {
 // ============================================================
 
 func TestAuditLogger_TraceID(t *testing.T) {
-	tmpDB := t.TempDir() + "/trace-test.db"
-	db, err := initDB(tmpDB)
-	if err != nil {
-		t.Fatalf("initDB: %v", err)
-	}
+	db := openTestPostgres(t)
 	defer db.Close()
 
 	logger, err := NewAuditLogger(db)
@@ -398,11 +394,7 @@ func TestAuditLogger_TraceID(t *testing.T) {
 }
 
 func TestAuditLogger_TraceID_EmptyFilter(t *testing.T) {
-	tmpDB := t.TempDir() + "/trace-filter-test.db"
-	db, err := initDB(tmpDB)
-	if err != nil {
-		t.Fatalf("initDB: %v", err)
-	}
+	db := openTestPostgres(t)
 	defer db.Close()
 
 	logger, err := NewAuditLogger(db)
@@ -431,13 +423,9 @@ func TestAuditLogger_TraceID_EmptyFilter(t *testing.T) {
 // ============================================================
 
 func TestAuditLogger_Archive(t *testing.T) {
-	tmpDB := t.TempDir() + "/archive-test.db"
 	archiveDir := t.TempDir()
 
-	db, err := initDB(tmpDB)
-	if err != nil {
-		t.Fatalf("initDB: %v", err)
-	}
+	db := openTestPostgres(t)
 	defer db.Close()
 
 	logger, err := NewAuditLogger(db)

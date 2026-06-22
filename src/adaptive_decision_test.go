@@ -10,10 +10,7 @@ import (
 // newTestAdaptiveEngine 创建测试用自适应决策引擎
 func newTestAdaptiveEngine(t *testing.T) (*AdaptiveDecisionEngine, *sql.DB) {
 	t.Helper()
-	db, err := sql.Open("sqlite3", "file::memory:?cache=shared&_busy_timeout=5000")
-	if err != nil {
-		t.Fatalf("open memory db: %v", err)
-	}
+	db := openTestPostgres(t)
 	db.SetMaxOpenConns(1)
 	t.Cleanup(func() { db.Close() })
 
@@ -40,10 +37,7 @@ func newTestAdaptiveEngine(t *testing.T) (*AdaptiveDecisionEngine, *sql.DB) {
 // newTestAdaptiveWithEnvelope 带信封管理器的引擎
 func newTestAdaptiveWithEnvelope(t *testing.T) (*AdaptiveDecisionEngine, *EnvelopeManager) {
 	t.Helper()
-	db, err := sql.Open("sqlite3", "file::memory:?cache=shared&_busy_timeout=5000")
-	if err != nil {
-		t.Fatalf("open memory db: %v", err)
-	}
+	db := openTestPostgres(t)
 	db.SetMaxOpenConns(1)
 	t.Cleanup(func() { db.Close() })
 

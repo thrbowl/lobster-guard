@@ -409,7 +409,7 @@ func (al *AuditLogger) Timeline(hours int) []map[string]interface{} {
 	since := time.Now().UTC().Add(-time.Duration(hours) * time.Hour)
 	rows, err := al.db.Query(`
 		SELECT
-			strftime('%Y-%m-%dT%H:00:00Z', timestamp) as hour_bucket,
+			to_char(date_trunc('hour', timestamp::timestamp), 'YYYY-MM-DD"T"HH24:00:00"Z"') as hour_bucket,
 			action,
 			COUNT(*) as cnt
 		FROM audit_log

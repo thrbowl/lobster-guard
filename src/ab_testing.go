@@ -685,7 +685,8 @@ func (ab *ABTestEngine) SeedABTestDemoData() int {
 		"result_b": completedResultB,
 	})
 
-	_, err := ab.db.Exec(`INSERT OR REPLACE INTO ab_tests (id, name, tenant_id, status, version_a, prompt_hash_a, traffic_a, version_b, prompt_hash_b, traffic_b, created_at, started_at, ended_at, result_json, winner, confidence, recommendation) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+	_, err := ab.db.Exec(`INSERT INTO ab_tests (id, name, tenant_id, status, version_a, prompt_hash_a, traffic_a, version_b, prompt_hash_b, traffic_b, created_at, started_at, ended_at, result_json, winner, confidence, recommendation) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+		ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, tenant_id=EXCLUDED.tenant_id, status=EXCLUDED.status, version_a=EXCLUDED.version_a, prompt_hash_a=EXCLUDED.prompt_hash_a, traffic_a=EXCLUDED.traffic_a, version_b=EXCLUDED.version_b, prompt_hash_b=EXCLUDED.prompt_hash_b, traffic_b=EXCLUDED.traffic_b, started_at=EXCLUDED.started_at, ended_at=EXCLUDED.ended_at, result_json=EXCLUDED.result_json, winner=EXCLUDED.winner, confidence=EXCLUDED.confidence, recommendation=EXCLUDED.recommendation`,
 		completedID, "v3.2 安全加固测试", "default", "completed",
 		"v3.1-基线", "a1b2c3d4e5f67890", 50,
 		"v3.2-加固版", "f0e1d2c3b4a59876", 50,
@@ -736,7 +737,8 @@ func (ab *ABTestEngine) SeedABTestDemoData() int {
 		"result_b": runningResultB,
 	})
 
-	_, err2 := ab.db.Exec(`INSERT OR REPLACE INTO ab_tests (id, name, tenant_id, status, version_a, prompt_hash_a, traffic_a, version_b, prompt_hash_b, traffic_b, created_at, started_at, ended_at, result_json, winner, confidence, recommendation) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+	_, err2 := ab.db.Exec(`INSERT INTO ab_tests (id, name, tenant_id, status, version_a, prompt_hash_a, traffic_a, version_b, prompt_hash_b, traffic_b, created_at, started_at, ended_at, result_json, winner, confidence, recommendation) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+		ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, tenant_id=EXCLUDED.tenant_id, status=EXCLUDED.status, version_a=EXCLUDED.version_a, prompt_hash_a=EXCLUDED.prompt_hash_a, traffic_a=EXCLUDED.traffic_a, version_b=EXCLUDED.version_b, prompt_hash_b=EXCLUDED.prompt_hash_b, traffic_b=EXCLUDED.traffic_b, started_at=EXCLUDED.started_at, ended_at=EXCLUDED.ended_at, result_json=EXCLUDED.result_json, winner=EXCLUDED.winner, confidence=EXCLUDED.confidence, recommendation=EXCLUDED.recommendation`,
 		runningID, "v4.0 安全指令优化", "default", "running",
 		"v3.2-当前版", "f0e1d2c3b4a59876", 50,
 		"v4.0-新指令", "1234abcd5678efgh", 50,

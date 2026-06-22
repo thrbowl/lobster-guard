@@ -11,10 +11,7 @@ import (
 // setupHoneypotDeepTest 创建测试用的 HoneypotDeepEngine
 func setupHoneypotDeepTest(t *testing.T) (*HoneypotDeepEngine, *sql.DB) {
 	t.Helper()
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := openTestPostgres(t)
 
 	cfg := HoneypotDeepConfig{
 		Enabled:              true,
@@ -30,10 +27,7 @@ func setupHoneypotDeepTest(t *testing.T) (*HoneypotDeepEngine, *sql.DB) {
 // setupHoneypotDeepWithEvolution 创建带有 EvolutionEngine 的测试引擎
 func setupHoneypotDeepWithEvolution(t *testing.T) (*HoneypotDeepEngine, *RedTeamEngine, *sql.DB) {
 	t.Helper()
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := openTestPostgres(t)
 
 	// 创建入站规则引擎（红队需要）
 	rules := getDefaultInboundRules()

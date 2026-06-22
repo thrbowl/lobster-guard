@@ -24,10 +24,7 @@ import (
 func TestAuditLogger(t *testing.T) {
 	tmpDB := "/tmp/lobster-guard-test-audit.db"
 	defer os.Remove(tmpDB)
-	db, err := initDB(tmpDB)
-	if err != nil {
-		t.Fatalf("初始化数据库失败: %v", err)
-	}
+	db := openTestPostgres(t)
 	defer db.Close()
 
 	logger, err := NewAuditLogger(db)
@@ -66,17 +63,14 @@ func TestAuditLogger(t *testing.T) {
 func TestInitDB(t *testing.T) {
 	tmpDB := "/tmp/lobster-guard-test-initdb.db"
 	defer os.Remove(tmpDB)
-	db, err := initDB(tmpDB)
-	if err != nil {
-		t.Fatalf("初始化失败: %v", err)
-	}
+	db := openTestPostgres(t)
 	defer db.Close()
 
 	// 验证表存在
 	tables := []string{"audit_log", "upstreams", "user_routes"}
 	for _, table := range tables {
 		var name string
-		err := db.QueryRow("SELECT name FROM sqlite_master WHERE type='table' AND name=?", table).Scan(&name)
+		err := db.QueryRow("SELECT table_name FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = ?", table).Scan(&name)
 		if err != nil {
 			t.Fatalf("表 %s 不存在: %v", table, err)
 		}
@@ -86,10 +80,11 @@ func TestInitDB(t *testing.T) {
 func TestInitDBIdempotent(t *testing.T) {
 	tmpDB := "/tmp/lobster-guard-test-idem.db"
 	defer os.Remove(tmpDB)
-	db1, _ := initDB(tmpDB)
+	db1 := openTestPostgres(t)
 	db1.Close()
 	// 再次初始化不应报错
-	db2, err := initDB(tmpDB)
+	db2 := openTestPostgres(t)
+	var err error
 	if err != nil {
 		t.Fatalf("幂等初始化失败: %v", err)
 	}
@@ -103,11 +98,7 @@ func TestInitDBIdempotent(t *testing.T) {
 // 辅助函数：创建测试 DB 和 AuditLogger
 func setupTestAuditLogger(t *testing.T) (*sql.DB, *AuditLogger, func()) {
 	t.Helper()
-	tmpDB := t.TempDir() + "/test_v310.db"
-	db, err := initDB(tmpDB)
-	if err != nil {
-		t.Fatalf("initDB failed: %v", err)
-	}
+	db := openTestPostgres(t)
 	logger, err := NewAuditLogger(db)
 	if err != nil {
 		db.Close()
@@ -464,7 +455,7 @@ func TestAuditExportBadFormat(t *testing.T) {
 	defer cleanup()
 
 	cfg := &Config{}
-	db2, _ := initDB(t.TempDir() + "/db2.db")
+	db2 := openTestPostgres(t)
 	defer db2.Close()
 	pool := NewUpstreamPool(cfg, db2)
 	routes := NewRouteTable(db2, false)

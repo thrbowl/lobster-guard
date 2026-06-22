@@ -10,10 +10,7 @@ import (
 // newTestSingularityEngine 创建测试用奇点引擎
 func newTestSingularityEngine(t *testing.T) (*SingularityEngine, *sql.DB) {
 	t.Helper()
-	db, err := sql.Open("sqlite3", "file::memory:?cache=shared&_busy_timeout=5000")
-	if err != nil {
-		t.Fatalf("open memory db: %v", err)
-	}
+	db := openTestPostgres(t)
 	db.SetMaxOpenConns(1)
 	t.Cleanup(func() { db.Close() })
 
@@ -50,10 +47,7 @@ func newTestSingularityEngine(t *testing.T) (*SingularityEngine, *sql.DB) {
 // newTestSingularityWithEnvelope 带信封的奇点引擎
 func newTestSingularityWithEnvelope(t *testing.T) (*SingularityEngine, *EnvelopeManager, *sql.DB) {
 	t.Helper()
-	db, err := sql.Open("sqlite3", "file::memory:?cache=shared&_busy_timeout=5000")
-	if err != nil {
-		t.Fatalf("open memory db: %v", err)
-	}
+	db := openTestPostgres(t)
 	db.SetMaxOpenConns(1)
 	t.Cleanup(func() { db.Close() })
 
@@ -300,10 +294,7 @@ func TestSingularityBudgetCalculation(t *testing.T) {
 
 // 6. TestSingularityBudgetOverspend — 超支告警
 func TestSingularityBudgetOverspend(t *testing.T) {
-	db, err := sql.Open("sqlite3", "file::memory:?cache=shared&_busy_timeout=5000")
-	if err != nil {
-		t.Fatalf("open memory db: %v", err)
-	}
+	db := openTestPostgres(t)
 	db.SetMaxOpenConns(1)
 	t.Cleanup(func() { db.Close() })
 
@@ -341,10 +332,7 @@ func TestSingularityBudgetOverspend(t *testing.T) {
 
 // 7. TestSingularityBudgetMinimum — 拓扑下限
 func TestSingularityBudgetMinimum(t *testing.T) {
-	db, err := sql.Open("sqlite3", "file::memory:?cache=shared&_busy_timeout=5000")
-	if err != nil {
-		t.Fatalf("open memory db: %v", err)
-	}
+	db := openTestPostgres(t)
 	db.SetMaxOpenConns(1)
 	t.Cleanup(func() { db.Close() })
 

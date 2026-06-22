@@ -1395,7 +1395,7 @@ func (la *LLMAuditor) ToolTimeline(hours int) ([]map[string]interface{}, error) 
 
 	rows, err := la.db.Query(`
 		SELECT
-			strftime('%Y-%m-%dT%H:00:00Z', timestamp) as hour_bucket,
+			to_char(date_trunc('hour', timestamp::timestamp), 'YYYY-MM-DD"T"HH24:00:00"Z"') as hour_bucket,
 			risk_level,
 			COUNT(*) as cnt
 		FROM llm_tool_calls

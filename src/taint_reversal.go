@@ -482,8 +482,9 @@ func (tre *TaintReversalEngine) persistRecord(record *ReversalRecord) {
 		effective = 1
 	}
 	_, err := tre.db.Exec(
-		`INSERT OR REPLACE INTO taint_reversals (id, trace_id, timestamp, taint_labels_json, template_id, mode, original_len, reversed_len, effective)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO taint_reversals (id, trace_id, timestamp, taint_labels_json, template_id, mode, original_len, reversed_len, effective)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		 ON CONFLICT (id) DO UPDATE SET trace_id=EXCLUDED.trace_id, timestamp=EXCLUDED.timestamp, taint_labels_json=EXCLUDED.taint_labels_json, template_id=EXCLUDED.template_id, mode=EXCLUDED.mode, original_len=EXCLUDED.original_len, reversed_len=EXCLUDED.reversed_len, effective=EXCLUDED.effective`,
 		record.ID,
 		record.TraceID,
 		record.Timestamp.Format(time.RFC3339),

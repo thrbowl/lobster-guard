@@ -12,10 +12,7 @@ import (
 )
 
 func setupTestPathPolicyDB(t *testing.T) *sql.DB {
-	db, err := sql.Open("sqlite3", ":memory:?_journal_mode=WAL")
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := openTestPostgres(t)
 	// create the tenant boolToInt helper table is not needed, but ensure DB works
 	return db
 }

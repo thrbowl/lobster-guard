@@ -12,10 +12,7 @@ import (
 // setupEvolutionTestDB 创建一个内存数据库用于测试
 func setupEvolutionTestDB(t *testing.T) *sql.DB {
 	t.Helper()
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatalf("open test db: %v", err)
-	}
+	db := openTestPostgres(t)
 	return db
 }
 

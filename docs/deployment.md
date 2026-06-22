@@ -120,7 +120,7 @@ v18-v20 引入了多个新引擎，部署时需注意以下配置：
 
 ### 数据库迁移
 
-v18-v20 自动迁移 SQLite 表结构，无需手动操作。首次启动新版本时会创建以下新表：
+当前版本使用 PostgreSQL 作为唯一长期存储。目标 database 必须预先创建，服务启动后会自动创建或补齐表结构：
 
 - `envelopes` / `merkle_batches` — 执行信封
 - `security_events` / `event_targets` — 事件总线

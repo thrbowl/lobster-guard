@@ -19,10 +19,7 @@ import (
 func setupRedTeamEngine(t *testing.T) (*RedTeamEngine, *sql.DB, func()) {
 	t.Helper()
 	tmpDB := fmt.Sprintf("/tmp/lobster-redteam-test-%d.db", time.Now().UnixNano())
-	db, err := sql.Open("sqlite3", tmpDB+"?_journal_mode=WAL")
-	if err != nil {
-		t.Fatalf("打开数据库失败: %v", err)
-	}
+	db := openTestPostgres(t)
 	engine := NewRuleEngine()
 	rt := NewRedTeamEngine(db, engine)
 	rt.outboundEngine = NewOutboundRuleEngine(nil)                 // v17.3: 使用默认出站规则
@@ -42,7 +39,7 @@ func setupMgmtAPIWithRedTeam(t *testing.T) (*ManagementAPI, func()) {
 		HeartbeatTimeoutCount: 3,
 		RoutePersist:          false,
 	}
-	db, _ := initDB(tmpDB)
+	db := openTestPostgres(t)
 	pool := NewUpstreamPool(cfg, db)
 	routes := NewRouteTable(db, false)
 	logger, _ := NewAuditLogger(db)
@@ -285,7 +282,7 @@ func TestRunRedTeamEmptyTenantDefaultsToDefault(t *testing.T) {
 
 func TestRunRedTeamNilEngine(t *testing.T) {
 	tmpDB := fmt.Sprintf("/tmp/lobster-rt-nil-%d.db", time.Now().UnixNano())
-	db, _ := sql.Open("sqlite3", tmpDB+"?_journal_mode=WAL")
+	db := openTestPostgres(t)
 	defer func() { db.Close(); os.Remove(tmpDB) }()
 
 	rt := NewRedTeamEngine(db, nil)

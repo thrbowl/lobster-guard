@@ -36,10 +36,7 @@ func setupWSTestEnv(t *testing.T) (*Config, *RuleEngine, *OutboundRuleEngine, *A
 		WSMaxDuration:        3600,
 		WSMaxConnections:     100,
 	}
-	db, err := initDB(cfg.DBPath)
-	if err != nil {
-		t.Fatalf("initDB: %v", err)
-	}
+	db := openTestPostgres(t)
 	t.Cleanup(func() { db.Close() })
 	engine := NewRuleEngine()
 	outEngine := NewOutboundRuleEngine(nil)
@@ -376,7 +373,7 @@ func TestWSProxy_MaxConnections(t *testing.T) {
 
 func TestWSProxy_NoUpstream(t *testing.T) {
 	cfg, engine, outEngine, logger, metrics, _, routes, ruleHits := setupWSTestEnv(t)
-	db2, _ := initDB(":memory:")
+	db2 := openTestPostgres(t)
 	defer db2.Close()
 	empty := NewUpstreamPool(&Config{}, db2)
 	wm := NewWSProxyManager(cfg, engine, outEngine, logger, metrics, empty, routes, ruleHits)
@@ -595,7 +592,7 @@ func TestWSProxy_MaxDuration(t *testing.T) {
 
 func TestWSProxy_DefaultConfig(t *testing.T) {
 	cfg := &Config{}
-	db, _ := initDB(":memory:")
+	db := openTestPostgres(t)
 	defer db.Close()
 	pool := NewUpstreamPool(cfg, db)
 	routes := NewRouteTable(db, false)

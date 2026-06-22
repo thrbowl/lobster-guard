@@ -83,7 +83,7 @@ auth:
 inbound_detect_enabled: true
 outbound_audit_enabled: true
 detect_timeout_ms: 50
-db_path: "./audit.db"
+database_url: "postgres://lobster:password@127.0.0.1:5432/lobster_guard?sslmode=disable"
 ```
 
 ### K8s 服务发现 (`discovery`)

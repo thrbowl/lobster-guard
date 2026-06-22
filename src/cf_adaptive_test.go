@@ -10,10 +10,7 @@ import (
 
 func setupAdaptiveTestDB(t *testing.T) *sql.DB {
 	t.Helper()
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatalf("open test db: %v", err)
-	}
+	db := openTestPostgres(t)
 
 	// 创建 cf_verifications 表（AdaptiveStrategy 的 feedback 查询需要）
 	db.Exec(`CREATE TABLE IF NOT EXISTS cf_verifications (

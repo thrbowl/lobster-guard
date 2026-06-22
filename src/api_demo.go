@@ -602,7 +602,8 @@ func (api *ManagementAPI) handleDemoSeed(w http.ResponseWriter, r *http.Request)
 			failed := 35 - passed
 			reportJSON := fmt.Sprintf(`{"id":"demo-rt-%s","tenant_id":"%s","total_tests":35,"passed":%d,"failed":%d,"pass_rate":%.1f,"results":[],"category_stats":{},"vulnerabilities":[],"recommendations":[]}`,
 				s.tenantID, s.tenantID, passed, failed, s.passRate)
-			al.db.Exec(`INSERT OR REPLACE INTO redteam_reports (id, tenant_id, timestamp, duration_ms, total_tests, passed, failed, pass_rate, report_json, status) VALUES (?, ?, ?, 1200, 35, ?, ?, ?, ?, 'completed')`,
+			al.db.Exec(`INSERT INTO redteam_reports (id, tenant_id, timestamp, duration_ms, total_tests, passed, failed, pass_rate, report_json, status) VALUES (?, ?, ?, 1200, 35, ?, ?, ?, ?, 'completed')
+				ON CONFLICT (id) DO UPDATE SET tenant_id=EXCLUDED.tenant_id, timestamp=EXCLUDED.timestamp, duration_ms=EXCLUDED.duration_ms, total_tests=EXCLUDED.total_tests, passed=EXCLUDED.passed, failed=EXCLUDED.failed, pass_rate=EXCLUDED.pass_rate, report_json=EXCLUDED.report_json, status=EXCLUDED.status`,
 				"demo-rt-"+s.tenantID, s.tenantID, now.Add(-time.Duration(rng.Intn(48))*time.Hour).UTC().Format(time.RFC3339),
 				passed, failed, s.passRate, reportJSON)
 		}

@@ -259,7 +259,7 @@ func (s *SQLStore) AuditTimeline(hours int) ([]TimelineBucket, error) {
 	since := time.Now().UTC().Add(-time.Duration(hours) * time.Hour)
 	rows, err := s.db.Query(`
 		SELECT
-			strftime('%Y-%m-%dT%H:00:00Z', timestamp) as hour_bucket,
+			to_char(date_trunc('hour', timestamp::timestamp), 'YYYY-MM-DD"T"HH24:00:00"Z"') as hour_bucket,
 			action,
 			COUNT(*) as cnt
 		FROM audit_log
@@ -308,14 +308,16 @@ func (s *SQLStore) AuditTimeline(hours int) ([]TimelineBucket, error) {
 
 func (s *SQLStore) SaveRoute(senderID, appID, upstreamID string) error {
 	now := time.Now().Format(time.RFC3339)
-	_, err := s.db.Exec(`INSERT OR REPLACE INTO user_routes (sender_id, app_id, upstream_id, department, display_name, email, created_at, updated_at) VALUES(?,?,?,'','','',?,?)`,
+	_, err := s.db.Exec(`INSERT INTO user_routes (sender_id, app_id, upstream_id, department, display_name, email, created_at, updated_at) VALUES(?,?,?,'','','',?,?)
+		ON CONFLICT (sender_id, app_id) DO UPDATE SET upstream_id=EXCLUDED.upstream_id, updated_at=EXCLUDED.updated_at`,
 		senderID, appID, upstreamID, now, now)
 	return err
 }
 
 func (s *SQLStore) SaveRouteWithMeta(senderID, appID, upstreamID, department, displayName, email string) error {
 	now := time.Now().Format(time.RFC3339)
-	_, err := s.db.Exec(`INSERT OR REPLACE INTO user_routes (sender_id, app_id, upstream_id, department, display_name, email, created_at, updated_at) VALUES(?,?,?,?,?,?,?,?)`,
+	_, err := s.db.Exec(`INSERT INTO user_routes (sender_id, app_id, upstream_id, department, display_name, email, created_at, updated_at) VALUES(?,?,?,?,?,?,?,?)
+		ON CONFLICT (sender_id, app_id) DO UPDATE SET upstream_id=EXCLUDED.upstream_id, department=EXCLUDED.department, display_name=EXCLUDED.display_name, email=EXCLUDED.email, updated_at=EXCLUDED.updated_at`,
 		senderID, appID, upstreamID, department, displayName, email, now, now)
 	return err
 }
@@ -425,7 +427,8 @@ func (s *SQLStore) GetUserInfo(senderID string) (*UserInfo, error) {
 
 func (s *SQLStore) SaveUserInfo(info *UserInfo) error {
 	now := time.Now().Format(time.RFC3339)
-	_, err := s.db.Exec(`INSERT OR REPLACE INTO user_info_cache (sender_id, name, email, department, avatar, mobile, fetched_at, updated_at) VALUES(?,?,?,?,?,?,?,?)`,
+	_, err := s.db.Exec(`INSERT INTO user_info_cache (sender_id, name, email, department, avatar, mobile, fetched_at, updated_at) VALUES(?,?,?,?,?,?,?,?)
+		ON CONFLICT (sender_id) DO UPDATE SET name=EXCLUDED.name, email=EXCLUDED.email, department=EXCLUDED.department, avatar=EXCLUDED.avatar, mobile=EXCLUDED.mobile, fetched_at=EXCLUDED.fetched_at, updated_at=EXCLUDED.updated_at`,
 		info.SenderID, info.Name, info.Email, info.Department, info.Avatar, info.Mobile, info.FetchedAt.Format(time.RFC3339), now)
 	return err
 }
@@ -481,7 +484,8 @@ func (s *SQLStore) SaveUpstream(up *Upstream) error {
 	if up.Healthy {
 		h = 1
 	}
-	_, err := s.db.Exec(`INSERT OR REPLACE INTO upstreams (id,address,port,healthy,registered_at,last_heartbeat,tags,load) VALUES(?,?,?,?,?,?,?,?)`,
+	_, err := s.db.Exec(`INSERT INTO upstreams (id,address,port,healthy,registered_at,last_heartbeat,tags,load) VALUES(?,?,?,?,?,?,?,?)
+		ON CONFLICT (id) DO UPDATE SET address=EXCLUDED.address, port=EXCLUDED.port, healthy=EXCLUDED.healthy, last_heartbeat=EXCLUDED.last_heartbeat, tags=EXCLUDED.tags, load=EXCLUDED.load`,
 		up.ID, up.Address, up.Port, h, up.RegisteredAt.Format(time.RFC3339), up.LastHeartbeat.Format(time.RFC3339),
 		tagsJSON, loadJSON)
 	return err

@@ -4,7 +4,6 @@ package main
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/json"
 	"encoding/xml"
 	"net/http"
@@ -366,10 +365,7 @@ func (m *mockUserProvider) getCalls() int {
 
 // TestUserInfoCache_GetOrFetch 测试用户信息缓存基本功能
 func TestUserInfoCache_GetOrFetch(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := openTestPostgres(t)
 	defer db.Close()
 	db.Exec(`CREATE TABLE IF NOT EXISTS user_info_cache (
 		sender_id TEXT PRIMARY KEY,
@@ -431,10 +427,7 @@ func TestUserInfoCache_GetOrFetch(t *testing.T) {
 
 // TestUserInfoCache_ListAll 测试列出所有用户
 func TestUserInfoCache_ListAll(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := openTestPostgres(t)
 	defer db.Close()
 	db.Exec(`CREATE TABLE IF NOT EXISTS user_info_cache (
 		sender_id TEXT PRIMARY KEY,
@@ -482,10 +475,7 @@ func TestUserInfoCache_ListAll(t *testing.T) {
 
 // TestUserInfoCache_Refresh 测试强制刷新
 func TestUserInfoCache_Refresh(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := openTestPostgres(t)
 	defer db.Close()
 	db.Exec(`CREATE TABLE IF NOT EXISTS user_info_cache (
 		sender_id TEXT PRIMARY KEY, name TEXT, email TEXT, department TEXT, avatar TEXT, mobile TEXT DEFAULT '',
@@ -781,10 +771,7 @@ func TestCreateUserInfoProvider(t *testing.T) {
 
 // TestUserInfoManagementAPI 测试 v3.9 Management API 端点
 func TestUserInfoManagementAPI(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := openTestPostgres(t)
 	defer db.Close()
 	// Create tables
 	db.Exec(`CREATE TABLE IF NOT EXISTS audit_log (
@@ -963,10 +950,7 @@ func TestUserInfoManagementAPI(t *testing.T) {
 
 // TestRouteTable_UpdateUserInfo 测试 UpdateUserInfo
 func TestRouteTable_UpdateUserInfo(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := openTestPostgres(t)
 	defer db.Close()
 	db.Exec(`CREATE TABLE IF NOT EXISTS user_routes (
 		sender_id TEXT NOT NULL, app_id TEXT NOT NULL DEFAULT '', upstream_id TEXT NOT NULL,
@@ -984,7 +968,7 @@ func TestRouteTable_UpdateUserInfo(t *testing.T) {
 
 	// Verify via DB query
 	var name, email, dept string
-	err = db.QueryRow(`SELECT display_name, email, department FROM user_routes WHERE sender_id='user-001'`).Scan(&name, &email, &dept)
+	err := db.QueryRow(`SELECT display_name, email, department FROM user_routes WHERE sender_id='user-001'`).Scan(&name, &email, &dept)
 	if err != nil {
 		t.Fatalf("query failed: %v", err)
 	}
@@ -1040,10 +1024,7 @@ route_policies:
 
 // TestUserInfoManagementAPI_NilCache 测试无缓存时 API 的降级
 func TestUserInfoManagementAPI_NilCache(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := openTestPostgres(t)
 	defer db.Close()
 	db.Exec(`CREATE TABLE IF NOT EXISTS audit_log (
 		id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp TEXT, direction TEXT, sender_id TEXT,

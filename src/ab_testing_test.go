@@ -15,10 +15,7 @@ import (
 // setupABTestDB 创建测试用内存数据库
 func setupABTestDB(t *testing.T) (*sql.DB, *ABTestEngine) {
 	t.Helper()
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatalf("打开数据库失败: %v", err)
-	}
+	db := openTestPostgres(t)
 	// 创建 llm_calls 和 llm_tool_calls 表（ABTestEngine 的指标聚合需要）
 	db.Exec(`CREATE TABLE IF NOT EXISTS llm_calls (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,

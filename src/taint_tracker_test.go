@@ -14,10 +14,7 @@ import (
 // newTestTaintTracker 创建测试用 TaintTracker（SQLite in-memory）
 func newTestTaintTracker(t *testing.T, cfg TaintConfig) (*TaintTracker, *sql.DB) {
 	t.Helper()
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatalf("打开测试数据库失败: %v", err)
-	}
+	db := openTestPostgres(t)
 	if !cfg.Enabled {
 		cfg.Enabled = true
 	}

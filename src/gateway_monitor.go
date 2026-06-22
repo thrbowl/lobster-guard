@@ -189,10 +189,10 @@ func gatewayRPCRequestCall(address string, port int, gatewayToken string, method
 		if res.Type != "res" || res.ID != requestID {
 			continue
 		}
-		if !res.OK {
-			if msg, ok := res.Error["message"].(string); ok && msg != "" {
-				return nil, latency, fmt.Errorf(msg)
-			}
+			if !res.OK {
+				if msg, ok := res.Error["message"].(string); ok && msg != "" {
+					return nil, latency, fmt.Errorf("%s", msg)
+				}
 			return nil, latency, fmt.Errorf("rpc method failed: %s", method)
 		}
 		return res.Payload, latency, nil

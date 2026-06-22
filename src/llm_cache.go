@@ -622,7 +622,8 @@ func (c *LLMCache) persistEntry(e *CacheEntry) {
 	}
 	go func() {
 		_, err := c.db.Exec(
-			`INSERT OR REPLACE INTO llm_cache (key, query, query_hash, response, model, tenant_id, created_at, last_hit, hit_count, tokens_saved) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			`INSERT INTO llm_cache (key, query, query_hash, response, model, tenant_id, created_at, last_hit, hit_count, tokens_saved) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			ON CONFLICT (key) DO UPDATE SET query=EXCLUDED.query, query_hash=EXCLUDED.query_hash, response=EXCLUDED.response, model=EXCLUDED.model, tenant_id=EXCLUDED.tenant_id, last_hit=EXCLUDED.last_hit, hit_count=EXCLUDED.hit_count, tokens_saved=EXCLUDED.tokens_saved`,
 			e.Key, e.Query, e.QueryHash, e.Response, e.Model, e.TenantID,
 			e.CreatedAt.Format(time.RFC3339), e.LastHit.Format(time.RFC3339),
 			e.HitCount, e.TokensSaved,

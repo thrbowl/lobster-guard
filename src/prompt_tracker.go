@@ -538,7 +538,8 @@ func (pt *PromptTracker) SeedPromptDemoData(db *sql.DB) int {
 		firstSeen := now.AddDate(0, 0, -v.daysAgo).Format(time.RFC3339)
 		lastSeen := now.Add(-time.Duration(v.daysAgo-1) * 24 * time.Hour).Format(time.RFC3339)
 
-		_, err := db.Exec(`INSERT OR REPLACE INTO prompt_versions (hash, content, model, first_seen, last_seen, call_count, prev_hash) VALUES (?,?,?,?,?,?,?)`,
+		_, err := db.Exec(`INSERT INTO prompt_versions (hash, content, model, first_seen, last_seen, call_count, prev_hash) VALUES (?,?,?,?,?,?,?)
+			ON CONFLICT (hash) DO UPDATE SET content=EXCLUDED.content, model=EXCLUDED.model, last_seen=EXCLUDED.last_seen, call_count=EXCLUDED.call_count, prev_hash=EXCLUDED.prev_hash`,
 			hash, v.content, v.model, firstSeen, lastSeen, v.calls, prevHash)
 		if err != nil {
 			log.Printf("[PromptTracker] demo insert error: %v", err)

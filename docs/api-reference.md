@@ -216,8 +216,8 @@
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | POST | `/api/v1/debug/detect-all-layers` | 全链路四层检测 |
-| GET | `/api/v1/sqlite/stats` | SQLite 统计 |
-| GET | `/api/v1/sqlite/batch-stats` | 批量写入统计 |
+| GET | `/api/v1/debug/database-stats` | PostgreSQL 连接池与表统计 |
+| GET | `/api/v1/debug/sqlite-stats` | 兼容旧路径，返回同一数据库状态 |
 
 ## 安全画像 (v33)
 

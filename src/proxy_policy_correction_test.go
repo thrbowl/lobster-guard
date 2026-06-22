@@ -12,10 +12,7 @@ import (
 // setupTestDB 创建内存数据库并初始化必要的表
 func setupPolicyCorrectionDB(t *testing.T) *sql.DB {
 	t.Helper()
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := openTestPostgres(t)
 	// user_info_cache 表
 	db.Exec(`CREATE TABLE IF NOT EXISTS user_info_cache (
 		sender_id TEXT PRIMARY KEY,

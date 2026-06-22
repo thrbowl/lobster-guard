@@ -13,7 +13,7 @@ type databaseTableStat struct {
 	Rows int64  `json:"rows"`
 }
 
-func (api *ManagementAPI) handleSQLiteStats(w http.ResponseWriter, r *http.Request) {
+func (api *ManagementAPI) handleDatabaseStats(w http.ResponseWriter, r *http.Request) {
 	if api == nil || api.logger == nil || api.logger.DB() == nil {
 		jsonResponse(w, 200, map[string]interface{}{"error": "database unavailable"})
 		return

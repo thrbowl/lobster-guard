@@ -287,22 +287,22 @@ func (d *AnomalyDetector) queryHourlyMetric(metricName string, windowDays int) [
 
 	switch metricName {
 	case "im_requests_per_hour":
-		query = `SELECT date(timestamp) as d, CAST(strftime('%H', timestamp) AS INTEGER) as h, COUNT(*) as cnt
+		query = `SELECT (timestamp::timestamp)::date::text as d, EXTRACT(HOUR FROM timestamp::timestamp)::int as h, COUNT(*) as cnt
 			FROM audit_log WHERE timestamp >= ? GROUP BY d, h ORDER BY d, h`
 	case "im_blocks_per_hour":
-		query = `SELECT date(timestamp) as d, CAST(strftime('%H', timestamp) AS INTEGER) as h, COUNT(*) as cnt
+		query = `SELECT (timestamp::timestamp)::date::text as d, EXTRACT(HOUR FROM timestamp::timestamp)::int as h, COUNT(*) as cnt
 			FROM audit_log WHERE action='block' AND timestamp >= ? GROUP BY d, h ORDER BY d, h`
 	case "llm_calls_per_hour":
-		query = `SELECT date(timestamp) as d, CAST(strftime('%H', timestamp) AS INTEGER) as h, COUNT(*) as cnt
+		query = `SELECT (timestamp::timestamp)::date::text as d, EXTRACT(HOUR FROM timestamp::timestamp)::int as h, COUNT(*) as cnt
 			FROM llm_calls WHERE timestamp >= ? GROUP BY d, h ORDER BY d, h`
 	case "llm_tokens_per_hour":
-		query = `SELECT date(timestamp) as d, CAST(strftime('%H', timestamp) AS INTEGER) as h, COALESCE(SUM(total_tokens),0) as cnt
+		query = `SELECT (timestamp::timestamp)::date::text as d, EXTRACT(HOUR FROM timestamp::timestamp)::int as h, COALESCE(SUM(total_tokens),0) as cnt
 			FROM llm_calls WHERE timestamp >= ? GROUP BY d, h ORDER BY d, h`
 	case "tool_calls_per_hour":
-		query = `SELECT date(timestamp) as d, CAST(strftime('%H', timestamp) AS INTEGER) as h, COUNT(*) as cnt
+		query = `SELECT (timestamp::timestamp)::date::text as d, EXTRACT(HOUR FROM timestamp::timestamp)::int as h, COUNT(*) as cnt
 			FROM llm_tool_calls WHERE timestamp >= ? GROUP BY d, h ORDER BY d, h`
 	case "high_risk_tools_per_hour":
-		query = `SELECT date(timestamp) as d, CAST(strftime('%H', timestamp) AS INTEGER) as h, COUNT(*) as cnt
+		query = `SELECT (timestamp::timestamp)::date::text as d, EXTRACT(HOUR FROM timestamp::timestamp)::int as h, COUNT(*) as cnt
 			FROM llm_tool_calls WHERE risk_level IN ('high','critical') AND timestamp >= ? GROUP BY d, h ORDER BY d, h`
 	default:
 		return nil

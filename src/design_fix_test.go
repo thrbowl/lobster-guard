@@ -513,10 +513,7 @@ func TestR2005_PolicyUpstreamValidationWarn(t *testing.T) {
 // Helper: setupTestDB creates a temporary in-memory SQLite database for testing
 func setupTestDB(t *testing.T) *sql.DB {
 	t.Helper()
-	db, err := initDB(":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := openTestPostgres(t)
 	return db
 }
 

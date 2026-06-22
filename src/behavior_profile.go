@@ -237,7 +237,7 @@ func (bp *BehaviorProfileEngine) getToolUsage(agentID string) []ToolUsage {
 
 func (bp *BehaviorProfileEngine) getPeakHours(agentID string) []int {
 	rows, err := bp.db.Query(`
-		SELECT CAST(strftime('%H', timestamp) AS INTEGER) as h, COUNT(*) as cnt
+		SELECT EXTRACT(HOUR FROM timestamp::timestamp)::int as h, COUNT(*) as cnt
 		FROM audit_log WHERE sender_id=?
 		GROUP BY h ORDER BY cnt DESC LIMIT 3
 	`, agentID)
@@ -583,7 +583,7 @@ func (bp *BehaviorProfileEngine) detectVolumeSpike(agentID, since24h, since7d, t
 
 func (bp *BehaviorProfileEngine) detectTimeAnomaly(agentID, since24h, tenantID string, now time.Time) *BehaviorAnomaly {
 	rows, err := bp.db.Query(`
-		SELECT CAST(strftime('%H', timestamp) AS INTEGER) as h, COUNT(*) as cnt
+		SELECT EXTRACT(HOUR FROM timestamp::timestamp)::int as h, COUNT(*) as cnt
 		FROM audit_log WHERE sender_id=?
 		GROUP BY h ORDER BY cnt DESC
 	`, agentID)
@@ -607,7 +607,7 @@ func (bp *BehaviorProfileEngine) detectTimeAnomaly(agentID, since24h, tenantID s
 	}
 
 	recentRows, err := bp.db.Query(`
-		SELECT CAST(strftime('%H', timestamp) AS INTEGER) as h, COUNT(*) as cnt
+		SELECT EXTRACT(HOUR FROM timestamp::timestamp)::int as h, COUNT(*) as cnt
 		FROM audit_log WHERE sender_id=? AND timestamp >= ?
 		GROUP BY h
 	`, agentID, since24h)

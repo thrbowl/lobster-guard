@@ -540,7 +540,7 @@ func TestWecomGETVerification_HTTP(t *testing.T) {
 		InboundDetectEnabled:  true,
 		DetectTimeoutMs:       50,
 	}
-	db, _ := initDB(tmpDB)
+	db := openTestPostgres(t)
 	defer db.Close()
 	pool := NewUpstreamPool(cfg, db)
 	routes := NewRouteTable(db, false)
@@ -607,7 +607,7 @@ func TestFeishuURLVerification_HTTP(t *testing.T) {
 		InboundDetectEnabled:  true,
 		DetectTimeoutMs:       50,
 	}
-	db, _ := initDB(tmpDB)
+	db := openTestPostgres(t)
 	defer db.Close()
 	pool := NewUpstreamPool(cfg, db)
 	routes := NewRouteTable(db, false)

@@ -14,10 +14,7 @@ import (
 // setupAttackChainDB 创建测试用内存数据库
 func setupAttackChainDB(t *testing.T) (*sql.DB, *AttackChainEngine) {
 	t.Helper()
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatalf("打开数据库失败: %v", err)
-	}
+	db := openTestPostgres(t)
 
 	// 创建依赖的表
 	db.Exec(`CREATE TABLE IF NOT EXISTS audit_log (
@@ -65,7 +62,7 @@ func TestAttackChainEngine_Init(t *testing.T) {
 
 	// 验证表存在
 	var name string
-	err := db.QueryRow("SELECT name FROM sqlite_master WHERE type='table' AND name='attack_chains'").Scan(&name)
+	err := db.QueryRow("SELECT table_name FROM information_schema.tables WHERE table_schema = current_schema() AND table_name='attack_chains'").Scan(&name)
 	if err != nil {
 		t.Fatalf("attack_chains 表不存在: %v", err)
 	}

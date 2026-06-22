@@ -11,10 +11,7 @@ import (
 // setupBehaviorTestDB 创建测试用的内存数据库
 func setupBehaviorTestDB(t *testing.T) *sql.DB {
 	t.Helper()
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatalf("open db: %v", err)
-	}
+	db := openTestPostgres(t)
 
 	// 创建 audit_log 表
 	db.Exec(`CREATE TABLE IF NOT EXISTS audit_log (
@@ -114,7 +111,7 @@ func TestNewBehaviorProfileEngine(t *testing.T) {
 
 	// 验证 behavior_anomalies 表存在
 	var name string
-	err := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='behavior_anomalies'`).Scan(&name)
+	err := db.QueryRow(`SELECT table_name FROM information_schema.tables WHERE table_schema = current_schema() AND table_name='behavior_anomalies'`).Scan(&name)
 	if err != nil {
 		t.Fatalf("behavior_anomalies table not created: %v", err)
 	}

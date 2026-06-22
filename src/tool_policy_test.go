@@ -3,7 +3,6 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"net/http/httptest"
 	"strings"
@@ -13,10 +12,7 @@ import (
 
 func newTestToolPolicyEngine(t *testing.T) *ToolPolicyEngine {
 	t.Helper()
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatalf("open db: %v", err)
-	}
+	db := openTestPostgres(t)
 	t.Cleanup(func() { db.Close() })
 	cfg := ToolPolicyConfig{
 		Enabled:        true,
@@ -380,10 +376,7 @@ func TestToolPolicyConfigurableContextPolicy(t *testing.T) {
 
 // 8. TestToolPolicyRateLimiting — 频率限制
 func TestToolPolicyRateLimiting(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatalf("open db: %v", err)
-	}
+	db := openTestPostgres(t)
 	defer db.Close()
 	cfg := ToolPolicyConfig{
 		Enabled:        true,
@@ -751,7 +744,7 @@ func TestToolPolicyArgumentsParsing(t *testing.T) {
 
 // 25. TestToolPolicyMultiTenantRateLimit — 多租户频率限制独立
 func TestToolPolicyMultiTenantRateLimit(t *testing.T) {
-	db, _ := sql.Open("sqlite3", ":memory:")
+	db := openTestPostgres(t)
 	defer db.Close()
 	cfg := ToolPolicyConfig{
 		Enabled:        true,

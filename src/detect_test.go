@@ -623,10 +623,7 @@ func TestGenDefaultRules_FileWrite(t *testing.T) {
 func createTestManagementAPIWithEngine(t *testing.T) (*ManagementAPI, *RuleEngine, func()) {
 	t.Helper()
 	tmpDB := fmt.Sprintf("/tmp/test_mgmt_engine_%d.db", time.Now().UnixNano())
-	db, err := initDB(tmpDB)
-	if err != nil {
-		t.Fatalf("initDB: %v", err)
-	}
+	db := openTestPostgres(t)
 	cfg := &Config{
 		InboundListen: ":0", OutboundListen: ":0", ManagementListen: ":0",
 		OpenClawUpstream: "http://localhost:18790", LanxinUpstream: "https://apigw.lx.qianxin.com",
@@ -706,10 +703,7 @@ inbound_rules:
 	tmpCfg.Close()
 
 	tmpDB := fmt.Sprintf("/tmp/test_reload_%d.db", time.Now().UnixNano())
-	db, err := initDB(tmpDB)
-	if err != nil {
-		t.Fatalf("initDB: %v", err)
-	}
+	db := openTestPostgres(t)
 	defer func() { db.Close(); os.Remove(tmpDB) }()
 
 	cfg := &Config{
@@ -758,10 +752,7 @@ inbound_rules:
 
 func TestOutboundRulesAPI_List(t *testing.T) {
 	tmpDB := fmt.Sprintf("/tmp/test_outbound_list_%d.db", time.Now().UnixNano())
-	db, err := initDB(tmpDB)
-	if err != nil {
-		t.Fatalf("initDB: %v", err)
-	}
+	db := openTestPostgres(t)
 	defer func() { db.Close(); os.Remove(tmpDB) }()
 
 	cfg := &Config{
@@ -1141,7 +1132,7 @@ func TestRuleHitStats_API(t *testing.T) {
 	tmpDB.Close()
 	defer os.Remove(tmpDB.Name())
 
-	db, _ := initDB(tmpDB.Name())
+	db := openTestPostgres(t)
 	defer db.Close()
 
 	cfg := &Config{
@@ -1318,7 +1309,7 @@ func TestHealthz_RuleHits(t *testing.T) {
 	tmpDB.Close()
 	defer os.Remove(tmpDB.Name())
 
-	db, _ := initDB(tmpDB.Name())
+	db := openTestPostgres(t)
 	defer db.Close()
 
 	cfg := &Config{
@@ -1398,10 +1389,7 @@ func TestHealthz_RuleHits(t *testing.T) {
 func createTestDB(t *testing.T) (*sql.DB, func()) {
 	t.Helper()
 	tmpDB := "/tmp/lobster-guard-test-v311-" + fmt.Sprintf("%d", time.Now().UnixNano()) + ".db"
-	db, err := initDB(tmpDB)
-	if err != nil {
-		t.Fatalf("创建测试数据库失败: %v", err)
-	}
+	db := openTestPostgres(t)
 	cleanup := func() { db.Close(); os.Remove(tmpDB) }
 	return db, cleanup
 }

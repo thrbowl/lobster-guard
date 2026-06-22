@@ -370,7 +370,7 @@ const visibleGroups = computed(() => [
     { key: 'session_fp_window_sec', label: '指纹窗口', desc: 'LLM 请求匹配 IM 消息指纹窗口', type: 'number', min: 10, max: 3600, step: 10, unit: '秒' },
   ]},
   { key: 'advanced', icon: '⚙️', title: '高级配置', desc: '数据库、心跳、路由策略与备份', items: [
-    { key: 'db_path', label: '数据库路径', desc: 'SQLite 审计日志存储路径', placeholder: '/var/lib/lobster-guard/audit.db', restart: true },
+    { key: 'database_url', label: '数据库连接', desc: 'PostgreSQL 连接地址', placeholder: 'postgres://lobster:password@127.0.0.1:5432/lobster_guard?sslmode=disable', restart: true },
     { key: 'heartbeat_interval_sec', label: '心跳间隔', desc: '上游健康检查周期', type: 'number', min: 1, max: 300, step: 1, unit: '秒' },
     { key: 'route_default_policy', label: '路由策略', desc: '新用户默认分配策略', options: [{value:'least-users',label:'最少用户'},{value:'round-robin',label:'轮询'},{value:'random',label:'随机'}] },
     { key: 'audit_retention_days', label: '日志保留', desc: '审计日志自动清理天数', type: 'number', min: 1, max: 365, step: 1, unit: '天' },
@@ -627,8 +627,8 @@ function switchTab(key) {
 
 async function loadSQLiteStats() {
   sqliteStatsLoading.value = true
-  try { sqliteStats.value = await api('/api/v1/debug/sqlite-stats') }
-  catch (e) { showToast('加载 SQLite 监控失败: ' + e.message, 'error') }
+  try { sqliteStats.value = await api('/api/v1/debug/database-stats') }
+  catch (e) { showToast('加载数据库状态失败: ' + e.message, 'error') }
   sqliteStatsLoading.value = false
 }
 
@@ -1034,7 +1034,7 @@ onMounted(() => {
 .rule-name-code { font-size: var(--text-sm); color: var(--color-primary); font-family: var(--font-mono); }
 
 
-/* SQLite 监控 Tab */
+/* 数据库状态 Tab */
 .sqlite-panel { display: flex; flex-direction: column; gap: 16px; }
 .sqlite-overview { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 4px; }
 .sqlite-stat-card { background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px; }

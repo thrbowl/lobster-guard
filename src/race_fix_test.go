@@ -13,10 +13,7 @@ import (
 
 func setupRaceTestDB(t *testing.T) *sql.DB {
 	t.Helper()
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := openTestPostgres(t)
 	db.Exec(`CREATE TABLE IF NOT EXISTS user_info_cache (
 		sender_id TEXT PRIMARY KEY, name TEXT DEFAULT '', email TEXT DEFAULT '',
 		department TEXT DEFAULT '', avatar TEXT DEFAULT '', mobile TEXT DEFAULT '',

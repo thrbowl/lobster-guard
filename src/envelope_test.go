@@ -2,7 +2,6 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"sync"
 	"testing"
@@ -12,10 +11,7 @@ import (
 // newTestEnvelopeManager 创建测试用信封管理器（内存数据库）
 func newTestEnvelopeManager(t *testing.T) *EnvelopeManager {
 	t.Helper()
-	db, err := sql.Open("sqlite3", "file::memory:?cache=shared&_busy_timeout=5000&_journal_mode=WAL")
-	if err != nil {
-		t.Fatalf("open memory db: %v", err)
-	}
+	db := openTestPostgres(t)
 	db.SetMaxOpenConns(1) // SQLite 单写，避免并发写锁
 	t.Cleanup(func() { db.Close() })
 	return NewEnvelopeManager(db, "test-secret-key-at-least-32-chars!!")
@@ -540,10 +536,7 @@ func TestEnvelopeStatsEmpty(t *testing.T) {
 // newTestEnvelopeManagerWithBatch 创建测试用信封管理器（指定批次大小）
 func newTestEnvelopeManagerWithBatch(t *testing.T, batchSize int) *EnvelopeManager {
 	t.Helper()
-	db, err := sql.Open("sqlite3", "file::memory:?cache=shared&_busy_timeout=5000&_journal_mode=WAL")
-	if err != nil {
-		t.Fatalf("open memory db: %v", err)
-	}
+	db := openTestPostgres(t)
 	db.SetMaxOpenConns(1)
 	t.Cleanup(func() { db.Close() })
 	return NewEnvelopeManagerWithBatchSize(db, "test-secret-key-at-least-32-chars!!", batchSize)

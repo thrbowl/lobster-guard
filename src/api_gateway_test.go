@@ -17,10 +17,7 @@ import (
 // newTestGateway 创建测试用 API Gateway
 func newTestGateway(t *testing.T) (*APIGateway, *sql.DB) {
 	t.Helper()
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := openTestPostgres(t)
 	cfg := APIGatewayConfig{
 		Enabled:       true,
 		JWTSecret:     "test-secret-key-for-gateway",

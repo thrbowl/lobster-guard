@@ -70,7 +70,7 @@ curl -X POST -H "Authorization: Bearer $TOKEN" \
 | 审计日志 | 18+ | 导出CSV/JSON/清理/时间线/归档/全文搜索 |
 | 告警通知 | 6+ | webhook/蓝信格式/最小间隔/内容截断 |
 | WebSocket 代理 | 24 | 连接/帧转发/检测拦截/超时/心跳/并发限制 |
-| Store 抽象层 | 20+ | SQLiteStore CRUD/备份/恢复/Ping |
+| Store 抽象层 | 20+ | SQLStore CRUD/Ping/PostgreSQL 备份限制 |
 | 优雅关闭 | 10+ | 信号处理/健康检查/5维检查/关闭流程 |
 | 配置验证 | 9 | 端口冲突/通道/模式/正则编译/PII/上游 |
 | 检测链 Pipeline | 14 | 阶段串行/block 终止/自定义顺序 |
@@ -121,5 +121,5 @@ curl -X POST -H "Authorization: Bearer $TOKEN" \
 | 测试用例 | 950 (~30s) |
 
 - 规则引擎基于 **Aho-Corasick 算法**，O(n) 时间复杂度，文本长度无关
-- SQLite **WAL 模式**，支持并发读写
+- PostgreSQL 连接池复用，支持并发读写
 - HTTP 连接池复用，减少 TCP 握手开销

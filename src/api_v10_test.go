@@ -17,10 +17,7 @@ import (
 func setupV10API(t *testing.T) (*ManagementAPI, *sql.DB, func()) {
 	t.Helper()
 	tmpDB := "/tmp/lobster-guard-test-v10-" + fmt.Sprintf("%d", time.Now().UnixNano()) + ".db"
-	db, err := initDB(tmpDB)
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := openTestPostgres(t)
 	// 确保 llm_calls 有扩展列
 	db.Exec(`ALTER TABLE llm_calls ADD COLUMN canary_leaked INTEGER DEFAULT 0`)
 	db.Exec(`ALTER TABLE llm_calls ADD COLUMN budget_exceeded INTEGER DEFAULT 0`)

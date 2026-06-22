@@ -8,10 +8,7 @@ import (
 )
 
 func setupTestLLMAuditor(t *testing.T) (*LLMAuditor, *sql.DB) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := openTestPostgres(t)
 	cfg := LLMAuditConfig{
 		LogToolInput:  true,
 		LogToolResult: true,

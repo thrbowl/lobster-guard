@@ -32,7 +32,7 @@ func TestSealLLMResponseEnvelope_NormalizesEmptyDecisionToPass(t *testing.T) {
 	lp.sealLLMResponseEnvelope("trace-pass", llmResponseRecord{Decision: "", Body: []byte("hello")})
 
 	var decision string
-	if err := em.db.QueryRow(`SELECT decision FROM execution_envelopes WHERE trace_id = ? ORDER BY rowid DESC LIMIT 1`, "trace-pass").Scan(&decision); err != nil {
+	if err := em.db.QueryRow(`SELECT decision FROM execution_envelopes WHERE trace_id = ? ORDER BY id DESC LIMIT 1`, "trace-pass").Scan(&decision); err != nil {
 		t.Fatalf("query envelope: %v", err)
 	}
 	if decision != "pass" {
@@ -53,7 +53,7 @@ func TestSealSSEEnvelope_RuleMatchSealsBlockDecision(t *testing.T) {
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {
 		var decision string
-		if err := em.db.QueryRow(`SELECT decision FROM execution_envelopes WHERE trace_id = ? ORDER BY rowid DESC LIMIT 1`, "trace-sse").Scan(&decision); err == nil {
+		if err := em.db.QueryRow(`SELECT decision FROM execution_envelopes WHERE trace_id = ? ORDER BY id DESC LIMIT 1`, "trace-sse").Scan(&decision); err == nil {
 			if decision != "block" {
 				t.Fatalf("expected block decision, got %q", decision)
 			}

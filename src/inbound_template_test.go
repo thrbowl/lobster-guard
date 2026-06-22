@@ -3,7 +3,6 @@ package main
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -654,10 +653,7 @@ func TestInboundTemplateRouting(t *testing.T) {
 // ============================================================
 
 func TestInboundTemplateCRUD(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatalf("打开内存 DB 失败: %v", err)
-	}
+	db := openTestPostgres(t)
 	defer db.Close()
 
 	engine := NewRuleEngine()
@@ -810,10 +806,7 @@ func TestInboundTemplateBuiltInField(t *testing.T) {
 }
 
 func TestInboundTemplateDBPersistence(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatalf("打开内存 DB 失败: %v", err)
-	}
+	db := openTestPostgres(t)
 	defer db.Close()
 
 	// 第一个引擎创建模板

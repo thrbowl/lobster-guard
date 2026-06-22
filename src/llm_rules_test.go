@@ -1,10 +1,7 @@
 // llm_rules_test.go — LLM 规则引擎测试
 package main
 
-import (
-	"database/sql"
-	"testing"
-)
+import "testing"
 
 func TestLLMRules_DefaultRules(t *testing.T) {
 	// v20.8.1: 13条（含中国PII规则 llm-pii-004/005）
@@ -876,10 +873,7 @@ func TestCheckResponseWithTenant(t *testing.T) {
 }
 
 func TestTenantLLMRulesPersistence(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatalf("打开内存 DB 失败: %v", err)
-	}
+	db := openTestPostgres(t)
 	defer db.Close()
 
 	engine := NewLLMRuleEngine(defaultLLMRules)
@@ -936,10 +930,7 @@ func TestTenantLLMRulesPersistence(t *testing.T) {
 // ============================================================
 
 func TestLLMTemplateCRUD(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatalf("打开内存 DB 失败: %v", err)
-	}
+	db := openTestPostgres(t)
 	defer db.Close()
 
 	engine := NewLLMRuleEngine(defaultLLMRules)
@@ -1091,10 +1082,7 @@ func TestLLMTemplateNoDBFallback(t *testing.T) {
 // ============================================================
 
 func TestLLMFullFlowTemplateBindDetect(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatalf("打开内存 DB 失败: %v", err)
-	}
+	db := openTestPostgres(t)
 	defer db.Close()
 
 	engine := NewLLMRuleEngine(defaultLLMRules)

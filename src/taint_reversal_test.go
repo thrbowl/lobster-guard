@@ -14,10 +14,7 @@ import (
 // newTestReversalEngine 创建测试用逆转引擎（SQLite in-memory）
 func newTestReversalEngine(t *testing.T, cfg TaintReversalConfig, taintCfg *TaintConfig) (*TaintReversalEngine, *TaintTracker, *sql.DB) {
 	t.Helper()
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatalf("打开测试数据库失败: %v", err)
-	}
+	db := openTestPostgres(t)
 	// 限制为单连接，避免 in-memory SQLite 多连接导致表不可见
 	db.SetMaxOpenConns(1)
 

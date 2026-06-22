@@ -19,10 +19,7 @@ import (
 func setupAuthManager(t *testing.T) (*AuthManager, *sql.DB, func()) {
 	t.Helper()
 	tmpDB := fmt.Sprintf("/tmp/lobster-auth-test-%d.db", time.Now().UnixNano())
-	db, err := sql.Open("sqlite3", tmpDB+"?_journal_mode=WAL")
-	if err != nil {
-		t.Fatalf("打开数据库失败: %v", err)
-	}
+	db := openTestPostgres(t)
 	cfg := &AuthConfig{
 		Enabled:          true,
 		JWTSecret:        "test-secret-key-for-unit-tests",
@@ -51,7 +48,7 @@ func setupMgmtAPIWithAuth(t *testing.T) (*ManagementAPI, func()) {
 			TokenExpireHours: 1,
 		},
 	}
-	db, _ := initDB(tmpDB)
+	db := openTestPostgres(t)
 	pool := NewUpstreamPool(cfg, db)
 	routes := NewRouteTable(db, false)
 	logger, _ := NewAuditLogger(db)

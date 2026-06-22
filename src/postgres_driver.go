@@ -6,7 +6,6 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"io"
-	"regexp"
 	"strings"
 	"unicode"
 
@@ -97,133 +96,7 @@ func translateSQL(query string) string {
 	if q == "" {
 		return query
 	}
-	upper := strings.ToUpper(q)
-	if strings.HasPrefix(upper, "PRAGMA ") {
-		return "SELECT 0"
-	}
-	if strings.Contains(upper, "FROM SQLITE_MASTER") {
-		q = strings.ReplaceAll(q, "sqlite_master", "information_schema.tables")
-		q = strings.ReplaceAll(q, "type='table'", "table_type='BASE TABLE'")
-		q = strings.ReplaceAll(q, "type = 'table'", "table_type = 'BASE TABLE'")
-		q = strings.ReplaceAll(q, "name", "table_name")
-	}
-	q = rewriteSQLiteSchema(q)
-	q = rewriteSQLiteFunctions(q)
-	q = rewriteInsertOrReplace(q)
-	q = replaceRowID(q)
 	return replaceQuestionPlaceholders(q)
-}
-
-func rewriteSQLiteSchema(q string) string {
-	repls := []struct{ old, new string }{
-		{"INTEGER PRIMARY KEY AUTOINCREMENT", "BIGSERIAL PRIMARY KEY"},
-		{"integer primary key autoincrement", "BIGSERIAL PRIMARY KEY"},
-		{"INTEGER PRIMARY KEY", "BIGSERIAL PRIMARY KEY"},
-		{"integer primary key", "BIGSERIAL PRIMARY KEY"},
-		{"BOOLEAN DEFAULT 0", "BOOLEAN DEFAULT FALSE"},
-		{"BOOLEAN DEFAULT 1", "BOOLEAN DEFAULT TRUE"},
-	}
-	for _, r := range repls {
-		q = strings.ReplaceAll(q, r.old, r.new)
-	}
-	return q
-}
-
-func rewriteSQLiteFunctions(q string) string {
-	q = strings.ReplaceAll(q, "CAST(strftime('%H', timestamp) AS INTEGER)", "EXTRACT(HOUR FROM timestamp::timestamp)::int")
-	q = strings.ReplaceAll(q, `strftime('%Y-%m-%dT%H:00:00Z', timestamp)`, `to_char(date_trunc('hour', timestamp::timestamp), 'YYYY-MM-DD"T"HH24:00:00"Z"')`)
-	q = strings.ReplaceAll(q, "date(timestamp)", "DATE(timestamp::timestamp)")
-	q = strings.ReplaceAll(q, "date('now', '-7 days')", "(CURRENT_DATE - INTERVAL '7 days')")
-	return q
-}
-
-func replaceRowID(q string) string {
-	re := regexp.MustCompile(`(?i)\browid\b`)
-	return re.ReplaceAllString(q, "id")
-}
-
-func rewriteInsertOrReplace(q string) string {
-	trimmed := strings.TrimSpace(q)
-	if !strings.HasPrefix(strings.ToUpper(trimmed), "INSERT OR REPLACE INTO ") {
-		return q
-	}
-	re := regexp.MustCompile(`(?is)^INSERT\s+OR\s+REPLACE\s+INTO\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)\s*VALUES\s*\((.*)\)\s*$`)
-	m := re.FindStringSubmatch(trimmed)
-	if len(m) != 4 {
-		return strings.Replace(trimmed, "INSERT OR REPLACE INTO", "INSERT INTO", 1)
-	}
-	table := m[1]
-	cols := splitColumns(m[2])
-	if len(cols) == 0 {
-		return strings.Replace(trimmed, "INSERT OR REPLACE INTO", "INSERT INTO", 1)
-	}
-	conflict := conflictColumnsFor(table, cols)
-	if len(conflict) == 0 {
-		conflict = []string{cols[0]}
-	}
-	setParts := make([]string, 0, len(cols))
-	for _, col := range cols {
-		if pgCompatContainsString(conflict, col) {
-			continue
-		}
-		setParts = append(setParts, fmt.Sprintf("%s=EXCLUDED.%s", col, col))
-	}
-	if len(setParts) == 0 {
-		return fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s) ON CONFLICT (%s) DO NOTHING", table, strings.Join(cols, ","), m[3], strings.Join(conflict, ","))
-	}
-	return fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s) ON CONFLICT (%s) DO UPDATE SET %s", table, strings.Join(cols, ","), m[3], strings.Join(conflict, ","), strings.Join(setParts, ","))
-}
-
-func splitColumns(s string) []string {
-	parts := strings.Split(s, ",")
-	cols := make([]string, 0, len(parts))
-	for _, p := range parts {
-		col := strings.TrimSpace(strings.Trim(p, `"`))
-		if col != "" {
-			cols = append(cols, col)
-		}
-	}
-	return cols
-}
-
-func conflictColumnsFor(table string, cols []string) []string {
-	switch table {
-	case "user_routes":
-		if pgCompatContainsString(cols, "sender_id") && pgCompatContainsString(cols, "app_id") {
-			return []string{"sender_id", "app_id"}
-		}
-	case "upstreams":
-		return []string{"id"}
-	case "user_info_cache":
-		return []string{"sender_id"}
-	case "tenant_inbound_rules", "tenant_llm_rules":
-		return []string{"tenant_id"}
-	case "ifc_source_rules":
-		return []string{"source"}
-	case "ifc_tool_requirements":
-		return []string{"tool"}
-	case "ifc_hidden_content":
-		return []string{"var_id"}
-	case "llm_cache":
-		return []string{"key"}
-	case "prompt_versions":
-		return []string{"hash"}
-	case "ab_tests", "attack_chains", "redteam_reports", "taint_entries", "taint_custom_rules":
-		return []string{"id"}
-	}
-	if pgCompatContainsString(cols, "id") {
-		return []string{"id"}
-	}
-	return nil
-}
-
-func pgCompatContainsString(values []string, needle string) bool {
-	for _, v := range values {
-		if v == needle {
-			return true
-		}
-	}
-	return false
 }
 
 func replaceQuestionPlaceholders(q string) string {

@@ -1,37 +1,30 @@
 <template>
   <div>
     <div class="card" style="margin-bottom:20px">
-      <div class="card-header"><span class="card-icon">🗄️</span><span class="card-title">SQLite 监控</span><div class="card-actions"><button class="btn btn-ghost btn-sm" @click="loadSQLiteStats">刷新</button></div></div>
+      <div class="card-header"><span class="card-icon">🗄️</span><span class="card-title">数据库状态</span><div class="card-actions"><button class="btn btn-ghost btn-sm" @click="loadSQLiteStats">刷新</button></div></div>
       <Skeleton v-if="sqliteStatsLoading && !sqliteStats" type="text" />
       <div v-else-if="sqliteStats" class="sqlite-panel">
         <div class="sqlite-overview">
           <div class="sqlite-stat-card">
-            <div class="sqlite-stat-label">数据库文件</div>
-            <div class="sqlite-stat-value">{{ sqliteStats.database?.size_human || '--' }}</div>
-            <div class="sqlite-stat-sub">{{ sqliteStats.database?.size_bytes || 0 }} B</div>
+            <div class="sqlite-stat-label">连接池</div>
+            <div class="sqlite-stat-value">{{ sqliteStats.database?.open ?? '--' }}</div>
+            <div class="sqlite-stat-sub">in_use={{ sqliteStats.database?.in_use ?? 0 }} idle={{ sqliteStats.database?.idle ?? 0 }}</div>
           </div>
           <div class="sqlite-stat-card">
-            <div class="sqlite-stat-label">WAL 文件</div>
-            <div class="sqlite-stat-value">{{ sqliteStats.database?.wal_size_human || '--' }}</div>
-            <div class="sqlite-stat-sub">{{ sqliteStats.database?.wal_size_bytes || 0 }} B</div>
+            <div class="sqlite-stat-label">等待次数</div>
+            <div class="sqlite-stat-value">{{ sqliteStats.database?.wait_count ?? 0 }}</div>
+            <div class="sqlite-stat-sub">{{ sqliteStats.database?.wait_duration || '0s' }}</div>
           </div>
           <div class="sqlite-stat-card">
             <div class="sqlite-stat-label">表数量</div>
             <div class="sqlite-stat-value">{{ sqliteStats.table_count ?? '--' }}</div>
-            <div class="sqlite-stat-sub">page_count={{ sqliteStats.pragmas?.page_count ?? '--' }}</div>
+            <div class="sqlite-stat-sub">{{ sqliteStats.database?.url || '' }}</div>
           </div>
           <div class="sqlite-stat-card">
             <div class="sqlite-stat-label">最近写入 QPS</div>
             <div class="sqlite-stat-value">{{ formatQPS(sqliteStats.write_qps) }}</div>
             <div class="sqlite-stat-sub">1 分钟 {{ sqliteStats.recent_writes_1m || 0 }} 次</div>
           </div>
-        </div>
-
-        <div class="card" style="margin-bottom:16px">
-          <div class="card-header"><span class="card-icon">⚙️</span><span class="card-title">SQLite PRAGMA</span></div>
-          <div class="status-row"><span class="status-key">page_size</span><span class="status-val">{{ sqliteStats.pragmas?.page_size ?? '--' }}</span></div>
-          <div class="status-row"><span class="status-key">page_count</span><span class="status-val">{{ sqliteStats.pragmas?.page_count ?? '--' }}</span></div>
-          <div class="status-row"><span class="status-key">wal_autocheckpoint</span><span class="status-val">{{ sqliteStats.pragmas?.wal_autocheckpoint ?? '--' }}</span></div>
         </div>
 
         <div class="card">

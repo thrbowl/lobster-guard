@@ -11,10 +11,7 @@ import (
 
 // setupTestCache 创建测试用缓存实例
 func setupTestCache(t *testing.T, cfg LLMCacheConfig) (*LLMCache, *sql.DB) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := openTestPostgres(t)
 	if !cfg.Enabled {
 		cfg.Enabled = true
 	}
@@ -480,10 +477,7 @@ func TestCacheConfig(t *testing.T) {
 // 13. TestCacheDisabled — 缓存禁用时的行为
 // ============================================================
 func TestCacheDisabled(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := openTestPostgres(t)
 	defer db.Close()
 
 	cache := NewLLMCache(db, LLMCacheConfig{
@@ -493,7 +487,7 @@ func TestCacheDisabled(t *testing.T) {
 	})
 
 	// 存储应该无操作
-	err = cache.Store("test", "response", "gpt-4", "t1", false)
+	err := cache.Store("test", "response", "gpt-4", "t1", false)
 	if err != nil {
 		t.Fatalf("Store should not error when disabled: %v", err)
 	}

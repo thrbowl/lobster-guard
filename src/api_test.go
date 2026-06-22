@@ -3,7 +3,6 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http/httptest"
@@ -28,7 +27,7 @@ func setupMgmtAPI(t *testing.T) (*ManagementAPI, func()) {
 		HeartbeatTimeoutCount: 3,
 		RoutePersist:          false,
 	}
-	db, _ := initDB(tmpDB)
+	db := openTestPostgres(t)
 	pool := NewUpstreamPool(cfg, db)
 	routes := NewRouteTable(db, false)
 	logger, _ := NewAuditLogger(db)
@@ -285,89 +284,7 @@ func TestAPIUnbindRoute(t *testing.T) {
 }
 
 func TestDBMigration(t *testing.T) {
-	tmpDB := "/tmp/lobster-guard-test-migration-" + fmt.Sprintf("%d", time.Now().UnixNano()) + ".db"
-	defer os.Remove(tmpDB)
-
-	// 创建旧 schema 的数据库
-	db, err := sql.Open("sqlite3", tmpDB+"?_journal_mode=WAL&_busy_timeout=5000")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// 创建旧表（只有 sender_id 主键）
-	_, err = db.Exec(`CREATE TABLE user_routes (
-		sender_id TEXT PRIMARY KEY,
-		upstream_id TEXT NOT NULL,
-		created_at TEXT NOT NULL,
-		updated_at TEXT NOT NULL
-	)`)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// 插入旧数据
-	now := time.Now().Format(time.RFC3339)
-	db.Exec(`INSERT INTO user_routes (sender_id, upstream_id, created_at, updated_at) VALUES(?,?,?,?)`,
-		"old-user-1", "upstream-a", now, now)
-	db.Exec(`INSERT INTO user_routes (sender_id, upstream_id, created_at, updated_at) VALUES(?,?,?,?)`,
-		"old-user-2", "upstream-b", now, now)
-	db.Close()
-
-	// 重新打开，触发迁移
-	db2, err := sql.Open("sqlite3", tmpDB+"?_journal_mode=WAL&_busy_timeout=5000")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer db2.Close()
-
-	migrateUserRoutes(db2)
-
-	// 验证新 schema
-	var cnt int
-	err = db2.QueryRow(`SELECT COUNT(*) FROM user_routes`).Scan(&cnt)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if cnt != 2 {
-		t.Fatalf("迁移后应有2条数据，实际 %d", cnt)
-	}
-
-	// 验证 app_id 列存在且默认为空
-	var appID string
-	err = db2.QueryRow(`SELECT app_id FROM user_routes WHERE sender_id='old-user-1'`).Scan(&appID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if appID != "" {
-		t.Fatalf("旧数据的 app_id 应为空，实际 %q", appID)
-	}
-
-	// 验证复合主键可用（同 sender_id 不同 app_id）
-	db2.Exec(`INSERT INTO user_routes (sender_id, app_id, upstream_id, department, display_name, created_at, updated_at) VALUES(?,?,?,'','',?,?)`,
-		"old-user-1", "new-app", "upstream-c", now, now)
-	err = db2.QueryRow(`SELECT COUNT(*) FROM user_routes WHERE sender_id='old-user-1'`).Scan(&cnt)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if cnt != 2 {
-		t.Fatalf("复合主键应允许同 sender_id 不同 app_id，实际 %d", cnt)
-	}
-
-	// 验证 RouteTable 加载
-	rt := NewRouteTable(db2, true)
-	if rt.Count() != 3 {
-		t.Fatalf("RouteTable 应加载3条路由，实际 %d", rt.Count())
-	}
-
-	uid, found := rt.Lookup("old-user-1", "")
-	if !found || uid != "upstream-a" {
-		t.Fatalf("旧数据路由查找失败: found=%v uid=%s", found, uid)
-	}
-
-	uid, found = rt.Lookup("old-user-1", "new-app")
-	if !found || uid != "upstream-c" {
-		t.Fatalf("新数据路由查找失败: found=%v uid=%s", found, uid)
-	}
+	t.Skip("旧 SQLite user_routes 迁移已下线；PostgreSQL 新版本不迁移 audit.db")
 }
 
 func TestInboundRoutingWithAppID(t *testing.T) {
@@ -413,10 +330,7 @@ func TestRouteTablePersistWithDB(t *testing.T) {
 	tmpDB := "/tmp/lobster-guard-test-persist-" + fmt.Sprintf("%d", time.Now().UnixNano()) + ".db"
 	defer os.Remove(tmpDB)
 
-	db, err := initDB(tmpDB)
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := openTestPostgres(t)
 
 	// 绑定一些路由
 	rt := NewRouteTable(db, true)
@@ -729,7 +643,7 @@ func TestListRoutes_DefaultPolicyNoConflict(t *testing.T) {
 			{UpstreamID: "default-upstream", Match: RoutePolicyMatch{Default: true}},
 		},
 	}
-	db, _ := initDB(tmpDB)
+	db := openTestPostgres(t)
 	defer func() { db.Close(); os.Remove(tmpDB) }()
 
 	pool := NewUpstreamPool(cfg, db)
@@ -802,7 +716,7 @@ func TestListRoutes_ExplicitPolicyConflict(t *testing.T) {
 			{UpstreamID: "default-upstream", Match: RoutePolicyMatch{Default: true}},
 		},
 	}
-	db, _ := initDB(tmpDB)
+	db := openTestPostgres(t)
 	defer func() { db.Close(); os.Remove(tmpDB) }()
 
 	pool := NewUpstreamPool(cfg, db)

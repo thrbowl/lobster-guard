@@ -109,7 +109,7 @@ func (em *EnvelopeManager) initTable() {
 
 // loadLastHash 从数据库加载最后一个信封的 ContentHash
 func (em *EnvelopeManager) loadLastHash() {
-	row := em.db.QueryRow(`SELECT content_hash FROM execution_envelopes ORDER BY timestamp DESC, rowid DESC LIMIT 1`)
+	row := em.db.QueryRow(`SELECT content_hash FROM execution_envelopes ORDER BY timestamp DESC, id DESC LIMIT 1`)
 	var hash string
 	if row.Scan(&hash) == nil {
 		em.prevHash = hash
@@ -383,7 +383,7 @@ func (em *EnvelopeManager) ListRecent(limit int) ([]ExecutionEnvelope, error) {
 		limit = 50
 	}
 	rows, err := em.db.Query(
-		`SELECT id, trace_id, timestamp, domain, request_hash, decision, rules_json, sender_id, nonce, prev_hash, content_hash, signature FROM execution_envelopes ORDER BY timestamp DESC, rowid DESC LIMIT ?`,
+		`SELECT id, trace_id, timestamp, domain, request_hash, decision, rules_json, sender_id, nonce, prev_hash, content_hash, signature FROM execution_envelopes ORDER BY timestamp DESC, id DESC LIMIT ?`,
 		limit,
 	)
 	if err != nil {
@@ -404,7 +404,7 @@ func (em *EnvelopeManager) ListRecent(limit int) ([]ExecutionEnvelope, error) {
 
 func (em *EnvelopeManager) ListByTrace(traceID string) ([]ExecutionEnvelope, error) {
 	rows, err := em.db.Query(
-		`SELECT id, trace_id, timestamp, domain, request_hash, decision, rules_json, sender_id, nonce, prev_hash, content_hash, signature FROM execution_envelopes WHERE trace_id = ? ORDER BY timestamp ASC, rowid ASC`,
+		`SELECT id, trace_id, timestamp, domain, request_hash, decision, rules_json, sender_id, nonce, prev_hash, content_hash, signature FROM execution_envelopes WHERE trace_id = ? ORDER BY timestamp ASC, id ASC`,
 		traceID,
 	)
 	if err != nil {

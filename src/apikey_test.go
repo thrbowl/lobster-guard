@@ -9,10 +9,7 @@ import (
 )
 
 func setupAPIKeyTestDB(t *testing.T) *sql.DB {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := openTestPostgres(t)
 	return db
 }
 

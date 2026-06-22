@@ -9,11 +9,7 @@ import (
 )
 
 func TestSessionReplayTimelineIncludesSourceClassifier(t *testing.T) {
-	tmpDB := t.TempDir() + "/session_replay_source.db"
-	db, err := initDB(tmpDB)
-	if err != nil {
-		t.Fatalf("initDB failed: %v", err)
-	}
+	db := openTestPostgres(t)
 	defer db.Close()
 
 	logger, err := NewAuditLogger(db)
@@ -73,11 +69,7 @@ func TestSessionReplayTimelineIncludesSourceClassifier(t *testing.T) {
 }
 
 func TestSessionReplayListAPI_SourceCategoryFilter(t *testing.T) {
-	tmpDB := t.TempDir() + "/session_replay_source_api.db"
-	db, err := initDB(tmpDB)
-	if err != nil {
-		t.Fatalf("initDB failed: %v", err)
-	}
+	db := openTestPostgres(t)
 	defer db.Close()
 
 	logger, err := NewAuditLogger(db)

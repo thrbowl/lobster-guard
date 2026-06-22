@@ -565,8 +565,9 @@ func (tt *TaintTracker) persistEntry(entry *TaintEntry) {
 	labelsJSON, _ := json.Marshal(entry.Labels)
 	propJSON, _ := json.Marshal(entry.Propagations)
 	_, err := tt.db.Exec(
-		`INSERT OR REPLACE INTO taint_entries (trace_id, labels_json, source, source_detail, timestamp, propagations_json, expired)
-		 VALUES (?, ?, ?, ?, ?, ?, 0)`,
+		`INSERT INTO taint_entries (trace_id, labels_json, source, source_detail, timestamp, propagations_json, expired)
+		 VALUES (?, ?, ?, ?, ?, ?, 0)
+		 ON CONFLICT (trace_id) DO UPDATE SET labels_json=EXCLUDED.labels_json, source=EXCLUDED.source, source_detail=EXCLUDED.source_detail, timestamp=EXCLUDED.timestamp, propagations_json=EXCLUDED.propagations_json, expired=EXCLUDED.expired`,
 		entry.TraceID,
 		string(labelsJSON),
 		entry.Source,
@@ -738,7 +739,7 @@ func (tt *TaintTracker) AddCustomRule(r CustomTaintRule) error {
 		r.Label = TaintPII
 	}
 	_, err := tt.db.Exec(
-		"INSERT OR REPLACE INTO taint_custom_rules (id, name, pattern, label, enabled, desc_text) VALUES (?,?,?,?,?,?)",
+		"INSERT INTO taint_custom_rules (id, name, pattern, label, enabled, desc_text) VALUES (?,?,?,?,?,?) ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, pattern=EXCLUDED.pattern, label=EXCLUDED.label, enabled=EXCLUDED.enabled, desc_text=EXCLUDED.desc_text",
 		r.ID, r.Name, r.Pattern, r.Label, r.Enabled, r.Desc,
 	)
 	if err != nil {

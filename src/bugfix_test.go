@@ -33,7 +33,7 @@ static_upstreams:
 		HeartbeatTimeoutCount: 30,
 		RoutePersist:          false,
 	}
-	db, _ := initDB(tmpDB)
+	db := openTestPostgres(t)
 	pool := NewUpstreamPool(cfg, db)
 	routes := NewRouteTable(db, false)
 	logger, _ := NewAuditLogger(db)

@@ -8,6 +8,7 @@
 APP_NAME := lobster-guard
 VERSION := 36.5.0
 BUILD_TIME := $(shell date -u '+%Y-%m-%d_%H:%M:%S')
+GO ?= /usr/local/go/bin/go
 GO_FLAGS := -ldflags="-s -w"
 
 .PHONY: all
@@ -28,7 +29,7 @@ embed-clean:
 # 编译
 .PHONY: build
 build: embed-prep
-	cd src && CGO_ENABLED=0 go build $(GO_FLAGS) -o ../$(APP_NAME) .
+	cd src && CGO_ENABLED=0 $(GO) build $(GO_FLAGS) -o ../$(APP_NAME) .
 	@$(MAKE) embed-clean
 
 # 构建 Vue 前端（dashboard/dist/ 在 embed-prep 时复制到 src/dashboard/dist/）
@@ -45,7 +46,7 @@ build-all: dashboard build
 # 静态编译（完全静态链接，适合 Docker/容器部署）
 .PHONY: static
 static: embed-prep
-	cd src && CGO_ENABLED=0 go build $(GO_FLAGS) -tags 'netgo osusergo static_build' \
+	cd src && CGO_ENABLED=0 $(GO) build $(GO_FLAGS) -tags 'netgo osusergo static_build' \
 		-ldflags='-s -w -extldflags "-static"' -o ../$(APP_NAME) .
 	@$(MAKE) embed-clean
 
@@ -63,13 +64,13 @@ run: build
 # 测试（全部测试）
 .PHONY: test
 test: embed-prep
-	cd src && CGO_ENABLED=0 go test -v -count=1 -timeout 60s ./...
+	cd src && CGO_ENABLED=0 $(GO) test -v -count=1 -timeout 60s ./...
 	@$(MAKE) embed-clean
 
 # 快速测试（不输出详细日志）
 .PHONY: test-quick
 test-quick: embed-prep
-	cd src && CGO_ENABLED=0 go test -count=1 -timeout 60s ./...
+	cd src && CGO_ENABLED=0 $(GO) test -count=1 -timeout 60s ./...
 	@$(MAKE) embed-clean
 
 # 代码检查
@@ -77,7 +78,7 @@ test-quick: embed-prep
 lint:
 	@echo "=== Go vet ==="
 	@$(MAKE) embed-prep
-	cd src && CGO_ENABLED=0 go vet ./...
+	cd src && CGO_ENABLED=0 $(GO) vet ./...
 	@$(MAKE) embed-clean
 	@echo "=== 检查完成 ==="
 
@@ -208,7 +209,7 @@ docker-compose:
 # 本地 CI（vet + test）
 .PHONY: ci-local
 ci-local:
-	cd src && CGO_ENABLED=0 go vet ./... && CGO_ENABLED=0 go test -count=1 -timeout 120s ./...
+	cd src && CGO_ENABLED=0 $(GO) vet ./... && CGO_ENABLED=0 $(GO) test -count=1 -timeout 120s ./...
 
 .PHONY: help
 help:

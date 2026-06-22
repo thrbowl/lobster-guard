@@ -409,7 +409,8 @@ func (e *IFCEngine) RegisterSourceRule(source string, label IFCLabel) {
 	e.mu.Unlock()
 
 	if e.db != nil {
-		e.db.Exec(`INSERT OR REPLACE INTO ifc_source_rules (source, conf, integ) VALUES (?, ?, ?)`,
+		e.db.Exec(`INSERT INTO ifc_source_rules (source, conf, integ) VALUES (?, ?, ?)
+			ON CONFLICT (source) DO UPDATE SET conf=EXCLUDED.conf, integ=EXCLUDED.integ`,
 			source, int(label.Confidentiality), int(label.Integrity))
 	}
 }
@@ -746,7 +747,8 @@ func (e *IFCEngine) SelectiveHide(traceID, toolName, content string, contextLabe
 
 	// Persist original content for later expansion
 	if e.db != nil {
-		e.db.Exec(`INSERT OR REPLACE INTO ifc_hidden_content (var_id, trace_id, tool_name, content, conf, integ, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		e.db.Exec(`INSERT INTO ifc_hidden_content (var_id, trace_id, tool_name, content, conf, integ, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)
+			ON CONFLICT (var_id) DO UPDATE SET trace_id=EXCLUDED.trace_id, tool_name=EXCLUDED.tool_name, content=EXCLUDED.content, conf=EXCLUDED.conf, integ=EXCLUDED.integ, created_at=EXCLUDED.created_at`,
 			v.ID, traceID, toolName, content, int(toolLabel.Confidentiality), int(toolLabel.Integrity), time.Now().UTC().Format(time.RFC3339))
 	}
 
@@ -1102,7 +1104,8 @@ func (e *IFCEngine) AddSourceRule(rule IFCSourceRule) error {
 	e.sourceRules[rule.Source] = rule.Label
 
 	if e.db != nil {
-		e.db.Exec(`INSERT OR REPLACE INTO ifc_source_rules (source, conf, integ) VALUES (?, ?, ?)`,
+		e.db.Exec(`INSERT INTO ifc_source_rules (source, conf, integ) VALUES (?, ?, ?)
+			ON CONFLICT (source) DO UPDATE SET conf=EXCLUDED.conf, integ=EXCLUDED.integ`,
 			rule.Source, int(rule.Label.Confidentiality), int(rule.Label.Integrity))
 	}
 	return nil
@@ -1167,7 +1170,8 @@ func (e *IFCEngine) AddToolRequirement(req IFCToolRequirement) error {
 	e.toolRequirements[req.Tool] = req
 
 	if e.db != nil {
-		e.db.Exec(`INSERT OR REPLACE INTO ifc_tool_requirements (tool, required_integ, max_conf) VALUES (?, ?, ?)`,
+		e.db.Exec(`INSERT INTO ifc_tool_requirements (tool, required_integ, max_conf) VALUES (?, ?, ?)
+			ON CONFLICT (tool) DO UPDATE SET required_integ=EXCLUDED.required_integ, max_conf=EXCLUDED.max_conf`,
 			req.Tool, int(req.RequiredInteg), int(req.MaxConf))
 	}
 	return nil

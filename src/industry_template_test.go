@@ -5,16 +5,12 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"path/filepath"
 	"testing"
 )
 
 func newIndustryTemplateTestAPI(t *testing.T) *ManagementAPI {
 	t.Helper()
-	db, err := initDB(filepath.Join(t.TempDir(), "test.db"))
-	if err != nil {
-		t.Fatalf("initDB failed: %v", err)
-	}
+	db := openTestPostgres(t)
 	logger, err := NewAuditLogger(db)
 	if err != nil {
 		t.Fatalf("NewAuditLogger failed: %v", err)

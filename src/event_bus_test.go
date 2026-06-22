@@ -20,10 +20,7 @@ import (
 
 func setupTestEventBusDB(t *testing.T) *sql.DB {
 	t.Helper()
-	db, err := sql.Open("sqlite3", ":memory:?_busy_timeout=5000")
-	if err != nil {
-		t.Fatalf("open db: %v", err)
-	}
+	db := openTestPostgres(t)
 	// 使用单连接避免 in-memory DB 多连接看不到表的问题
 	db.SetMaxOpenConns(1)
 	return db

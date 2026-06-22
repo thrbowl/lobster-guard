@@ -883,7 +883,8 @@ func (re *RuleEngine) persistTenantRules(tenantID string, rules []InboundRuleCon
 		return
 	}
 	now := time.Now().UTC().Format(time.RFC3339)
-	re.tenantDB.Exec(`INSERT OR REPLACE INTO tenant_inbound_rules (tenant_id, rules_json, updated_at) VALUES (?,?,?)`,
+	re.tenantDB.Exec(`INSERT INTO tenant_inbound_rules (tenant_id, rules_json, updated_at) VALUES (?,?,?)
+		ON CONFLICT (tenant_id) DO UPDATE SET rules_json=EXCLUDED.rules_json, updated_at=EXCLUDED.updated_at`,
 		tenantID, string(rulesJSON), now)
 }
 

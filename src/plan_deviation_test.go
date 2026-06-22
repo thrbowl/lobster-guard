@@ -9,10 +9,7 @@ import (
 
 func newDevDB(t *testing.T) *sql.DB {
 	t.Helper()
-	db, err := sql.Open("sqlite3", "file::memory:?cache=shared&_busy_timeout=5000")
-	if err != nil {
-		t.Fatalf("open db: %v", err)
-	}
+	db := openTestPostgres(t)
 	db.SetMaxOpenConns(1)
 	t.Cleanup(func() { db.Close() })
 	return db

@@ -850,8 +850,8 @@ func (api *ManagementAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		api.handleAlertsConfigUpdate(w, r)
 	case path == "/api/v1/system/diag" && method == "GET":
 		api.handleSystemDiag(w, r)
-	case path == "/api/v1/debug/sqlite-stats" && method == "GET":
-		api.handleSQLiteStats(w, r)
+	case (path == "/api/v1/debug/database-stats" || path == "/api/v1/debug/sqlite-stats") && method == "GET":
+		api.handleDatabaseStats(w, r)
 	case path == "/api/v1/alerts/history" && method == "GET":
 		api.handleAlertsHistory(w, r)
 	case path == "/api/v1/alerts/config" && method == "GET":

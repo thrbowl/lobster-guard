@@ -249,12 +249,12 @@ func (e *UserProfileEngine) GetUserProfile(userID string) (*UserRiskProfile, err
 
 	// 活跃天数
 	var activeDays int
-	e.db.QueryRow(`SELECT COUNT(DISTINCT date(timestamp)) FROM audit_log WHERE sender_id=?`, userID).Scan(&activeDays)
+	e.db.QueryRow(`SELECT COUNT(DISTINCT (timestamp::timestamp)::date) FROM audit_log WHERE sender_id=?`, userID).Scan(&activeDays)
 	p.ActiveDays = activeDays
 
 	// 高峰时段
 	var peakHour sql.NullInt64
-	e.db.QueryRow(`SELECT CAST(strftime('%H', timestamp) AS INTEGER) as h FROM audit_log WHERE sender_id=? GROUP BY h ORDER BY COUNT(*) DESC LIMIT 1`, userID).Scan(&peakHour)
+	e.db.QueryRow(`SELECT EXTRACT(HOUR FROM timestamp::timestamp)::int as h FROM audit_log WHERE sender_id=? GROUP BY h ORDER BY COUNT(*) DESC LIMIT 1`, userID).Scan(&peakHour)
 	if peakHour.Valid {
 		p.PeakHour = int(peakHour.Int64)
 	}
@@ -262,7 +262,7 @@ func (e *UserProfileEngine) GetUserProfile(userID string) (*UserRiskProfile, err
 	// 非工作时间活跃率 (22:00-06:00)
 	var offHoursCount int64
 	e.db.QueryRow(`SELECT COUNT(*) FROM audit_log WHERE sender_id=? AND (
-		CAST(strftime('%H', timestamp) AS INTEGER) >= 22 OR CAST(strftime('%H', timestamp) AS INTEGER) < 6
+		EXTRACT(HOUR FROM timestamp::timestamp)::int >= 22 OR EXTRACT(HOUR FROM timestamp::timestamp)::int < 6
 	)`, userID).Scan(&offHoursCount)
 	if p.TotalRequests > 0 {
 		p.OffHoursRate = float64(offHoursCount) / float64(p.TotalRequests)

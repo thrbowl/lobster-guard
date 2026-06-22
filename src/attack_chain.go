@@ -188,9 +188,10 @@ func (ac *AttackChainEngine) SaveChain(chain *AttackChain) error {
 	agentsJSON, _ := json.Marshal(chain.Agents)
 	eventsJSON, _ := json.Marshal(chain.Events)
 
-	_, err := ac.db.Exec(`INSERT OR REPLACE INTO attack_chains
+	_, err := ac.db.Exec(`INSERT INTO attack_chains
 		(id, tenant_id, name, severity, status, first_seen, last_seen, agents, events_json, total_events, pattern, risk_score, description)
-		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+		ON CONFLICT (id) DO UPDATE SET tenant_id=EXCLUDED.tenant_id, name=EXCLUDED.name, severity=EXCLUDED.severity, status=EXCLUDED.status, first_seen=EXCLUDED.first_seen, last_seen=EXCLUDED.last_seen, agents=EXCLUDED.agents, events_json=EXCLUDED.events_json, total_events=EXCLUDED.total_events, pattern=EXCLUDED.pattern, risk_score=EXCLUDED.risk_score, description=EXCLUDED.description`,
 		chain.ID, chain.TenantID, chain.Name, chain.Severity, chain.Status,
 		chain.FirstSeen, chain.LastSeen, string(agentsJSON), string(eventsJSON),
 		chain.TotalEvents, chain.Pattern, chain.RiskScore, chain.Description)

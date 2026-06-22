@@ -304,7 +304,8 @@ func (e *ToolPolicyEngine) saveRuleToDB(r ToolPolicyRule) error {
 	if r.Enabled {
 		enabled = 1
 	}
-	_, err := e.db.Exec(`INSERT OR REPLACE INTO tool_policy_rules (id, name, tool_pattern, param_rules_json, action, reason, enabled, priority) VALUES (?,?,?,?,?,?,?,?)`,
+	_, err := e.db.Exec(`INSERT INTO tool_policy_rules (id, name, tool_pattern, param_rules_json, action, reason, enabled, priority) VALUES (?,?,?,?,?,?,?,?)
+		ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, tool_pattern=EXCLUDED.tool_pattern, param_rules_json=EXCLUDED.param_rules_json, action=EXCLUDED.action, reason=EXCLUDED.reason, enabled=EXCLUDED.enabled, priority=EXCLUDED.priority`,
 		r.ID, r.Name, r.ToolPattern, string(paramJSON), r.Action, r.Reason, enabled, r.Priority)
 	return err
 }
@@ -336,7 +337,8 @@ func (e *ToolPolicyEngine) saveSemanticRuleToDB(r ToolSemanticRule) error {
 	if r.Enabled {
 		enabled = 1
 	}
-	_, err := e.db.Exec(`INSERT OR REPLACE INTO tool_semantic_rules (id, name, tool_pattern, param_keys_json, match_type, pattern, class, action, risk_level, enabled, priority) VALUES (?,?,?,?,?,?,?,?,?,?,?)`, r.ID, r.Name, r.ToolPattern, string(keysJSON), r.MatchType, r.Pattern, r.Class, r.Action, r.RiskLevel, enabled, r.Priority)
+	_, err := e.db.Exec(`INSERT INTO tool_semantic_rules (id, name, tool_pattern, param_keys_json, match_type, pattern, class, action, risk_level, enabled, priority) VALUES (?,?,?,?,?,?,?,?,?,?,?)
+		ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, tool_pattern=EXCLUDED.tool_pattern, param_keys_json=EXCLUDED.param_keys_json, match_type=EXCLUDED.match_type, pattern=EXCLUDED.pattern, class=EXCLUDED.class, action=EXCLUDED.action, risk_level=EXCLUDED.risk_level, enabled=EXCLUDED.enabled, priority=EXCLUDED.priority`, r.ID, r.Name, r.ToolPattern, string(keysJSON), r.MatchType, r.Pattern, r.Class, r.Action, r.RiskLevel, enabled, r.Priority)
 	return err
 }
 
@@ -371,7 +373,8 @@ func (e *ToolPolicyEngine) saveContextPolicyToDB(p ToolContextPolicy) error {
 	if p.Enabled {
 		enabled = 1
 	}
-	_, err := e.db.Exec(`INSERT OR REPLACE INTO tool_context_policies (id, name, source_classes_json, target_classes_json, target_tools_json, action, risk_level, enabled, priority, window_size) VALUES (?,?,?,?,?,?,?,?,?,?)`, p.ID, p.Name, string(srcJSON), string(tgtJSON), string(toolsJSON), p.Action, p.RiskLevel, enabled, p.Priority, p.WindowSize)
+	_, err := e.db.Exec(`INSERT INTO tool_context_policies (id, name, source_classes_json, target_classes_json, target_tools_json, action, risk_level, enabled, priority, window_size) VALUES (?,?,?,?,?,?,?,?,?,?)
+		ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, source_classes_json=EXCLUDED.source_classes_json, target_classes_json=EXCLUDED.target_classes_json, target_tools_json=EXCLUDED.target_tools_json, action=EXCLUDED.action, risk_level=EXCLUDED.risk_level, enabled=EXCLUDED.enabled, priority=EXCLUDED.priority, window_size=EXCLUDED.window_size`, p.ID, p.Name, string(srcJSON), string(tgtJSON), string(toolsJSON), p.Action, p.RiskLevel, enabled, p.Priority, p.WindowSize)
 	return err
 }
 

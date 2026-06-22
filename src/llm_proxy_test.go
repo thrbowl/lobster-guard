@@ -12,10 +12,7 @@ import (
 )
 
 func setupTestLLMProxy(t *testing.T, handler http.HandlerFunc) (*LLMProxy, *sql.DB, *httptest.Server) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := openTestPostgres(t)
 	cfg := LLMAuditConfig{
 		LogToolInput:  true,
 		LogToolResult: true,
@@ -219,10 +216,7 @@ func TestLLMProxy_PanicRecovery(t *testing.T) {
 }
 
 func TestLLMProxy_NoTarget(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := openTestPostgres(t)
 	defer db.Close()
 
 	auditor := NewLLMAuditor(db, LLMAuditConfig{MaxPreviewLen: 500}, nil)
@@ -267,7 +261,7 @@ func TestLLMProxy_V25HooksToolCall(t *testing.T) {
 	defer upstream.Close()
 
 	// Inject v25 engines
-	pcDB, _ := sql.Open("sqlite3", ":memory:")
+	pcDB := openTestPostgres(t)
 	defer pcDB.Close()
 	pc := NewPlanCompiler(pcDB, PlanConfig{Enabled: true, MatchThreshold: 0.3, MaxActivePlans: 100, ViolationAction: "warn"})
 	ce := NewCapabilityEngine(pcDB, CapConfig{Enabled: true, DefaultPolicy: "allow"})
@@ -336,7 +330,7 @@ func TestLLMProxy_V25HooksBlockDangerousTool(t *testing.T) {
 	defer upstream.Close()
 
 	// Inject v25 engines in STRICT mode (block violations)
-	pcDB, _ := sql.Open("sqlite3", ":memory:")
+	pcDB := openTestPostgres(t)
 	defer pcDB.Close()
 	pc := NewPlanCompiler(pcDB, PlanConfig{
 		Enabled: true, MatchThreshold: 0.3, MaxActivePlans: 100,

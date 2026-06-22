@@ -178,10 +178,7 @@ func TestMetricsEndpoint(t *testing.T) {
 	defer os.Remove(tmpDB.Name())
 	tmpDB.Close()
 
-	db, err := initDB(tmpDB.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := openTestPostgres(t)
 	defer db.Close()
 
 	cfg := &Config{
@@ -253,10 +250,7 @@ func TestMetricsEndpoint_Disabled(t *testing.T) {
 	defer os.Remove(tmpDB.Name())
 	tmpDB.Close()
 
-	db, err := initDB(tmpDB.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
+	db := openTestPostgres(t)
 	defer db.Close()
 
 	cfg := &Config{

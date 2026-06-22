@@ -187,7 +187,7 @@ func (pool *UpstreamPool) saveUpstreamToDB(id string) {
 	if up.Healthy {
 		h = 1
 	}
-	pool.db.Exec(`INSERT OR REPLACE INTO upstreams (id,address,port,healthy,registered_at,last_heartbeat,tags,load,path_prefix,gateway_token) VALUES(?,?,?,?,?,?,?,?,?,?)`,
+	pool.db.Exec(`INSERT INTO upstreams (id,address,port,healthy,registered_at,last_heartbeat,tags,load,path_prefix,gateway_token) VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT (id) DO UPDATE SET address=EXCLUDED.address, port=EXCLUDED.port, healthy=EXCLUDED.healthy, last_heartbeat=EXCLUDED.last_heartbeat, tags=EXCLUDED.tags, load=EXCLUDED.load, path_prefix=EXCLUDED.path_prefix, gateway_token=EXCLUDED.gateway_token`,
 		id, up.Address, up.Port, h, up.RegisteredAt.Format(time.RFC3339), up.LastHeartbeat.Format(time.RFC3339),
 		string(tagsJSON), string(loadJSON), up.PathPrefix, up.GatewayToken)
 }
@@ -755,7 +755,7 @@ func (c *UserInfoCache) loadFromDB(senderID string) (*UserInfo, error) {
 
 func (c *UserInfoCache) saveToDB(info *UserInfo) {
 	now := time.Now().Format(time.RFC3339)
-	c.db.Exec(`INSERT OR REPLACE INTO user_info_cache (sender_id, name, email, department, avatar, mobile, fetched_at, updated_at) VALUES(?,?,?,?,?,?,?,?)`,
+	c.db.Exec(`INSERT INTO user_info_cache (sender_id, name, email, department, avatar, mobile, fetched_at, updated_at) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT (sender_id) DO UPDATE SET name=EXCLUDED.name, email=EXCLUDED.email, department=EXCLUDED.department, avatar=EXCLUDED.avatar, mobile=EXCLUDED.mobile, fetched_at=EXCLUDED.fetched_at, updated_at=EXCLUDED.updated_at`,
 		info.SenderID, info.Name, info.Email, info.Department, info.Avatar, info.Mobile, info.FetchedAt.Format(time.RFC3339), now)
 }
 
@@ -1489,7 +1489,7 @@ func (rt *RouteTable) Bind(senderID, appID, upstreamID string) {
 	rt.exact[routeKey(senderID, appID)] = upstreamID
 	if rt.db != nil {
 		now := time.Now().Format(time.RFC3339)
-		rt.db.Exec(`INSERT OR REPLACE INTO user_routes (sender_id, app_id, upstream_id, department, display_name, created_at, updated_at) VALUES(?,?,?,'','',?,?)`,
+		rt.db.Exec(`INSERT INTO user_routes (sender_id, app_id, upstream_id, department, display_name, created_at, updated_at) VALUES(?,?,?,'','',?,?) ON CONFLICT (sender_id, app_id) DO UPDATE SET upstream_id=EXCLUDED.upstream_id, updated_at=EXCLUDED.updated_at`,
 			senderID, appID, upstreamID, now, now)
 	}
 }
@@ -1501,7 +1501,7 @@ func (rt *RouteTable) BindWithMeta(senderID, appID, upstreamID, department, disp
 	rt.exact[routeKey(senderID, appID)] = upstreamID
 	if rt.db != nil {
 		now := time.Now().Format(time.RFC3339)
-		rt.db.Exec(`INSERT OR REPLACE INTO user_routes (sender_id, app_id, upstream_id, department, display_name, created_at, updated_at) VALUES(?,?,?,?,?,?,?)`,
+		rt.db.Exec(`INSERT INTO user_routes (sender_id, app_id, upstream_id, department, display_name, created_at, updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT (sender_id, app_id) DO UPDATE SET upstream_id=EXCLUDED.upstream_id, department=EXCLUDED.department, display_name=EXCLUDED.display_name, updated_at=EXCLUDED.updated_at`,
 			senderID, appID, upstreamID, department, displayName, now, now)
 	}
 }
@@ -1553,7 +1553,7 @@ func (rt *RouteTable) CompareAndBind(senderID, appID, expectedUID, newUID string
 	rt.exact[key] = newUID
 	if rt.db != nil {
 		now := time.Now().Format(time.RFC3339)
-		rt.db.Exec(`INSERT OR REPLACE INTO user_routes (sender_id, app_id, upstream_id, department, display_name, created_at, updated_at) VALUES(?,?,?,'','',?,?)`,
+		rt.db.Exec(`INSERT INTO user_routes (sender_id, app_id, upstream_id, department, display_name, created_at, updated_at) VALUES(?,?,?,'','',?,?) ON CONFLICT (sender_id, app_id) DO UPDATE SET upstream_id=EXCLUDED.upstream_id, updated_at=EXCLUDED.updated_at`,
 			senderID, appID, newUID, now, now)
 	}
 	return true, newUID
@@ -1611,7 +1611,7 @@ func (rt *RouteTable) BindBatch(entries []RouteEntry) {
 	for _, e := range entries {
 		rt.exact[routeKey(e.SenderID, e.AppID)] = e.UpstreamID
 		if rt.db != nil {
-			rt.db.Exec(`INSERT OR REPLACE INTO user_routes (sender_id, app_id, upstream_id, department, display_name, created_at, updated_at) VALUES(?,?,?,?,?,?,?)`,
+			rt.db.Exec(`INSERT INTO user_routes (sender_id, app_id, upstream_id, department, display_name, created_at, updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT (sender_id, app_id) DO UPDATE SET upstream_id=EXCLUDED.upstream_id, department=EXCLUDED.department, display_name=EXCLUDED.display_name, updated_at=EXCLUDED.updated_at`,
 				e.SenderID, e.AppID, e.UpstreamID, e.Department, e.DisplayName, now, now)
 		}
 	}
