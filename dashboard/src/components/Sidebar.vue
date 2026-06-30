@@ -142,6 +142,7 @@ const allNavItems = {
   'monitor':           { path: '/monitor',        label: '监控指标',       icon: 'activity' },
   // 威胁中心
   'audit':             { path: '/audit',          label: '审计日志',       icon: 'file-text' },
+  'access-logs':       { path: '/access-logs',    label: '访问日志',       icon: 'activity' },
   'sessions':          { path: '/sessions',       label: '会话回放',       icon: 'clapperboard' },
   'session-detail':    { path: '/sessions',       label: '会话详情',       icon: 'clapperboard', hidden: true },
   'attack-chains':     { path: '/attack-chains',  label: '攻击链分析',     icon: 'link' },
@@ -164,6 +165,7 @@ const allNavItems = {
   'cache':             { path: '/cache',          label: '响应缓存',       icon: 'save' },
   'gateway':           { path: '/gateway',        label: 'API 网关',       icon: 'door' },
   'routes':            { path: '/routes',         label: '路由策略',       icon: 'git-branch' },
+  'edge-ingress':      { path: '/edge-ingress',   label: '边缘接入',       icon: 'door' },
   'envelopes':         { path: '/envelopes',      label: '执行信封',       icon: 'lock' },
   'events':            { path: '/events',         label: '事件总线',       icon: 'radio' },
   'ab-testing':        { path: '/ab-testing',     label: 'A/B 测试',      icon: 'split' },

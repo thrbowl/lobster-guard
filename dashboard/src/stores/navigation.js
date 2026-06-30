@@ -10,7 +10,7 @@ const TABS = {
     label: '威胁中心',
     icon: 'search',
     groups: [
-      { label: 'IM 安全', routes: ['audit', 'sessions', 'session-detail', 'attack-chains', 'user-profiles', 'user-detail', 'behavior'] },
+      { label: 'IM 安全', routes: ['audit', 'access-logs', 'sessions', 'session-detail', 'attack-chains', 'user-profiles', 'user-detail', 'behavior'] },
       { label: 'LLM 安全', routes: ['agent-profiles', 'semantic', 'prompts', 'taint'] },
       { label: '对抗测试', routes: ['honeypot', 'singularity', 'redteam'] }
     ]
@@ -28,7 +28,7 @@ const TABS = {
   ops: {
     label: '运营管理',
     icon: 'bar-chart',
-    routes: ['reports', 'leaderboard', 'tenants', 'apikeys', 'users', 'llm', 'ops', 'settings', 'gateway', 'gateway-monitor']
+    routes: ['reports', 'leaderboard', 'tenants', 'apikeys', 'users', 'llm', 'ops', 'settings', 'gateway', 'gateway-monitor', 'edge-ingress']
   }
 }
 

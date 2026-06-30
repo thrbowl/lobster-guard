@@ -142,6 +142,9 @@ type ManagementAPI struct {
 	llmCache *LLMCache
 	// v20.4 API Gateway
 	apiGateway *APIGateway
+	// Edge Routes for OpenResty ingress
+	edgeProjects *EdgeProjectManager
+	edgeRoutes   *EdgeRouteManager
 	// v21.0 K8s 服务发现
 	k8sDiscovery *K8sDiscovery
 	// v23.0 路径级策略引擎
@@ -173,6 +176,21 @@ type ManagementAPI struct {
 }
 
 func NewManagementAPI(cfg *Config, cfgPath string, pool *UpstreamPool, routes *RouteTable, logger *AuditLogger, inboundEngine *RuleEngine, outboundEngine *OutboundRuleEngine, inbound *InboundProxy, channel ChannelPlugin, metrics *MetricsCollector, ruleHits *RuleHitStats, userCache *UserInfoCache, policyEng *RoutePolicyEngine, alertNotifier *AlertNotifier, wsProxy *WSProxyManager, store Store, shutdownMgr *ShutdownManager, realtime *RealtimeMetrics) *ManagementAPI {
+	var edgeProjects *EdgeProjectManager
+	var edgeRoutes *EdgeRouteManager
+	if logger != nil && logger.DB() != nil {
+		var err error
+		edgeProjects, err = NewEdgeProjectManager(logger.DB())
+		if err != nil {
+			log.Printf("[edge-projects] 初始化失败: %v", err)
+		}
+		if edgeProjects != nil {
+			edgeRoutes, err = NewEdgeRouteManager(logger.DB(), cfg.EdgeRoutesExportPath, edgeProjects)
+		}
+		if err != nil {
+			log.Printf("[edge-routes] 初始化失败: %v", err)
+		}
+	}
 	return &ManagementAPI{
 		pool: pool, routes: routes, logger: logger,
 		inboundEngine: inboundEngine, outboundEngine: outboundEngine,
@@ -181,6 +199,8 @@ func NewManagementAPI(cfg *Config, cfgPath string, pool *UpstreamPool, routes *R
 		inbound: inbound, channel: channel, metrics: metrics, ruleHits: ruleHits,
 		userCache: userCache, policyEng: policyEng, alertNotifier: alertNotifier,
 		wsProxy: wsProxy, store: store, shutdownMgr: shutdownMgr, realtime: realtime,
+		edgeProjects:     edgeProjects,
+		edgeRoutes:       edgeRoutes,
 		routePolicyStore: NewRoutePolicyStore(routePolicyDBFromLogger(logger), cfg.RoutePolicies),
 		gwManager:        NewGatewayWSManager(nil, cfg.DefaultGatewayOrigin), // v29.0 Gateway WSS 连接管理器
 	}
@@ -276,6 +296,16 @@ func (api *ManagementAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// OpenResty exchange endpoint. If management_token is configured, require it here too.
+	if path == "/__lobster/exchange" {
+		if api.managementToken != "" && !api.checkManagementAuth(r) {
+			jsonResponse(w, 401, map[string]string{"error": "unauthorized"})
+			return
+		}
+		api.handleExchange(w, r)
+		return
+	}
+
 	// Prometheus 指标（默认无需鉴权）
 	if path == "/metrics" {
 		if api.metrics != nil {
@@ -364,6 +394,34 @@ func (api *ManagementAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		api.handleListUpstreams(w, r)
 	case path == "/api/v1/upstreams" && method == "POST":
 		api.handleCreateUpstream(w, r)
+	case path == "/api/v1/edge-projects" && method == "GET":
+		api.handleListEdgeProjects(w, r)
+	case path == "/api/v1/edge-projects" && method == "POST":
+		api.handleCreateEdgeProject(w, r)
+	case path == "/api/v1/edge-projects/validate" && method == "POST":
+		api.handleValidateEdgeProject(w, r)
+	case strings.HasPrefix(path, "/api/v1/edge-projects/") && method == "GET":
+		api.handleGetEdgeProject(w, r)
+	case strings.HasPrefix(path, "/api/v1/edge-projects/") && method == "PUT":
+		api.handleUpdateEdgeProject(w, r)
+	case strings.HasPrefix(path, "/api/v1/edge-projects/") && method == "DELETE":
+		api.handleDeleteEdgeProject(w, r)
+	case path == "/api/v1/edge-routes" && method == "GET":
+		api.handleListEdgeRoutes(w, r)
+	case path == "/api/v1/edge-routes" && method == "POST":
+		api.handleCreateEdgeRoute(w, r)
+	case path == "/api/v1/edge-routes/validate" && method == "POST":
+		api.handleValidateEdgeRoute(w, r)
+	case path == "/api/v1/edge-routes/sync" && method == "POST":
+		api.handleSyncEdgeRoutes(w, r)
+	case path == "/api/v1/edge-routes/export" && method == "GET":
+		api.handleExportEdgeRoutes(w, r)
+	case path == "/api/v1/tap-exchange-events" && method == "GET":
+		api.handleListTapExchangeEvents(w, r)
+	case strings.HasPrefix(path, "/api/v1/edge-routes/") && method == "PUT":
+		api.handleUpdateEdgeRoute(w, r)
+	case strings.HasPrefix(path, "/api/v1/edge-routes/") && method == "DELETE":
+		api.handleDeleteEdgeRoute(w, r)
 	// v22.0: Gateway 监控中心 — 聚合概览（必须在 /upstreams/{id} 前匹配）
 	case path == "/api/v1/upstreams/gateway/overview" && method == "GET":
 		api.handleGatewayOverview(w, r)

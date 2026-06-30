@@ -235,7 +235,7 @@ function relativeTime(ts) {
   if (sec<60) return sec+'秒前'; const min=Math.floor(sec/60); if (min<60) return min+'分钟前'
   const hr=Math.floor(min/60); if (hr<24) return hr+'小时前'; const day=Math.floor(hr/24); if (day<7) return day+'天前'; return fullTime(ts)
 }
-function actionTagClass(a) { a=(a||'').toLowerCase(); return a==='block'?'tag-block':a==='warn'?'tag-warn':a==='log'?'tag-log':(a==='pass'||a==='allow')?'tag-pass':'tag-log' }
+function actionTagClass(a) { a=(a||'').toLowerCase(); return a.includes('block')||a==='upstream_error'?'tag-block':a.includes('warn')||a.includes('confirm')?'tag-warn':a==='log'||a==='tap_recorded'?'tag-log':(a==='pass'||a==='allow')?'tag-pass':'tag-log' }
 function rowClass(row) { const a=(row.action||'').toLowerCase(); return a==='block'?'row-block':a==='warn'?'row-warn':'' }
 function latencyClass(row) { const ms=row.latency||row.latency_ms||0; return ms>1000?'latency-high':ms>300?'latency-mid':'' }
 function sourceCategoryList(row) { return String(row?.source_categories||'').split(',').map(s=>s.trim()).filter(Boolean) }

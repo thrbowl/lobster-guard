@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "generated_at": "2026-06-24T10:30:00Z",
+  "checksum": "sha256:example",
+  "routes": [
+    {
+      "id": "crm-chat",
+      "project_id": "crm-copilot",
+      "project_name": "CRM Assistant",
+      "hosts": ["chat.example.com"],
+      "path_prefix": "/api/chat",
+      "mode": "observe",
+      "upstream_url": "https://crm-origin.internal",
+      "host_policy": "upstream_host",
+      "enabled": true,
+      "priority": 100,
+      "description": "inline observe pilot"
+    }
+  ]
+}

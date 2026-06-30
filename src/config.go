@@ -158,6 +158,7 @@ type Config struct {
 	OutboundListen          string                 `yaml:"outbound_listen"`
 	OpenClawUpstream        string                 `yaml:"openclaw_upstream"`
 	LanxinUpstream          string                 `yaml:"lanxin_upstream"`
+	EdgeRoutesExportPath    string                 `yaml:"edge_routes_export_path"`
 	DatabaseURL             string                 `yaml:"database_url"`
 	DBPath                  string                 `yaml:"db_path,omitempty"` // deprecated: PostgreSQL uses database_url
 	LogLevel                string                 `yaml:"log_level"`
@@ -404,7 +405,8 @@ func loadConfig(path string) (*Config, error) {
 	cfg := &Config{
 		InboundListen: ":8443", OutboundListen: ":8444",
 		OpenClawUpstream: "http://localhost:18790", LanxinUpstream: "https://apigw.lx.qianxin.com",
-		DatabaseURL: "", LogLevel: "info", DetectTimeoutMs: 200,
+		EdgeRoutesExportPath: "/etc/lobster-guard/edge-routes.json",
+		DatabaseURL:          "", LogLevel: "info", DetectTimeoutMs: 200,
 		InboundDetectEnabled: true, OutboundAuditEnabled: true,
 		ManagementListen: ":9090", HeartbeatIntervalSec: 10, HeartbeatTimeoutCount: 3,
 		RouteDefaultPolicy: "least-users", RoutePersist: true,
