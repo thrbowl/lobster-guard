@@ -547,8 +547,8 @@ func auditLLMSourceJoinClause() string {
 	return ` LEFT JOIN (
 		SELECT
 			lc.trace_id AS trace_id,
-			GROUP_CONCAT(DISTINCT COALESCE(NULLIF(ltc.source_category,''), 'unclassified')) AS source_categories,
-			GROUP_CONCAT(DISTINCT NULLIF(ltc.source_key,'')) AS source_keys,
+			STRING_AGG(DISTINCT COALESCE(NULLIF(ltc.source_category,''), 'unclassified'), ',') AS source_categories,
+			STRING_AGG(DISTINCT NULLIF(ltc.source_key,''), ',') AS source_keys,
 			MAX(CASE WHEN ltc.source_descriptor_json <> '' THEN ltc.source_descriptor_json ELSE '' END) AS source_descriptor_json,
 			COUNT(*) AS source_tool_call_count
 		FROM llm_calls lc

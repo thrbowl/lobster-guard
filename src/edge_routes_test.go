@@ -283,6 +283,14 @@ func TestExchangeObserveAndEnforce(t *testing.T) {
 	if tenantID != defaultEdgeProjectTenantID || projectName != "Project One" {
 		t.Fatalf("tap event project fields = tenant %q project %q", tenantID, projectName)
 	}
+
+	var passAudits int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM audit_log WHERE app_id=? AND action='pass'`, "p1").Scan(&passAudits); err != nil {
+		t.Fatalf("query pass audit logs failed: %v", err)
+	}
+	if passAudits != 2 {
+		t.Fatalf("pass audit logs = %d, want 2", passAudits)
+	}
 }
 
 func TestExchangeWebSocketObserveProxy(t *testing.T) {

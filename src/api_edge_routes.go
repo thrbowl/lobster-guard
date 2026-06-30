@@ -656,7 +656,7 @@ func (api *ManagementAPI) logExchangeAudit(direction string, event TapExchangeEv
 		return
 	}
 	action := strings.TrimSpace(result.Action)
-	if action == "" || action == "pass" {
+	if action == "" {
 		return
 	}
 	preview := event.RequestPreview
