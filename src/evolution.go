@@ -190,7 +190,7 @@ func NewEvolutionEngine(db *sql.DB, redTeam *RedTeamEngine, ruleEngine *RuleEngi
 	return ee
 }
 
-// initSchema 初始化 SQLite 表
+// initSchema 初始化数据库表
 // SetSuggestionQueue 设置规则建议队列（v32.11）
 func (ee *EvolutionEngine) SetSuggestionQueue(sq *SuggestionQueue) {
 	ee.suggestionQueue = sq
@@ -968,7 +968,8 @@ func (ee *EvolutionEngine) logRecord(rec EvolutionRecord) {
 		bypassed = 1
 	}
 	_, err := ee.db.Exec(
-		`INSERT OR IGNORE INTO evolution_log (id, generation, timestamp, phase, original_vector, mutated_payload, strategy, bypassed, generated_rule, details) VALUES (?,?,?,?,?,?,?,?,?,?)`,
+		`INSERT INTO evolution_log (id, generation, timestamp, phase, original_vector, mutated_payload, strategy, bypassed, generated_rule, details) VALUES (?,?,?,?,?,?,?,?,?,?)
+		ON CONFLICT DO NOTHING`,
 		rec.ID,
 		rec.Generation,
 		rec.Timestamp.Format(time.RFC3339),

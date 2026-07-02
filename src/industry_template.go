@@ -182,8 +182,9 @@ func (s *industryTemplateStore) seedBuiltins() {
 		if existing := s.get(tpl.ID); existing != nil && existing.Enabled {
 			enabled = 1
 		}
-		s.db.Exec(`INSERT OR IGNORE INTO industry_templates (id, name, description, category, inbound_rules_json, llm_rules_json, outbound_rules_json, enabled, built_in, created_at, updated_at)
-			VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+		s.db.Exec(`INSERT INTO industry_templates (id, name, description, category, inbound_rules_json, llm_rules_json, outbound_rules_json, enabled, built_in, created_at, updated_at)
+			VALUES (?,?,?,?,?,?,?,?,?,?,?)
+			ON CONFLICT DO NOTHING`,
 			tpl.ID, tpl.Name, tpl.Description, tpl.Category, string(inboundJSON), string(llmJSON), string(outboundJSON), enabled, 1, now, now)
 		s.db.Exec(`UPDATE industry_templates SET name=?, description=?, category=?, inbound_rules_json=?, llm_rules_json=?, outbound_rules_json=?, updated_at=? WHERE id=? AND built_in=1`,
 			tpl.Name, tpl.Description, tpl.Category, string(inboundJSON), string(llmJSON), string(outboundJSON), now, tpl.ID)
@@ -276,8 +277,9 @@ func (s *industryTemplateStore) migrateLegacyTemplates() {
 		if tpl.Enabled {
 			enabled = 1
 		}
-		s.db.Exec(`INSERT OR IGNORE INTO industry_templates (id, name, description, category, inbound_rules_json, llm_rules_json, outbound_rules_json, enabled, built_in, created_at, updated_at)
-			VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+		s.db.Exec(`INSERT INTO industry_templates (id, name, description, category, inbound_rules_json, llm_rules_json, outbound_rules_json, enabled, built_in, created_at, updated_at)
+			VALUES (?,?,?,?,?,?,?,?,?,?,?)
+			ON CONFLICT DO NOTHING`,
 			tpl.ID, tpl.Name, tpl.Description, tpl.Category, string(inboundJSON), string(llmJSON), string(outboundJSON), enabled, builtIn, time.Now().UTC().Format(time.RFC3339), time.Now().UTC().Format(time.RFC3339))
 	}
 }

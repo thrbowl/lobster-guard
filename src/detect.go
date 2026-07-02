@@ -1004,8 +1004,9 @@ func (re *RuleEngine) loadBuiltinInboundTemplates(db *sql.DB) {
 		if err != nil {
 			continue
 		}
-		db.Exec(`INSERT OR IGNORE INTO inbound_rule_templates (id, name, description, category, rules_json, built_in, created_at, updated_at)
-			VALUES (?,?,?,?,?,1,?,?)`,
+		db.Exec(`INSERT INTO inbound_rule_templates (id, name, description, category, rules_json, built_in, created_at, updated_at)
+			VALUES (?,?,?,?,?,1,?,?)
+			ON CONFLICT DO NOTHING`,
 			tpl.ID, tpl.Name, tpl.Description, tpl.Category, string(rulesJSON), now, now)
 		// 同步更新
 		db.Exec(`UPDATE inbound_rule_templates SET name=?, description=?, category=?, rules_json=?, updated_at=?

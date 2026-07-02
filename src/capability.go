@@ -217,7 +217,7 @@ func (ce *CapabilityEngine) seedCapDefaults() {
 			ce.toolMappings[d.ToolName] = &dd
 			acJ, _ := json.Marshal(d.AllowedCaps)
 			dcJ, _ := json.Marshal(d.DeniedCaps)
-			ce.db.Exec("INSERT OR IGNORE INTO cap_tool_mappings(tool_name,category,default_level,allowed_caps,denied_caps,trust_factor,updated_at) VALUES(?,?,?,?,?,?,?)",
+			ce.db.Exec("INSERT INTO cap_tool_mappings(tool_name,category,default_level,allowed_caps,denied_caps,trust_factor,updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT DO NOTHING",
 				d.ToolName, d.Category, d.DefaultLevel, string(acJ), string(dcJ), d.TrustFactor, time.Now().UTC().Format(time.RFC3339))
 		}
 	}

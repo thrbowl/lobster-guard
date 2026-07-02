@@ -1905,7 +1905,7 @@ func (e *LLMRuleEngine) SetTemplateDB(db *sql.DB) {
 	e.loadBuiltinLLMTemplates(db)
 }
 
-// loadBuiltinLLMTemplates 启动时 INSERT OR IGNORE 内置模板 + UPDATE 同步描述
+// loadBuiltinLLMTemplates 启动时补入内置模板 + UPDATE 同步描述
 func (e *LLMRuleEngine) loadBuiltinLLMTemplates(db *sql.DB) {
 	if db == nil {
 		return
@@ -1917,9 +1917,10 @@ func (e *LLMRuleEngine) loadBuiltinLLMTemplates(db *sql.DB) {
 		if err != nil {
 			continue
 		}
-		// INSERT OR IGNORE + 随后 UPDATE 同步描述和规则
-		db.Exec(`INSERT OR IGNORE INTO llm_rule_templates (id, name, description, category, rules_json, built_in, created_at, updated_at)
-			VALUES (?,?,?,?,?,1,?,?)`,
+		// 冲突时跳过插入，随后 UPDATE 同步描述和规则
+		db.Exec(`INSERT INTO llm_rule_templates (id, name, description, category, rules_json, built_in, created_at, updated_at)
+			VALUES (?,?,?,?,?,1,?,?)
+			ON CONFLICT DO NOTHING`,
 			tpl.ID, tpl.Name, tpl.Description, tpl.Category, string(rulesJSON), now, now)
 		// 同步更新内置模板的描述和规则（代码变更时自动同步）
 		db.Exec(`UPDATE llm_rule_templates SET name=?, description=?, category=?, rules_json=?, updated_at=?

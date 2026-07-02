@@ -108,8 +108,9 @@ func (tm *TenantManager) initSchema() {
 	tm.db.Exec(`CREATE INDEX IF NOT EXISTS idx_tenant_members_tenant ON tenant_members(tenant_id)`)
 
 	// 默认租户
-	tm.db.Exec(`INSERT OR IGNORE INTO tenants (id, name, description, created_at, enabled) 
-		VALUES ('default', '默认租户', '系统默认安全域', ?, 1)`,
+	tm.db.Exec(`INSERT INTO tenants (id, name, description, created_at, enabled)
+		VALUES ('default', '默认租户', '系统默认安全域', ?, 1)
+		ON CONFLICT DO NOTHING`,
 		time.Now().UTC().Format(time.RFC3339))
 
 	// 已有表加 tenant_id 列（忽略 "duplicate column" 错误）

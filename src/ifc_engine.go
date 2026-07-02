@@ -289,13 +289,13 @@ func NewIFCEngine(db *sql.DB, config IFCConfig) *IFCEngine {
 
 	// Persist source rules to DB
 	for src, label := range e.sourceRules {
-		e.db.Exec(`INSERT OR IGNORE INTO ifc_source_rules (source, conf, integ) VALUES (?, ?, ?)`,
+		e.db.Exec(`INSERT INTO ifc_source_rules (source, conf, integ) VALUES (?, ?, ?) ON CONFLICT DO NOTHING`,
 			src, int(label.Confidentiality), int(label.Integrity))
 	}
 
 	// Persist tool requirements to DB
 	for tool, req := range e.toolRequirements {
-		e.db.Exec(`INSERT OR IGNORE INTO ifc_tool_requirements (tool, required_integ, max_conf) VALUES (?, ?, ?)`,
+		e.db.Exec(`INSERT INTO ifc_tool_requirements (tool, required_integ, max_conf) VALUES (?, ?, ?) ON CONFLICT DO NOTHING`,
 			tool, int(req.RequiredInteg), int(req.MaxConf))
 	}
 

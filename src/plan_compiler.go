@@ -207,7 +207,7 @@ func (pc *PlanCompiler) loadBuiltinTemplates() {
 		pc.templates[t.ID] = t
 		kw, _ := json.Marshal(t.Keywords)
 		st, _ := json.Marshal(t.Steps)
-		pc.db.Exec("INSERT OR IGNORE INTO plan_templates (id,name,category,description,keywords,steps,enabled,priority,builtin,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,1,?,?)",
+		pc.db.Exec("INSERT INTO plan_templates (id,name,category,description,keywords,steps,enabled,priority,builtin,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,1,?,?) ON CONFLICT DO NOTHING",
 			t.ID, t.Name, t.Category, t.Description, string(kw), string(st), planBoolToInt(t.Enabled), t.Priority, now, now)
 	}
 }

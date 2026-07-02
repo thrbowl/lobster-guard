@@ -260,10 +260,10 @@ func (e *PathPolicyEngine) loadRules() {
 		e.rules = append([]PathPolicyRule{}, defaultPathPolicies...)
 		return
 	}
-	// 始终用 INSERT OR IGNORE 确保新增的默认规则被补入（不覆盖已有配置）
+	// 始终补入新增的默认规则（不覆盖已有配置）
 	// 同时用 UPDATE 同步内置规则的描述（中文化等变更）
 	for _, r := range defaultPathPolicies {
-		e.db.Exec("INSERT OR IGNORE INTO path_policies (id,name,rule_type,conditions,action,enabled,priority,description,tenant_id) VALUES (?,?,?,?,?,?,?,?,?)",
+		e.db.Exec("INSERT INTO path_policies (id,name,rule_type,conditions,action,enabled,priority,description,tenant_id) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING",
 			r.ID, r.Name, r.RuleType, r.Conditions, r.Action, boolToInt(r.Enabled), r.Priority, r.Description, r.TenantID)
 		// 同步内置规则描述（仅更新 pp-0xx 原始规则，不动租户绑定的副本）
 		e.db.Exec("UPDATE path_policies SET description=? WHERE id=?", r.Description, r.ID)
@@ -1009,7 +1009,7 @@ func (e *PathPolicyEngine) loadTemplates() {
 	// 补入内置模板，同步名称和描述
 	for _, t := range defaultTemplates {
 		rids, _ := json.Marshal(t.RuleIDs)
-		e.db.Exec("INSERT OR IGNORE INTO policy_templates (id,name,description,category,rule_ids,enabled,built_in,tenant_id) VALUES (?,?,?,?,?,?,?,?)",
+		e.db.Exec("INSERT INTO policy_templates (id,name,description,category,rule_ids,enabled,built_in,tenant_id) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING",
 			t.ID, t.Name, t.Description, t.Category, string(rids), boolToInt(t.Enabled), boolToInt(t.BuiltIn), t.TenantID)
 		// 同步内置模板的名称和描述
 		e.db.Exec("UPDATE policy_templates SET name=?, description=? WHERE id=? AND built_in=1", t.Name, t.Description, t.ID)

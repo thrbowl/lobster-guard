@@ -954,7 +954,8 @@ func (bp *BehaviorProfileEngine) ScanAndPersist(agentID, tenantID string) (*Agen
 
 	// 持久化突变到数据库
 	for _, a := range profile.Anomalies {
-		bp.db.Exec(`INSERT OR IGNORE INTO behavior_anomalies (id, timestamp, agent_id, tenant_id, type, severity, description, details, trace_id) VALUES (?,?,?,?,?,?,?,?,?)`,
+		bp.db.Exec(`INSERT INTO behavior_anomalies (id, timestamp, agent_id, tenant_id, type, severity, description, details, trace_id) VALUES (?,?,?,?,?,?,?,?,?)
+			ON CONFLICT DO NOTHING`,
 			a.ID, a.Timestamp, a.AgentID, a.TenantID, a.Type, a.Severity, a.Description, a.Details, a.TraceID)
 	}
 
@@ -1116,7 +1117,8 @@ func (bp *BehaviorProfileEngine) SeedBehaviorDemoData(db *sql.DB) (profiles int,
 	}
 
 	for _, a := range demoAnomalies {
-		db.Exec(`INSERT OR IGNORE INTO behavior_anomalies (id, timestamp, agent_id, tenant_id, type, severity, description, details, trace_id) VALUES (?,?,?,?,?,?,?,?,?)`,
+		db.Exec(`INSERT INTO behavior_anomalies (id, timestamp, agent_id, tenant_id, type, severity, description, details, trace_id) VALUES (?,?,?,?,?,?,?,?,?)
+			ON CONFLICT DO NOTHING`,
 			a.ID, a.Timestamp, a.AgentID, a.TenantID, a.Type, a.Severity, a.Description, a.Details, a.TraceID)
 		anomalies++
 	}

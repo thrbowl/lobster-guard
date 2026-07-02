@@ -148,8 +148,9 @@ func (dd *DeviationDetector) initRepairPolicies() {
 
 	defaults := getDefaultRepairPolicies()
 	for _, p := range defaults {
-		dd.db.Exec(`INSERT OR IGNORE INTO repair_policies (id, name, deviation_type, severity, action, description, enabled, builtin) VALUES (?,?,?,?,?,?,?,?)`,
-			p.ID, p.Name, p.DeviationType, p.Severity, p.Action, p.Description, p.Enabled, true)
+		dd.db.Exec(`INSERT INTO repair_policies (id, name, deviation_type, severity, action, description, enabled, builtin) VALUES (?,?,?,?,?,?,?,?)
+			ON CONFLICT DO NOTHING`,
+			p.ID, p.Name, p.DeviationType, p.Severity, p.Action, p.Description, boolToInt(p.Enabled), 1)
 		dd.db.Exec(`UPDATE repair_policies SET name=?, description=? WHERE id=? AND builtin=1`,
 			p.Name, p.Description, p.ID)
 	}

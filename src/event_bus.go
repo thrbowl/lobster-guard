@@ -245,7 +245,8 @@ func (eb *EventBus) Emit(event *SecurityEvent) {
 func (eb *EventBus) persistEvent(event *SecurityEvent) {
 	detailsJSON, _ := json.Marshal(event.Details)
 	_, err := eb.db.Exec(
-		`INSERT OR IGNORE INTO security_events (id, timestamp, type, severity, domain, trace_id, tenant_id, sender_id, summary, details_json) VALUES (?,?,?,?,?,?,?,?,?,?)`,
+		`INSERT INTO security_events (id, timestamp, type, severity, domain, trace_id, tenant_id, sender_id, summary, details_json) VALUES (?,?,?,?,?,?,?,?,?,?)
+		ON CONFLICT DO NOTHING`,
 		event.ID,
 		event.Timestamp.Format(time.RFC3339),
 		event.Type,

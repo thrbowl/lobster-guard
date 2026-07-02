@@ -19,7 +19,7 @@ func (ce *CapabilityEngine) capPersistCtx(ctx *CapContext) {
 // capPersistEval persists a capability evaluation to DB
 func (ce *CapabilityEngine) capPersistEval(eval *CapEvaluation) {
 	labJ, _ := json.Marshal(eval.Labels)
-	ce.db.Exec("INSERT OR IGNORE INTO cap_evaluations(id,trace_id,data_id,action,tool_name,decision,reason,labels,trust_score,timestamp) VALUES(?,?,?,?,?,?,?,?,?,?)",
+	ce.db.Exec("INSERT INTO cap_evaluations(id,trace_id,data_id,action,tool_name,decision,reason,labels,trust_score,timestamp) VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING",
 		eval.ID, eval.TraceID, eval.DataID, eval.Action, eval.ToolName, eval.Decision, eval.Reason, string(labJ), eval.TrustScore, eval.Timestamp)
 }
 

@@ -546,13 +546,14 @@ func (m *APIKeyManager) AutoDiscover(rawKey string) *APIKeyEntry {
 	}
 
 	if m.db != nil {
-		// 使用 INSERT OR IGNORE 防并发重复插入
-		m.db.Exec(`INSERT OR IGNORE INTO api_keys (id, key_hash, key_prefix, user_id, user_name, department, tenant_id, enabled, quota_daily, expires_at, created_at, status, discovered_at, request_count, last_seen_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		// 忽略唯一键冲突，防并发重复插入
+		m.db.Exec(`INSERT INTO api_keys (id, key_hash, key_prefix, user_id, user_name, department, tenant_id, enabled, quota_daily, expires_at, created_at, status, discovered_at, request_count, last_seen_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+			ON CONFLICT DO NOTHING`,
 			entry.ID, keyHash, entry.KeyPrefix, entry.UserID, entry.UserName, entry.Department,
 			entry.TenantID, boolToInt(entry.Enabled), entry.QuotaDaily, "", entry.CreatedAt,
 			entry.Status, entry.DiscoveredAt, entry.RequestCount, entry.LastSeenAt)
 
-		// INSERT OR IGNORE 可能因为 key_hash UNIQUE 冲突而跳过（并发情况）
+		// 插入可能因为 key_hash UNIQUE 冲突而跳过（并发情况）
 		// 随后 SELECT 确保拿到正确数据
 		var existEntry APIKeyEntry
 		var enabled2 int
